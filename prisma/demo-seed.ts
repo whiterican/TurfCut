@@ -15,7 +15,8 @@
  * with organizations they apply to (scorecard, and fit answers they chose
  * to share). Nobody signs in as demo staff, so that goes nowhere — unless
  * someone links a real login to a demo organization. Don't; and close the
- * demo jobs before real workers arrive (README).
+ * demo jobs before real workers arrive (README). Demo staff logins exist
+ * only in a dedicated demo project, made by prisma/demo-accounts.ts.
  *
  * Built through the app's own rules — jobs pass the publish gate, workers
  * apply, the organization sends an offer and the worker accepts it (C3),
@@ -25,13 +26,18 @@
  * dates (the hiring history events carry the backdated times).
  *
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
- * the base seed's approved CO/Denver jurisdiction must exist). Jobs outside
- * Denver are filed under a statewide CO profile only on a guarded demo
- * database (TURFCUT_DEMO=1, and TURFCUT_DEMO_PROJECT_REF matches the ref in
- * both NEXT_PUBLIC_SUPABASE_URL and DATABASE_URL): the database's current
+ * the base seed's approved CO/Denver jurisdiction must exist). Before it
+ * reads or writes anything it checks where it is pointed (demoSeedTarget):
+ * the live Turfcut project, named anywhere in the Supabase or database
+ * settings, is always refused, and any other hosted Supabase database is
+ * refused unless the run is guarded (TURFCUT_DEMO=1, and
+ * TURFCUT_DEMO_PROJECT_REF matches the ref in both NEXT_PUBLIC_SUPABASE_URL
+ * and DATABASE_URL). A refusal exits 1 with nothing written. A local
+ * Postgres runs with no extra settings. Jobs outside Denver are filed under
+ * a statewide CO profile only on a guarded run: the database's current
  * usable one, or one this run makes with a 14-day expiry and a "DEMO ONLY"
- * label. Elsewhere those jobs are filed in Denver, and no statewide profile
- * is created. It runs once:
+ * label, settled before any job is created. On an unguarded local run those
+ * jobs are filed in Denver, and no statewide profile is created. It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
  * What can be checked without writing is checked before the first write.
  * Scheduling and the steps after it are not: each shift, check-in and
@@ -43,7 +49,7 @@
  * than by a name anyone could type.
  */
 import { cleanDatabaseUrl } from "../src/lib/env";
-import { STATEWIDE_CO_ID, demoDatabaseGuard, demoJobCityAndJurisdiction, demoStatewideExpiry, planStatewideProfile, shouldRenewDemoStatewide } from "../src/lib/demo-seed-guard";
+import { STATEWIDE_CO_ID, demoJobCityAndJurisdiction, demoSeedTarget, demoStatewideExpiry, planStatewideProfile, shouldRenewDemoStatewide } from "../src/lib/demo-seed-guard";
 import { db } from "../src/lib/db";
 import { compensationProblem, jurisdictionProblems, validateJob, type Affiliation, type CampaignType, type JobInput } from "../src/lib/jobs";
 import type { IssueKey } from "../src/lib/political-fit";
@@ -168,6 +174,16 @@ function target(): string {
 }
 
 async function main() {
+  // Hard stop before the first read or write: the live project is always
+  // refused, and a hosted Supabase database only takes a guarded run.
+  const where = demoSeedTarget(process.env);
+  if (!where.ok) {
+    console.error(`Refusing to seed demo data into ${target()}: ${where.reason}`);
+    console.error("Nothing was written.");
+    process.exitCode = 1;
+    return;
+  }
+  const guard = where.kind === "guarded" ? ({ ok: true, ref: where.ref } as const) : where.guard;
   if (!process.argv.includes("--yes")) {
     console.log(`This writes permanent, append-only demo data to ${target()}.`);
     console.log("Run it again with --yes to go ahead: npm run seed:demo -- --yes");
@@ -185,7 +201,6 @@ async function main() {
   }
   const now = new Date();
   if (named.length) {
-    const guard = demoDatabaseGuard(process.env);
     const existing = await p.jurisdictionProfile.findFirst({
       where: { state: "CO", locality: null },
       orderBy: [{ isCurrent: "desc" }, { version: "desc" }],
@@ -222,8 +237,8 @@ async function main() {
   // not only the current one: a null locality is not unique, so creating
   // another approved v1 would silently succeed. Creating a placeholder is
   // allowed only on a guarded demo database (checked here, at the start of
-  // the seed, not just around the insert).
-  const guard = demoDatabaseGuard(process.env);
+  // the seed, not just around the insert). The plan, and so every job's city
+  // and profile, is settled here, before anything is written.
   const statewideRows = await p.jurisdictionProfile.findMany({
     // Every statewide row, including a pending or non-current v1. Do not add
     // isCurrent: true — that would hide a leftover v1 and let a duplicate be created.
@@ -246,7 +261,7 @@ async function main() {
   if (guard.ok) {
     console.log(`Guarded demo database (project ref ${guard.ref}).`);
   } else {
-    console.log(`Not a guarded demo database (${guard.reason})`);
+    console.log(`Local database, not a guarded demo (${guard.reason})`);
     if (swPlan.kind === "denver-only") {
       console.log("Demo jobs outside Denver will be filed in Denver. No statewide CO profile will be created.");
     }

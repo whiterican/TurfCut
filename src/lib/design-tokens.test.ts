@@ -161,7 +161,14 @@ describe.each([
       const dockPane = name === "dark" ? mix(t.surface, 0.16, "#ffffff") : mix(t.surface, 0.12, "#000000");
       expect(ratio(t.fg, mix(name === "dark" ? t.bg : t.surface, 0.5, hex(dockPane)))).toBeGreaterThanOrEqual(3);
       // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
-      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);/);
+      // The pill's glass is a layer under its photo and name (an iPhone drew the name soft inside a blurred pill): the pill holds no blur itself.
+      expect(css).toMatch(/\.menu-button\[data-named\]::before \{[^}]*?z-index: -1;[^}]*?background: var\(--surface\);\s*box-shadow: 0 1px 3px rgb\(28 15 46 \/ 0\.16\);/);
+      // Solid and sharp (Caden, Nov 16): no blur on the pill's pane, wherever it is.
+      expect(css.slice(css.indexOf(".menu-button[data-named]::before {"), css.indexOf(".menu-avatar {"))).not.toMatch(/backdrop-filter|glass-filter|glass-sheen/);
+      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?z-index: 0;[^}]*?border-color: transparent;/);
+      // The layer lies over the pill's border, so the edge is the layer's own (else the solid fallback and forced colours lose it).
+      expect(css).toMatch(/\.menu-button\[data-named\]::before \{[^}]*?border: 1px solid var\(--glass-border\);/);
+      expect(css.slice(css.indexOf(".menu-button[data-named] {"), css.indexOf("}", css.indexOf(".menu-button[data-named] {")))).not.toMatch(/backdrop-filter|background/);
       expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
       expect(themeBody(css, ".dark")).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 78%, transparent\);/);
       const strong = name === "dark" ? mix(t.surface, 0.78, "#ffffff") : mix(t.surface, 0.79, "#000000");
@@ -209,7 +216,12 @@ describe.each([
         for (const k of ["muted", "subtle-on-glass", "kicker", "link", "danger", "success", "warning"] as const) expect(ratio(t[k], ground)).toBeGreaterThanOrEqual(4.5);
       }
       // The faintest grey steps darker by day (Subtle itself is locked, and is under AA on the purple).
-      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4a576b");
+      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#3f4a5c");
+      // Secondary type and kickers step darker by day too (owner, Nov 14): pinned so a change is deliberate.
+      if (!dark) {
+        expect(light.muted).toBe("#3b4658");
+        expect(light.kicker).toBe("#3b4658");
+      }
       expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);
       // The glint across a card is white. By day that only adds contrast. By night it takes contrast from light type, so
       // the pane is checked again under the glint at its brightest (its first stop), where a card's first line can sit.
@@ -237,7 +249,8 @@ describe.each([
     expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
-    expect(solidTop).not.toMatch(/blur\(/);
+    // The one blur up there is the status bar's own glass (Caden, Nov 16): the prefixed and the plain declaration.
+    expect(solidTop.replace(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/, "").match(/blur\(/g)).toHaveLength(2);
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
     // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
     const noBar = css.slice(css.indexOf("/* ---- No bar behind the top row"));
@@ -717,6 +730,9 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     const used = [...new Set(page.match(/#[0-9a-f]{6}\b/gi) ?? [])];
     expect(used.length).toBeGreaterThan(0);
     for (const hex of used) expect(css.toLowerCase()).toContain(hex.toLowerCase());
+    // Its body copy is the light theme's secondary type, the same value as --muted.
+    const copy = page.match(/\.ge-card p \{[^}]*?color: (#[0-9a-f]{6});/i);
+    expect(copy?.[1].toLowerCase()).toBe(light.muted.toLowerCase());
   });
 
   it("by night the checked radio dot reads on the card (≥ 3:1)", () => {
@@ -832,11 +848,14 @@ describe("the shell (redesign B1.4)", () => {
       expect(ratio(th.fg, mix(strip, alpha, worst))).toBeGreaterThanOrEqual(4.5);
       expect(ratio(th.fg, mix(strip, 1, worst))).toBeGreaterThanOrEqual(7);
     }
-    // Blur only on the pane (saturating what shows through would move its top off the strip's colour); none in Sunlight or the solid fallback.
-    expect(css).toMatch(/\.more-sheet-panel \{[^}]*?-webkit-backdrop-filter: blur\(24px\);\s*backdrop-filter: blur\(24px\);/);
-    expect(css).toMatch(/\.sun \.more-sheet-panel \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+    // The glass is the dialog's own layer under the words (an iPhone drew text inside a blurred pane soft); the pane that holds
+    // the words has no colour and no blur. Blur only (saturating would move its top off the strip's colour); none in Sunlight or the fallback.
+    expect(css).toMatch(/\.more-sheet::before \{[^}]*?z-index: -1;[^}]*?background: var\(--drawer-bg\);\s*-webkit-backdrop-filter: blur\(24px\);\s*backdrop-filter: blur\(24px\);/);
+    const panel = css.slice(css.indexOf(".more-sheet-panel {\n    @apply"), css.indexOf("}", css.indexOf(".more-sheet-panel {\n    @apply")));
+    expect(panel).not.toMatch(/background|backdrop-filter/);
+    expect(css).toMatch(/\.sun \.more-sheet::before \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+    expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {"))).toMatch(/\.more-sheet::before \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css.match(/--drawer-root: var\(--surface\);\s*--drawer-bg: var\(--surface\);/g)).toHaveLength(2);
-    expect(css).toMatch(/\.more-sheet-panel \{[^}]*?background: var\(--drawer-bg\);/);
     expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
     expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
     expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);
@@ -1001,6 +1020,11 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
     expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
+    // No strip under the clock on an ordinary page: the page's gradient runs up behind it. The plain colour stays for contrast settings, a chat, Sunlight and a job page.
+    expect(css).toMatch(/html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: none;\s*\}/);
+    // Then the status bar's own glass, where the page draws under the clock: the clock strip's height, a light tint, a modest blur, a short fade at its foot.
+    expect(css).toMatch(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\) \{\s*html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: color-mix\(in srgb, var\(--root-top\) 30%, transparent\);\s*-webkit-backdrop-filter: blur\(10px\);\s*backdrop-filter: blur\(10px\);\s*-webkit-mask-image: linear-gradient\(to bottom, #000 0%, #000 75%, transparent 100%\);/);
+    expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: var\(--root-top\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;\s*\}/);
     // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).
     expect(css).toMatch(/--clock-strip: max\(min\(env\(safe-area-inset-top\), 20px\), calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
     // Only a chat's strip runs to the foot of the safe area, where its own bar begins.

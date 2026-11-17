@@ -48,6 +48,43 @@ const DENVER = "00000000-0000-0000-0000-000000000021";
 (async () => {
   const p = db();
 
+  // --- Hard stop before any write: the live project, and an unguarded hosted Supabase database ---
+  // Every row in every table of this database, so "nothing written" means nothing at all.
+  const rowCounts = async () => {
+    const tables = await p.$queryRaw<{ schemaname: string; tablename: string }[]>`
+      SELECT schemaname, tablename FROM pg_tables WHERE schemaname IN ('public', 'auth') ORDER BY 1, 2`;
+    const out: Record<string, number> = {};
+    for (const t of tables) {
+      const [{ n }] = await p.$queryRawUnsafe<{ n: bigint }[]>(`SELECT count(*) AS n FROM "${t.schemaname}"."${t.tablename}"`);
+      out[`${t.schemaname}.${t.tablename}`] = Number(n);
+    }
+    return out;
+  };
+  const withParam = (u: string, kv: string) => `${u}${u.includes("?") ? "&" : "?"}${kv}`;
+  const LIVE_REF = "txzxtvsfzxfhgfiurufq";
+  const rowsBefore = await rowCounts();
+  const totalBefore = Object.values(rowsBefore).reduce((a, b) => a + b, 0);
+  const sameRows = async () => JSON.stringify(await rowCounts()) === JSON.stringify(rowsBefore);
+  const refusedLive = (r: ReturnType<typeof seed>) => r.status === 1 && /live Turfcut Supabase project/.test(r.stderr ?? "") && /Nothing was written/.test(r.stderr ?? "");
+  // The live ref inside this (reachable, local) check database's own URL: without the stop, the seed would write here.
+  const liveInUrl = seedWith({ ...guardedEnv, DATABASE_URL: withParam(dbUrl, `application_name=${LIVE_REF}`) }, "--yes");
+  check("the live project's ref anywhere in DATABASE_URL is refused before any write, even guarded, and writes zero rows", refusedLive(liveInUrl) && (await sameRows()) && totalBefore > 0, tail(liveInUrl));
+  const liveSupabase = seedWith({ ...guardedEnv, NEXT_PUBLIC_SUPABASE_URL: `https://${LIVE_REF}.supabase.co`, TURFCUT_DEMO_PROJECT_REF: LIVE_REF }, "--yes");
+  check("the live project in NEXT_PUBLIC_SUPABASE_URL and TURFCUT_DEMO_PROJECT_REF is refused (no setting overrides it), and writes zero rows", refusedLive(liveSupabase) && (await sameRows()), tail(liveSupabase));
+  const liveDirect = seedWith({ ...unguardedEnv, DATABASE_URL: `postgresql://postgres:x@db.${LIVE_REF}.supabase.co:5432/postgres` }, "--yes");
+  check("the live project's own database URL is refused with no connection attempted", refusedLive(liveDirect) && !/Can't reach|P1001|PrismaClient/i.test(tail(liveDirect)) && (await sameRows()), tail(liveDirect));
+  const livePrompt = seedWith({ ...unguardedEnv, DATABASE_URL: `postgresql://postgres:x@db.${LIVE_REF}.supabase.co:5432/postgres` });
+  check("even without --yes, the live project is refused rather than offered", refusedLive(livePrompt) && !/Run it again with --yes/.test(livePrompt.stdout ?? ""), tail(livePrompt));
+  // A hosted (non-live) Supabase database with no guard settings: refused, and it says what to set.
+  const hostedUnguarded = (DATABASE_URL: string) => seedWith({ ...unguardedEnv, NEXT_PUBLIC_SUPABASE_URL: "", DATABASE_URL }, "--yes");
+  const refusedHosted = (r: ReturnType<typeof seed>) =>
+    r.status === 1 && /hosted Supabase database, and this run isn't guarded/.test(r.stderr ?? "") && /TURFCUT_DEMO=1/.test(r.stderr ?? "") && /Nothing was written/.test(r.stderr ?? "") && !/Can't reach|P1001|PrismaClient/i.test(tail(r));
+  const hostedDirect = hostedUnguarded("postgresql://postgres:x@db.abcd1234demo.supabase.co:5432/postgres");
+  const hostedPooler = hostedUnguarded("postgresql://postgres.abcd1234demo:x@aws-0-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true");
+  check("an unguarded hosted Supabase database (direct or pooler) is refused before any write, says what to set, and writes zero rows", refusedHosted(hostedDirect) && refusedHosted(hostedPooler) && (await sameRows()), { direct: tail(hostedDirect), pooler: tail(hostedPooler) });
+  const hostedMismatch = seedWith({ ...guardedEnv, DATABASE_URL: "postgresql://postgres:x@db.abcd1234demo.supabase.co:5432/postgres" }, "--yes");
+  check("a hosted database whose ref doesn't match TURFCUT_DEMO_PROJECT_REF is refused, and writes zero rows", hostedMismatch.status === 1 && /doesn't match/.test(hostedMismatch.stderr ?? "") && (await sameRows()), tail(hostedMismatch));
+
   // --- It asks first ---
   const asked = seed();
   check("without --yes it writes nothing and says how to go ahead", asked.status === 1 && /Run it again with --yes/.test(asked.stdout) && (await p.organization.count({ where: { name: { endsWith: " (demo)" } } })) === 0, tail(asked));
@@ -176,6 +213,35 @@ const DENVER = "00000000-0000-0000-0000-000000000021";
   } finally {
     await p2.$disconnect();
   }
+
+  // --- Demo logins (prisma/demo-accounts.ts): the plan, and the refusals that keep them out of a real project ---
+  const noSupabase: NodeJS.ProcessEnv = { ...process.env };
+  for (const k of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "TURFCUT_DEMO_PROJECT_REF", "DEMO_ACCOUNTS_PASSWORD"]) delete noSupabase[k];
+  const accounts = (...args: string[]) => spawnSync("npx", ["tsx", "prisma/demo-accounts.ts", ...args], { encoding: "utf8", env: noSupabase, timeout: 120_000 });
+  const counts = async () => ({ profiles: await p.profile.count(), events: await p.auditEvent.count() });
+  const beforeAccounts = await counts();
+  const plan = accounts("--plan");
+  const planned = (plan.stdout ?? "").split("\n").filter((l) => /@example\.com/.test(l));
+  const staffLines = planned.filter((l) => /^\s+(OWNER|SUPERVISOR|FINANCE)\s/.test(l));
+  check(
+    "--plan lists an owner, a supervisor and a finance login for every demo organization, and the demo worker",
+    plan.status === 0 && staffLines.length === orgIds.length * 3 && planned.filter((l) => /^\s+WORKER\s/.test(l)).length === 1,
+    tail(plan)
+  );
+  check("--plan writes nothing", JSON.stringify(await counts()) === JSON.stringify(beforeAccounts));
+  const unnamed = accounts("--yes");
+  check("--yes refuses without the demo project's settings, and writes nothing", unnamed.status === 1 && /NEXT_PUBLIC_SUPABASE_URL/.test(`${unnamed.stdout}${unnamed.stderr}`) && JSON.stringify(await counts()) === JSON.stringify(beforeAccounts), tail(unnamed));
+  // Pay now in the demo: Stripe test mode only, and the test account goes to the demo worker.
+  const withStripe = (key: string) => spawnSync("npx", ["tsx", "prisma/demo-accounts.ts", "--plan"], { encoding: "utf8", env: { ...noSupabase, STRIPE_SECRET_KEY: key, DEMO_STRIPE_ACCOUNT_ID: "acct_1DemoTestAcct" }, timeout: 120_000 });
+  const live = withStripe("sk_live_not-a-real-key");
+  check("a live Stripe key is refused", live.status === 1 && /LIVE key/.test(`${live.stdout}${live.stderr}`), tail(live));
+  const test = withStripe("sk_test_not-a-real-key");
+  check("--plan with a test key shows the test account going to the demo worker, and writes nothing", test.status === 0 && /Stripe test account acct_1DemoTestAcct → .+\(demo\)/.test(test.stdout) && (await p.worker.count({ where: { stripeAccountId: { not: null } } })) === 0, tail(test));
+
+  // A real sign-up means this isn't a dedicated demo project: no demo logins here, ever.
+  await p.profile.create({ data: { id: crypto.randomUUID(), role: "WORKER" } });
+  const stranger = accounts("--plan");
+  check("it refuses a database with a profile the seeds didn't make", stranger.status === 1 && /didn't make/.test(`${stranger.stdout}${stranger.stderr}`), tail(stranger));
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} FAILED`); process.exit(1); }

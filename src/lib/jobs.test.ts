@@ -14,6 +14,8 @@ import {
   jobCredentials,
   jobRulesLabel,
   jurisdictionLocalityProblem,
+  hiringPausedMessage,
+  hiringPausedReasons,
   publishBlockerList,
   publishBlockers,
   readHiringModes,
@@ -607,5 +609,29 @@ describe("the rules line names the job's own place (demo audit 4)", () => {
     expect(jurisdictionLocalityProblem("   ", denver)).toMatch(/doesn't name a city/);
     expect(jurisdictionLocalityProblem(null, { state: "CO", locality: null })).toMatch(/doesn't name a city/);
     expect(jurisdictionLocalityProblem("Aurora", denver)).toMatch(/is in Aurora, but the rule profile is for Denver, CO/);
+  });
+});
+
+describe("hiring pauses with the organization's approval and the job's rules (demo audit 5)", () => {
+  it("is open for an approved organization under current, approved rules", () => {
+    expect(hiringPausedReasons({ approved: true }, denver, now)).toEqual([]);
+  });
+  it("pauses when Turfcut's approval of the organization is withdrawn", () => {
+    expect(hiringPausedReasons({ approved: false }, denver, now)).toEqual(["Turfcut's approval of this organization is on hold."]);
+  });
+  it("pauses with every reason the rules fail the gate: lapsed, unapproved, superseded, not yet effective, unknown", () => {
+    expect(hiringPausedReasons({ approved: true }, { ...denver, approvalExpiresAt: new Date("2026-09-30T00:00:00Z") }, now)).toEqual(["Counsel approval for Denver, CO (rules v1) expired on 2026-09-30."]);
+    expect(hiringPausedReasons({ approved: true }, { ...denver, approved: false }, now)).toEqual(["Denver, CO (rules v1) hasn't been approved by counsel."]);
+    expect(hiringPausedReasons({ approved: true }, { ...denver, isCurrent: false }, now)[0]).toMatch(/superseded/);
+    expect(hiringPausedReasons({ approved: true }, { ...denver, effectiveFrom: new Date("2026-12-01T00:00:00Z") }, now)[0]).toMatch(/isn't effective until 2026-12-01/);
+    expect(hiringPausedReasons({ approved: true }, null, now)[0]).toMatch(/unknown/);
+  });
+  it("lists the organization first, then the rules, and says hiring is paused", () => {
+    const reasons = hiringPausedReasons({ approved: false }, { ...denver, approvalExpiresAt: new Date("2026-09-30T00:00:00Z") }, now);
+    expect(reasons).toHaveLength(2);
+    expect(hiringPausedMessage(reasons)).toBe("Hiring is paused on this job: Turfcut's approval of this organization is on hold. Counsel approval for Denver, CO (rules v1) expired on 2026-09-30.");
+  });
+  it("an approval that expires later doesn't pause it yet", () => {
+    expect(hiringPausedReasons({ approved: true }, { ...denver, approvalExpiresAt: new Date("2026-10-02T00:00:00Z") }, now)).toEqual([]);
   });
 });

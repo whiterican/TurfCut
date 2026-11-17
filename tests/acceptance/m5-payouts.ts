@@ -544,12 +544,75 @@ async function slice5(ctx: { e2: string }) {
   check("the export has a paid_in_period column, yes for a line paid in the period", header.endsWith("paid_in_period") && !!yRow && /"?yes"?$/.test(yRow), { header, yRow });
 }
 
+/**
+ * A live Stripe key never pays seeded demo data (README, "Pay now in the demo"):
+ * payWorker and settleTransfer refuse a worker or organization named in the
+ * demo.seeded marker before any provider call, and an in-flight transfer stays "sending".
+ */
+async function slice6() {
+  const p = db();
+  const now = () => new Date();
+  const fin = { profileId: FIN, orgId: ORG, role: "FINANCE" as const };
+  const fake = fakeStripe();
+  let calls = 0;
+  const counted = new Proxy(fake.provider, {
+    get(target, prop, recv) {
+      const v = Reflect.get(target, prop, recv);
+      if (typeof v !== "function" || prop === "configured") return v;
+      return (...args: unknown[]) => { calls++; return (v as (...a: unknown[]) => unknown).apply(target, args); };
+    },
+  }) as PayoutProvider;
+  const stateOf = async (id: string) => { const l = await p.payout.findUniqueOrThrow({ where: { id }, include: { events: true } }); return lineState(l, l.events, false); };
+
+  // (setup) an approved line for W2, sent while Stripe times out before sending: in flight.
+  const engA = (await p.engagement.findFirst({ where: { jobId: JOB_A, workerId: W2 } })) ?? (await p.engagement.create({ data: { jobId: JOB_A, workerId: W2, status: "ACTIVE", hiredById: OWNER } }));
+  const sz = await workedShift(engA.id, 6);
+  await supervisorShiftAction(supA, sz, { kind: "closeout", status: "APPROVED", reason: null }, now());
+  const lz = await p.payout.findFirstOrThrow({ where: { shiftId: sz, kind: "SHIFT" }, orderBy: { createdAt: "desc" } });
+  await pay.lineAction(fin, [lz.id], "approve", null, now());
+  const acct = await pay.ensurePayoutAccount(W2, fake.provider);
+  fake.accounts.set(acct, { enabled: true });
+  fake.failNext("timeout-before-send");
+  const started = await pay.payWorker(fin, W2, fake.provider, null, now());
+  check("(setup) a transfer is in flight", started.ok && started.outcome === "pending" && (await stateOf(lz.id)).status === "PROCESSING", started);
+  const inFlight = started.ok ? started.transferId : "";
+
+  const savedKey = process.env.STRIPE_SECRET_KEY;
+  process.env.STRIPE_SECRET_KEY = "sk_live_fake";
+  try {
+    // A seeded demo worker.
+    await p.auditEvent.create({ data: { action: "demo.seeded", entityType: "Demo", entityId: "demo-data", actorId: null, metadata: { orgIds: [], workerIds: [W2] } } });
+    calls = 0;
+    const paid = await pay.payWorker(fin, W2, counted, null, now());
+    check("live key: payWorker refuses a seeded demo worker with no provider call", !paid.ok && /seeded demo/.test(paid.ok ? "" : paid.reason) && calls === 0, { paid, calls });
+    calls = 0;
+    const settled = await pay.settleTransfer(fin, inFlight, counted, now());
+    check("live key: settleTransfer refuses an in-flight transfer to a seeded demo worker with no provider call", !settled.ok && /seeded demo/.test(settled.ok ? "" : settled.reason) && calls === 0, { settled, calls });
+    check("…and the transfer stays sending, not failed", (await stateOf(lz.id)).status === "PROCESSING" && !(await p.payoutEvent.findFirst({ where: { transferId: inFlight, type: "TRANSFER_FAILED" } })));
+
+    // A seeded demo organization (any worker it pays).
+    await p.auditEvent.create({ data: { action: "demo.seeded", entityType: "Demo", entityId: "demo-data", actorId: null, metadata: { orgIds: [ORG], workerIds: [] } } });
+    calls = 0;
+    const orgPaid = await pay.payWorker(fin, W1, counted, null, now());
+    check("live key: payWorker refuses a seeded demo organization with no provider call", !orgPaid.ok && /seeded demo/.test(orgPaid.ok ? "" : orgPaid.reason) && calls === 0, { orgPaid, calls });
+  } finally {
+    if (savedKey === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = savedKey;
+  }
+
+  // With a test key the same transfer settles normally.
+  calls = 0;
+  const after = await pay.settleTransfer(fin, inFlight, counted, now());
+  check("test key: the same transfer settles, asking Stripe", after.ok && after.outcome === "paid" && calls > 0, { after, calls });
+}
+
 async function main() {
   await setup();
   const ctx = await slice2();
   await slice3(ctx);
   await slice4();
   await slice5(ctx);
+  await slice6();
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
   process.exit(fails ? 1 : 0);
 }

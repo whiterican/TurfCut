@@ -1288,6 +1288,8 @@ body {
   .empty-art .ink { stroke: currentColor; }
   .empty-art .dim { stroke: var(--muted); opacity: 0.55; }
   .empty-art .paper { fill: var(--surface); }
+  /* A drawn turf outline is dashed (the "turf" drawing). */
+  .empty-art .dash { stroke-dasharray: 4 4; }
 
   /* ---- Buttons & links ------------------------------------------------- */
   .btn,

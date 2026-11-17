@@ -1,0 +1,80 @@
+{
+  "commit": "103000a770b4e86ea0302f572e7c4945e7fa2a17",
+  "browser": "Playwright Chromium",
+  "route": "/desk, local OWNER, seeded org with no turf",
+  "note": "Local database and local auth fixture only. The screenshot is the Field activity section.",
+  "results": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 298,
+      "formerMapHeight": 360,
+      "radius": "24px",
+      "needTileRadius": "24px",
+      "art": "turf",
+      "mapKeyShown": false,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 298,
+      "formerMapHeight": 360,
+      "radius": "24px",
+      "needTileRadius": "24px",
+      "art": "turf",
+      "mapKeyShown": false,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "height": 278,
+      "formerMapHeight": 360,
+      "radius": "24px",
+      "needTileRadius": "24px",
+      "art": "turf",
+      "mapKeyShown": false,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "height": 278,
+      "formerMapHeight": 360,
+      "radius": "24px",
+      "needTileRadius": "24px",
+      "art": "turf",
+      "mapKeyShown": false,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 278,
+      "formerMapHeight": 440,
+      "radius": "24px",
+      "needTileRadius": "24px",
+      "art": "turf",
+      "mapKeyShown": false,
+      "overflow": 0,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 278,
+      "formerMapHeight": 440,
+      "radius": "24px",
+      "needTileRadius": "24px",
+      "art": "turf",
+      "mapKeyShown": false,
+      "overflow": 0,
+      "errors": []
+    }
+  ]
+}

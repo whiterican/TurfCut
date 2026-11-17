@@ -4748,7 +4748,7 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, none elsewhere) is what is left. A row held
+   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, light glass elsewhere) is what is left. A row held
    in place by keyboard focus keeps its bar. */
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
@@ -4802,6 +4802,21 @@ html:not(.sun) .site-header {
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   background: none;
 }
+/* Then blurred and see-through, the status bar's own size (Caden, Nov 16: "make the status bar blurred and
+   transparent but only as big as it is now"): the clock's strip (Nov 15: it ends just under the time and battery, at the
+   foot of the camera, so it never reaches a name), a light tint of the page's top colour over a modest blur, and a short fade in its last quarter so the edge reads as glass
+   and not a block. At rest the page behind it is the same colour and nothing shows; what scrolls up under the clock
+   softens. Only where the page draws under the clock (an installed iPhone app): elsewhere the safe area is 0 and so
+   is this. A Safari tab's strip is Safari's own and is not touched by this. */
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+    background: color-mix(in srgb, var(--root-top) 30%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+  }
+}
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.
    A list, not "not (a or b or c)": a browser that does not know one of these features (Safari has no
@@ -4823,5 +4838,9 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     background: var(--root-top);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }

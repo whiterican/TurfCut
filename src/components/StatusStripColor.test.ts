@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { STRIP_COLORS } from "@/lib/theme";
+import { FLAT_STRIP_MEDIA, STRIP_COLORS, STRIP_COLORS_FLAT } from "@/lib/theme";
 
 const src = readFileSync(join(__dirname, "StatusStripColor.tsx"), "utf8");
 const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
@@ -42,8 +42,21 @@ describe("the phone's status strip follows the theme", () => {
     // Sunlight's page top is its own background (--page-top: var(--bg) in the .sun block).
     const sun = css.slice(css.indexOf("\n.sun {"), css.indexOf("\n}", css.indexOf("\n.sun {")));
     expect(sun).toContain(`--bg: ${STRIP_COLORS.sun};`);
-    expect(css).toMatch(/\n  --page-top: var\(--bg\);/);
-    // The layout's own tags stay on the phone's light and dark: the script, not the server, knows the app's theme.
-    expect(layout).toContain("<InlineScript html={THEME_INIT_SCRIPT} />");
+    expect(sun).toContain("--page-top: var(--bg);");
+    // The layout's own tags stay on the phone's light and dark (the script, not the server, knows the app's theme),
+    // and the script that corrects them runs in the head.
+    expect(layout).toContain(`{ media: "(prefers-color-scheme: light)", color: "${STRIP_COLORS.light}" }`);
+    expect(layout).toContain(`{ media: "(prefers-color-scheme: dark)", color: "${STRIP_COLORS.dark}" }`);
+    expect(layout).toMatch(/<head>\s*<InlineScript html=\{THEME_INIT_SCRIPT\} \/>/);
+  });
+  it("under the contrast settings the strip is each theme's flat background, the stylesheet's own query and colours", () => {
+    const css = readFileSync(join(__dirname, "../app/globals.css"), "utf8");
+    // The stylesheet flattens the page top to --bg under exactly this query.
+    const at = css.indexOf(`@media ${FLAT_STRIP_MEDIA} {`);
+    expect(at).toBeGreaterThan(-1);
+    expect(css.slice(at, at + 3000)).toContain("--page-top: var(--bg);");
+    expect(css).toContain(`\n  --bg: ${STRIP_COLORS_FLAT.light}; /* = Cream */`);
+    expect(css).toContain(`\n  --bg: ${STRIP_COLORS_FLAT.dark};`);
+    expect(STRIP_COLORS_FLAT.sun).toBe(STRIP_COLORS.sun);
   });
 });

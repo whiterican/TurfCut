@@ -4777,14 +4777,17 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
      behind it is blurred. Once the photograph has gone by, the strip under the clock is the page's top colour
      and no taller than the clock's own strip; the page has no row there for it to leave with, so it stays on the
      way down too. */
+  /* Then (Caden, Nov 17: "the top bar needs to be the same color as the gradient") the strip under the clock is
+     the page's top colour from the start, as on every other page, and the photograph begins below it. The shade
+     that stood over the photograph is gone: an iPhone drew that masked layer as a solid pale bar. */
   html:not(.sun) .job-photo-head::after {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    content: none !important;
   }
   html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
     height: var(--clock-strip) !important;
+    opacity: 1 !important;
   }
-  html[data-past-photo][data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:has(.job-photo-head):has(.tpl):not(:has(.staff-band))::after {
+  html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:has(.job-photo-head):has(.tpl):not(:has(.staff-band))::after {
     opacity: 1 !important;
   }
 }
@@ -4795,7 +4798,7 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
    every width: the logo and the round buttons stand on the page's own gradient, which is fixed to the screen, so
    there is no edge where a band would stop. The header has no pane of its own either. What stays: the plain strip under
    the phone's clock (html::after) on a chat, Sunlight and the contrast settings (on an ordinary page it was removed on
-   Nov 16 and the page runs up behind the clock); a job page's shade over its photograph and its strip once past it (both
+   Nov 16 and the page runs up behind the clock); a job page's strip under the clock (from Nov 17 shown from the start, no shade over the photograph; it is
    only that tall on a phone); a chat's bar, the staff band and Sunlight's plain bar, which are surfaces. */
 html:not(.sun) .phone-top::before {
   display: none !important;

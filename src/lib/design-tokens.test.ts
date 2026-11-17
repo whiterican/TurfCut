@@ -244,15 +244,19 @@ describe.each([
     expect(css).toMatch(/\nhtml \{[^}]*?\n  --root-top: var\(--page-top\);\s*--root-foot: color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*background: var\(--root-foot\);/);
     expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: calc\(100lvh \+ 6rem\);\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat 0 0 \/ 100% 100lvh, var\(--root-foot\);\s*\}/);
     // The top of the screen is solid (Caden, Nov 14): every band that was glass is the page's top colour with no blur
-    // and no mask, a blank bar leaves with its row on the way down, and a job's photograph keeps only plain shade.
+    // and no mask, a blank bar leaves with its row on the way down; a job's page has its strip from the start (below).
     const solidTop = css.slice(css.indexOf("/* ---- The top of the screen is solid"));
     expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
-    expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
+    // A job's page on a phone (Caden, Nov 17): no shade over the photograph (an iPhone drew it as a solid pale bar); the
+    // strip under the clock is the page's top colour from the start and stays on the way down.
+    expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*content: none !important;\s*\}/);
+    expect(solidTop).toMatch(/html:not\(\.sun\) body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.thread-top\)\)::after \{\s*height: var\(--clock-strip\) !important;\s*opacity: 1 !important;\s*\}/);
+    expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.staff-band\)\)::after \{\s*opacity: 1 !important;/);
     // The one blur up there is the status bar's own glass (Caden, Nov 16): the prefixed and the plain declaration.
     expect(solidTop.replace(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/, "").match(/blur\(/g)).toHaveLength(2);
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
-    // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
+    // the strip under the clock, a job page's strip and the surfaces (chat, staff, Sunlight) remain.
     const noBar = css.slice(css.indexOf("/* ---- No bar behind the top row"));
     expect(noBar).toMatch(/html:not\(\.sun\) \.phone-top::before \{\s*display: none !important;/);
     expect(noBar).toMatch(/html:not\(\.sun\) body:not\(:has\(\.job-photo-head, \.staff-band, \.thread-top\)\)::after \{\s*display: none !important;/);

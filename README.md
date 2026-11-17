@@ -137,6 +137,10 @@ exercise the locks, triggers and data rules, not the RLS policies.
      transaction).
    - Then `prisma/p1-discovery.sql` (P1.6: saved and hidden jobs on the
      feed), before deploying the P1.6 build. Safe to run again.
+   - Then `prisma/c3-provides-training.sql` ("We provide training" on
+     jobs, PR #187), **before** deploying the build that reads
+     `Job.providesTraining`: until it runs, job pages and hiring fail.
+     Safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -373,15 +377,18 @@ A local Postgres (anything that isn't hosted Supabase, such as
 no extra settings. There, jobs outside Denver are filed in Denver unless
 the run is guarded. It makes:
 
-- six organizations with their staff and twelve workers, all named "… (demo)";
+- six organizations with their staff and twelve workers, all named "… (demo)".
+  Each demo worker holds a self-reported Colorado circulator registration,
+  affidavit status, badge and the "Petition basics" and "Canvass basics"
+  training, since hiring checks credentials;
 - 27 published Colorado jobs across eight cities, all titled "… (demo)" and
   fictional. Denver jobs are filed under the base seed's Denver profile. On
   a guarded demo database, the rest go under a statewide CO profile: the
   database's current usable one, or one the demo seed adds with a 14-day
   expiry and a "DEMO ONLY" label (not counsel-approved), settled before
   any job is created. On an unguarded local database those jobs are filed
-  in Denver, and no statewide profile is created. They
-  cover local measures and civic work, plus a job for each campaign type and
+  in Denver, and no statewide profile is created. They cover local
+  measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,
   Republican, Libertarian, Green, other). The candidates have invented
   names and run in districts that don't exist. Between them the campaigns
@@ -807,7 +814,9 @@ Jobs and hiring, built on the M1 profile.
   affidavit). The feed's "No credentials" filter uses the same list.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
   orgs answer applications with an offer (C3) and workers accept offers and
-  invitations. Headcount is enforced under a lock, so simultaneous claims
+  invitations. Applying, claiming and accepting an invitation or offer
+  check the job's credentials, with "We provide training" waiving only a
+  badge or training (see C3 scope). Headcount is enforced under a lock, so simultaneous claims
   can't overfill a job.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
@@ -1333,6 +1342,34 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 
 ## C3 scope — the hiring hub
 
+- **Credentials before hiring (demo audit, Nov 2026)**: applying to,
+  instantly claiming, and accepting a job (an invitation or an offer) check
+  the worker's credentials on the server (`src/lib/job-credentials.ts`). A
+  job that needs a circulator registration, an affidavit status, a badge
+  or a training course (asked for by the organization, or by the
+  jurisdiction's circulator rules on petition jobs) refuses a worker whose
+  current wallet doesn't hold it, and says which one to add on Profile →
+  Credentials. Self-reported credentials count, expired ones don't, and a
+  registration or affidavit status for another state doesn't. A badge is
+  an "Other" (or training) credential named exactly "Badge", "Circulator
+  badge" or "Paid circulator badge" (any case, extra spaces ignored), so
+  "No badge yet" doesn't count. Training is a "Training completed"
+  credential named for the job's course (same matching); no new
+  credential kind. Every check runs again under the locks, against the
+  job and wallet as they are then, so a credential removed (or a setting
+  changed) meanwhile can't slip through. Sending an invitation isn't
+  checked; accepting it is.
+- **"We provide training" (owner decision, Nov 16 2026)**: an
+  organization can tick this on a job (`Job.providesTraining`, default
+  off; `prisma/c3-provides-training.sql`). When it's on, a missing required
+  training course or badge doesn't block apply, claim or accept on that
+  job. A required circulator registration or affidavit status is always
+  enforced, whatever the setting. When it's off, every required credential
+  is enforced. The job page tells workers when it's on. Turning it off
+  later doesn't touch anyone already hired: the setting only governs new
+  applies, claims and accepts (an offer or invitation still waiting is
+  checked when the worker accepts). Scheduling and check-in aren't
+  re-checked.
 - **Pipeline (C3.1)**: an organization can mark an application *in review*
   (the worker sees "In review"), send an *offer*, or mark it *not selected*
   with a reason code from a fixed list and an optional note the worker

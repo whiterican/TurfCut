@@ -29,6 +29,7 @@ export const JOB_FIELDS = {
   cancellationNoticeHours: "cancellation notice",
   launch: "how each day starts",
   tools: "the canvassing app",
+  providesTraining: "whether the organization provides training",
 } as const;
 export type JobField = keyof typeof JOB_FIELDS;
 

@@ -525,7 +525,7 @@ export function JobForm({
             <input type="checkbox" name="providesTraining" defaultChecked={defaults.providesTraining === "on"} className="sr-only" aria-describedby={["hint-providesTraining", describe("providesTraining")["aria-describedby"]].filter(Boolean).join(" ")} aria-invalid={describe("providesTraining")["aria-invalid"]} />
             We provide training
           </label>
-          <p id="hint-providesTraining" className="text-hint">When this is on, workers can be hired without a required training course or badge — the organization provides those. A required circulator registration or signed affidavit is still required, and turning this off later does not change anyone already hired.</p>
+          <p id="hint-providesTraining" className="text-hint">Tick this only if your organization trains workers for every badge and training course this job needs, including a badge the state requires. When it&apos;s on, workers can be hired without those. A required circulator registration or signed affidavit is always required, and turning this off later doesn&apos;t change anyone already hired.</p>
           {err("providesTraining")}
         </div>
         <label className="space-y-1.5 sm:col-span-3">

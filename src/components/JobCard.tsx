@@ -47,7 +47,7 @@ export function JobCard({
         <Row label="Credentials needed">{a.credentials.join(" · ") || "None"}</Row>
         {job.providesTraining && (
           <Row label="We provide training">
-            The organization provides training and badges on this job. You still need any required circulator registration or signed affidavit.
+            The organization provides training for the badges and courses this job needs, including any badge the state requires. You still need any required circulator registration or signed affidavit.
           </Row>
         )}
         <Row label="Who handles problems">

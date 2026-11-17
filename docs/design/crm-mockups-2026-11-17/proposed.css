@@ -1,0 +1,25 @@
+/* The only new CSS in these mockups: a few patterns for the People and field-leads frames, on the app's own tokens.
+   Everything else in the frames is the app's own markup and stylesheet. Nothing here is built yet. */
+.mock-banner { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9999; padding: 4px 12px; font: 600 11px/1.4 var(--font-inter, ui-sans-serif), system-ui, sans-serif; text-align: center; background: #1c0f2e; color: #fff; opacity: .92; }
+.person-row { display: grid; grid-template-columns: minmax(11rem, 1.5fr) minmax(0, 1.1fr) 7.5rem 4.5rem 6.5rem; gap: .75rem; align-items: center; padding: .75rem 1rem; border-top: 1px solid var(--border); }
+.person-row[aria-current="true"] { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.person-row .who { display: flex; align-items: center; gap: .625rem; min-width: 0; }
+.person-row .who strong { display: block; overflow-wrap: anywhere; }
+.person-head { display: grid; grid-template-columns: minmax(11rem, 1.5fr) minmax(0, 1.1fr) 7.5rem 4.5rem 6.5rem; gap: .75rem; padding: .625rem 1rem; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.avatar-sm { display: inline-flex; width: 2.25rem; height: 2.25rem; flex: none; align-items: center; justify-content: center; border-radius: 9999px; background: var(--surface-2); font-weight: 700; font-size: .8125rem; }
+.due-chip { display: inline-flex; align-items: center; gap: .375rem; border-radius: 9999px; padding: .125rem .625rem; font-size: .8125rem; font-weight: 700; border: 1px solid var(--border-strong, var(--border)); }
+.due-chip[data-due="overdue"] { border-color: var(--coral, #d9534f); }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.timeline li { display: grid; grid-template-columns: 1.5rem 1fr; gap: .5rem; }
+.timeline .dot { width: .625rem; height: .625rem; margin: .4rem auto 0; border-radius: 9999px; background: var(--fg); }
+.note { border-top: 1px solid var(--border); padding-top: .625rem; }
+.outcome-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .625rem; }
+.outcome-grid button { min-height: 3.5rem; font-weight: 700; }
+.stop { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; gap: .75rem; align-items: center; padding: .875rem 1rem; border-top: 1px solid var(--border); }
+.stop .n { display: inline-flex; width: 2.25rem; height: 2.25rem; align-items: center; justify-content: center; border-radius: 9999px; border: 1.5px solid var(--fg); font-weight: 800; font-variant-numeric: tabular-nums; }
+.stop[data-done="true"] .n { background: var(--fg); color: var(--bg); }
+.sync { display: inline-flex; align-items: center; gap: .375rem; font-size: .8125rem; font-weight: 700; }
+.csv-map { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem 1rem; align-items: center; }
+.mock-split { display: grid; gap: 1rem; }
+@media (min-width: 64rem) { .mock-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 47.99rem) { .person-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; } .person-row .who { flex: 1 1 100%; } .person-row > .status, .person-row > .due-chip { width: fit-content; } .person-head { display: none; } }

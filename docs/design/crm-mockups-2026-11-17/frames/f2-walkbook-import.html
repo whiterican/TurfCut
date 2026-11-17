@@ -1,0 +1,17 @@
+<!-- F2 · Field leads · manager walkbook CSV import preview and assignment. Shell: org (owner). -->
+<main class="tpl" data-template="workspace" data-org="true" style="--tpl-gap:2.5rem">
+<div class="tpl-head"><header class="page-header"><div class="min-w-0 space-y-1.5"><div class="text-hint"><a href="#">← Commercial roofing · Aurora (demo)</a></div><h1 class="page-title masthead break-words">Import walkbook</h1><div class="text-muted-sm max-w-prose">Upload a CSV of business addresses. You review it here before anyone sees a stop.</div></div></header></div>
+<div class="tpl-body"><div class="tpl-main space-y-6">
+<section class="card space-y-3"><h2 class="text-base font-semibold">1 · Match columns</h2>
+<div class="csv-map"><span class="label">Business name</span><span>business_name ✓</span><span class="label">Address</span><span>street + city ✓</span><span class="label">Contact (optional)</span><span class="text-hint">not mapped</span></div></section>
+<section class="card space-y-3"><h2 class="text-base font-semibold">2 · Preview</h2>
+<dl class="summary-band"><div><dt>stops ready</dt><dd>24</dd></div><div><dt>duplicates skipped</dt><dd>2</dd></div><div><dt>need a fix</dt><dd>1</dd></div></dl>
+<div class="data-table-wrap" tabindex="0" role="region" aria-label="Import preview"><table class="data-table"><thead><tr><th>#</th><th>Business</th><th>Address</th><th>Result</th></tr></thead><tbody>
+<tr><td>1</td><td>Aurora Tire &amp; Auto</td><td>1420 Peoria St</td><td><span class="status status-live">✓ Ready</span></td></tr>
+<tr><td>2</td><td>Dental Group of Aurora</td><td>1388 Peoria St</td><td><span class="status status-live">✓ Ready</span></td></tr>
+<tr><td>—</td><td>Peoria Self Storage</td><td>1210 Peoria St</td><td><span class="status status-queued">Duplicate of #7</span></td></tr>
+<tr><td>—</td><td>Corner Deli</td><td>(no street)</td><td><span class="status status-blocked">⊘ Needs an address</span></td></tr></tbody></table></div></section>
+<section class="card space-y-3"><h2 class="text-base font-semibold">3 · Assign</h2><p class="text-hint">Only workers confirmed on this job can be assigned.</p>
+<div class="flex flex-wrap gap-2"><button class="filter-chip" aria-pressed="true">Maria Reyes · 12 stops</button><button class="filter-chip" aria-pressed="true">Devon Kim · 12 stops</button><button class="filter-chip" aria-pressed="false">Unassigned</button></div>
+<div class="flex gap-2"><button class="btn-primary">Publish walkbook</button><button class="btn-ghost">Cancel</button></div></section>
+</div></div></main>

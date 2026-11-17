@@ -1,0 +1,20 @@
+<!-- H2 · Hiring CRM · person record: stage history, shared fit, private notes, follow-up. Shell: org (owner) /hiring. -->
+<main class="tpl" data-template="record" data-panel="aside" data-org="true" style="--tpl-gap:2.5rem">
+<div class="tpl-head"><header class="page-header"><div class="min-w-0 space-y-1.5"><div class="text-hint"><a href="#">← People</a></div><h1 class="page-title masthead break-words">Maria Reyes (demo)</h1><div class="text-muted-sm max-w-prose">Working on Door knock · Aurora corridor since Nov 4</div></div><div class="flex gap-2"><button class="btn-secondary">Message</button><button class="btn-primary">Add follow-up</button></div></header></div>
+<div class="tpl-body"><div class="tpl-main space-y-6">
+<section class="card space-y-3" aria-labelledby="fu"><h2 id="fu" class="text-base font-semibold">Follow-up</h2>
+<div class="flex flex-wrap items-center gap-3"><span class="due-chip" data-due="overdue">Due Nov 15 · 2 days late</span><span>Confirm Saturday shift</span></div>
+<div class="flex gap-2"><button class="btn-secondary btn-sm">Done</button><button class="btn-ghost btn-sm">Snooze to Nov 18</button></div></section>
+<section class="card space-y-3" aria-labelledby="nt"><h2 id="nt" class="text-base font-semibold">Team notes <span class="text-hint">· private to your organization, never shown to her</span></h2>
+<p class="text-hint"><strong>Needs your decision (Q5):</strong> hiring today allows no free-text notes about a worker. This frame shows what notes would look like if that rule changes.</p>
+<form class="field"><label class="label" for="nn">Add a note</label><textarea id="nn" rows="3" placeholder="What happened, what's next"></textarea><div><button class="btn-primary btn-sm" type="button">Save note</button></div></form>
+<div class="note"><div class="text-hint">Nov 14 · Casey Lin (recruiter)</div><p>On time all week. Asked about Saturday; wants the morning slot.</p></div>
+<div class="note"><div class="text-hint">Nov 9 · Alex Okafor (owner)</div><p>Good with the pitch script. Offer to lead a pair next week?</p><p class="text-hint">Correction on Nov 10 added below — notes are never edited or deleted.</p></div>
+<div class="note"><div class="text-hint">Nov 10 · Alex Okafor · corrects Nov 9</div><p>Decided against lead role until after the Lakewood review.</p></div></section>
+<section class="card space-y-3" aria-labelledby="hist"><h2 id="hist" class="text-base font-semibold">History</h2>
+<ol class="timeline"><li><span class="dot"></span><div><strong>Checked in · Door knock · Aurora</strong><div class="text-hint">Nov 14 · shift 11</div></div></li><li><span class="dot"></span><div><strong>Hired</strong> by Casey Lin<div class="text-hint">Nov 4</div></div></li><li><span class="dot"></span><div><strong>Offer sent</strong><div class="text-hint">Nov 3</div></div></li><li><span class="dot"></span><div><strong>Applied</strong> to Door knock · Aurora<div class="text-hint">Nov 2 · snapshot of what she shared is kept as it was</div></div></li></ol></section>
+</div>
+<aside class="tpl-panel" aria-label="What she shares with you"><div class="card space-y-3"><h2 class="text-base font-semibold">What she shares with you</h2>
+<p class="text-hint">Only what she has authorized for this organization. Nothing here is inferred or scored.</p>
+<dl class="space-y-2 text-sm"><div><dt class="label">Experience</dt><dd>2 prior campaigns (self-reported)</dd></div><div><dt class="label">Availability</dt><dd>Weekends, weekday evenings</dd></div><div><dt class="label">Languages</dt><dd>English, Spanish</dd></div><div><dt class="label">Withheld</dt><dd class="text-hint">She has chosen not to share some details. They stay hidden.</dd></div></dl></div></aside>
+</div></main>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/employer-session";
 import { assignWalkbook, cutWalkbooks, importAddresses } from "@/lib/walkbooks-data";
 import { MAX_FILE_BYTES } from "@/lib/walkbooks";
+import { UUID_RE } from "@/lib/jobs";
 import type { ActionState } from "@/app/jobs/actions";
 
 export interface WalkbookFormState {
@@ -30,12 +31,12 @@ export async function importAddressesAction(_prev: WalkbookFormState, fd: FormDa
   const jobId = str(fd, "jobId");
   const file = fd.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Choose a CSV file.", errors: { file: "Choose a CSV file." } };
-  // Checked before the file is read into memory.
+  // Next has already parsed the body (capped by serverActions.bodySizeLimit); this keeps the reader to the file limit.
   if (file.size > MAX_FILE_BYTES) return { ok: false, message: "The file is over 2 MB.", errors: { file: "The file is over 2 MB. Split it, or keep only the address columns." } };
   const text = await file.text();
   const r = await importAddresses(actor, { fileName: file.name, recordSource: fd.get("recordSource"), purpose: fd.get("purpose"), license: fd.get("license"), authorized: fd.get("authorized") }, text);
   if (!r.ok) return { ok: false, message: r.reason, errors: r.errors ?? {} };
-  changed(jobId);
+  if (UUID_RE.test(jobId)) changed(jobId);
   return { ok: true, message: `Imported ${r.kept.toLocaleString("en-US")} ${r.kept === 1 ? "address" : "addresses"}${r.skipped ? `; ${r.skipped.toLocaleString("en-US")} ${r.skipped === 1 ? "row" : "rows"} skipped` : ""}. Cut them into walkbooks below.`, errors: {} };
 }
 

@@ -34,7 +34,6 @@ import { stripeProvider } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { Masthead } from "@/components/Masthead";
 import { loadWorkerWalkbooks } from "@/lib/walkbooks-data";
-import { WalkbookStops } from "@/components/WalkbookStops";
 
 const EVENT_LABELS: Record<string, string> = {
   CHECK_IN: "Checked in",
@@ -99,7 +98,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const canField = isOrg && canUse(session, "field");
   // The campaign's pinned talking points, verbatim (S1): read for the brief only, never recorded about the reader.
   const brief = isWorker || canField ? await loadTalkingPoints(s.engagement.job.id) : null;
-  // The worker's walkbooks on this job (W1), on the page the offline brief saves, so the stops go into the field with them.
+  // The worker's walkbooks on this job (W1): names and stop counts only. This page is saved for offline use, and a saved copy
+  // would keep a book's addresses on the phone after the book is taken back, so the stops live on /walkbooks (never saved).
   const walkbooks = isWorker ? await loadWorkerWalkbooks(s.engagement.workerId, s.engagement.job.id) : [];
 
   const f = facts(s);
@@ -298,16 +298,16 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       {walkbooks.length > 0 && (
         <section className="section">
           <h2 className="section-title">Your walkbooks</h2>
-          {walkbooks.map((b) => (
-            <details key={b.id} className="card" open={walkbooks.length === 1}>
-              <summary className="cursor-pointer font-bold text-fg">
-                {b.name} · {b.stops.length} {b.stops.length === 1 ? "stop" : "stops"}
-              </summary>
-              <div className="mt-3">
-                <WalkbookStops stops={b.stops} map={false} />
-              </div>
-            </details>
-          ))}
+          <ul className="list-card">
+            {walkbooks.map((b) => (
+              <li key={b.id} className="px-4 py-2.5">
+                <Link href={`/walkbooks#book-${b.id}`} className="font-semibold text-fg underline-offset-2 hover:underline">
+                  {b.name}
+                </Link>
+                <span className="text-muted-sm"> · {b.stops.length} {b.stops.length === 1 ? "stop" : "stops"}</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
       {contacts && (

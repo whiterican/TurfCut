@@ -297,7 +297,7 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
   return { ok: true, file: { rowCount: data.length, rows, skipped, dropped: mapped.map.dropped, withPoint: rows.filter((r) => r.lat !== null).length, unitsLeftOff } };
 }
 
-/** One door: the same first line, unit and ZIP, ignoring case. The database's copy of this is in cutWalkbooks. */
+/** One door within a file: the same first line, unit and ZIP, ignoring case. Across files on a job, the rule is notOnJob in walkbooks-data.ts. */
 export const addressKey = (a: { line1: string; unit: string | null; zip: string }) => `${a.line1.toUpperCase()}|${(a.unit ?? "").toUpperCase()}|${a.zip}`;
 
 // ---------------------------------------------------------------------------

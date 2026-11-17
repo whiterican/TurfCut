@@ -143,6 +143,8 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   // The same file imported twice: its doors are already on the job's books, so nothing new is cut.
   const dup = await importAddresses(owner, META, FILE);
   const dupCut = dup.ok ? await cutWalkbooks(owner, job.id, dup.importId, "2") : null;
+  const dupLeft = dup.ok ? (await loadJobWalkbooks(ORG, job.id))!.imports.find((i) => i.id === dup.importId)?.unassigned : -1;
+  check("…and the page doesn't offer that import as having anything left to cut", dupLeft === 0, dupLeft);
   check("the same doors from a second import aren't put on a second walkbook", !!dupCut && !dupCut.ok && /already on one/.test(dupCut.reason), dupCut);
   const mixedFile = FILE + "\nV6,New,Person,DEM,7 Ash Ave,,Denver,CO,80202,Y,,";
   const part = await importAddresses(owner, META, mixedFile);

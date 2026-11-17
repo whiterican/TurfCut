@@ -16,7 +16,7 @@ export function WalkbookCut({ jobId, imports }: { jobId: string; imports: Array<
   // After a cut empties the chosen file, fall back to the next one with addresses left.
   const chosen = open.find((i) => i.id === importId) ?? open[0];
   const n = Number(per);
-  const books = chosen && Number.isInteger(n) && n >= 1 ? Math.ceil(chosen.unassigned / n) : null;
+  const books = chosen && Number.isInteger(n) && n >= 1 && n <= MAX_STOPS_PER_BOOK ? Math.ceil(chosen.unassigned / n) : null;
   const result = state.message ? <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p> : null;
   // A cut that used up the last addresses still says what it did.
   if (!open.length)

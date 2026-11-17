@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { importAddressesAction, type WalkbookFormState } from "@/app/jobs/[jobId]/walkbooks/actions";
 import { MAX_FILE_BYTES, MAX_ROWS, readAddressFile, type AddressFile } from "@/lib/walkbooks";
 import { PendingButton } from "@/components/PendingButton";
@@ -40,12 +40,16 @@ export function WalkbookImport({ jobId }: { jobId: string }) {
   }
   const err = (k: string) => (state.errors[k] ? <p className="field-error">{state.errors[k]}</p> : null);
 
+  // The newest choice wins: a big file still being read must not show its preview over a later, smaller one.
+  const latest = useRef<File | null>(null);
   async function choose(f: File | null) {
+    latest.current = f;
     setFile(f);
     setPreview(null);
     if (!f) return;
     if (f.size > MAX_FILE_BYTES) return setPreview({ ok: false, reason: "The file is over 2 MB. Split it, or keep only the address columns." });
-    setPreview(readAddressFile(await f.text()));
+    const read = readAddressFile(await f.text());
+    if (latest.current === f) setPreview(read);
   }
 
   // The chosen file goes with the form even after a refused attempt has reset the input.

@@ -17,7 +17,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
-import { addressKey, cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
+import { cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
 
 type Tx = Prisma.TransactionClient;
 type Fail = { ok: false; reason: string; errors?: Record<string, string> };
@@ -85,6 +85,18 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
 // ---------------------------------------------------------------------------
 
 /**
+ * Address `a` is not on one of the job's walkbooks: neither itself nor the
+ * same door (first line and unit ignoring case, and ZIP) from another file.
+ * The one definition of a repeat; the cut and the page's counts both use it.
+ */
+const notOnJob = (jobId: string) => Prisma.sql`NOT EXISTS (
+  SELECT 1 FROM "public"."WalkbookStop" s
+  JOIN "public"."Walkbook" w ON w."id" = s."walkbookId"
+  JOIN "public"."ImportedAddress" b ON b."id" = s."addressId"
+  WHERE w."jobId" = ${jobId}::uuid
+    AND (b."id" = a."id" OR (b."zip" = a."zip" AND upper(b."line1") = upper(a."line1") AND upper(coalesce(b."unit", '')) = upper(coalesce(a."unit", '')))))`;
+
+/**
  * Cuts an import's addresses into numbered walkbooks on a job, in walking
  * order. Addresses already on one of the job's walkbooks are left out, so
  * cutting the same file again only picks up what's left; numbering carries on
@@ -105,22 +117,14 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       const imp = await tx.addressImport.findFirst({ where: { id: importId, orgId: actor.orgId }, select: { id: true } });
       if (!imp) return { ok: false as const, reason: "Pick a file to cut from." };
       await lock(tx, `walkbooks:${job.id}`);
-      const unused = await tx.importedAddress.findMany({
-        where: { importId, stops: { none: { walkbook: { jobId } } } },
-        select: { id: true, line1: true, unit: true, zip: true },
-      });
-      // The same door from another file (or the same file imported twice) is already on a book: don't send anyone twice.
-      const onJob = await tx.$queryRaw<Array<{ key: string }>>`
-        SELECT DISTINCT upper(a."line1") || '|' || upper(coalesce(a."unit", '')) || '|' || a."zip" AS key
-        FROM "public"."WalkbookStop" s
-        JOIN "public"."Walkbook" w ON w."id" = s."walkbookId"
-        JOIN "public"."ImportedAddress" a ON a."id" = s."addressId"
-        WHERE w."jobId" = ${job.id}::uuid`;
-      const taken = new Set(onJob.map((r) => r.key));
-      const free = unused.filter((a) => !taken.has(addressKey(a)));
-      const repeats = unused.length - free.length;
+      // One rule, in SQL, for what is left to cut (and for the count the page shows): not on one of the job's books already, by id or as the same door from another file.
+      const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>`
+        SELECT a."id", a."line1", a."unit", a."zip" FROM "public"."ImportedAddress" a
+        WHERE a."importId" = ${imp.id}::uuid AND ${notOnJob(job.id)}`;
+      const unused = await tx.importedAddress.count({ where: { importId: imp.id, stops: { none: { walkbook: { jobId: job.id } } } } });
+      const repeats = unused - free.length;
       if (!free.length) return { ok: false as const, reason: "Every address in this file is already on one of this job's walkbooks." };
-      const last = await tx.walkbook.aggregate({ where: { jobId }, _max: { number: true } });
+      const last = await tx.walkbook.aggregate({ where: { jobId: job.id }, _max: { number: true } });
       const books = cutBooks(walkOrder(free), per.value, (last._max.number ?? 0) + 1);
       if (books[books.length - 1].number > MAX_BOOK_NUMBER) return { ok: false as const, reason: "That's more walkbooks than one job can hold. Use more stops per walkbook." };
       // Two statements however many books: ids are made here so the stops can name their book.
@@ -221,7 +225,6 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
         keptCount: true,
         droppedColumns: true,
         createdAt: true,
-        _count: { select: { addresses: { where: { stops: { none: { walkbook: { jobId } } } } } } },
       },
     }),
     db().engagement.findMany({
@@ -230,6 +233,13 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
       select: { id: true, worker: { select: { displayName: true } } },
     }),
   ]);
+  const left = imports.length
+    ? await db().$queryRaw<Array<{ importId: string; n: number }>>`
+        SELECT a."importId", count(*)::int AS n FROM "public"."ImportedAddress" a
+        WHERE a."importId" = ANY(${imports.map((i) => i.id)}::uuid[]) AND ${notOnJob(job.id)}
+        GROUP BY a."importId"`
+    : [];
+  const leftBy = new Map(left.map((r) => [r.importId, r.n]));
   const held = await holders(books.map((b) => b.id));
   const engIds = [...new Set([...held.values()].map((h) => h.engagementId).filter((x): x is string => !!x))];
   const holderEngagements = engIds.length
@@ -239,7 +249,7 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
   return {
     job,
     hired: hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName })),
-    imports: imports.map(({ _count, ...i }) => ({ ...i, unassigned: _count.addresses })),
+    imports: imports.map((i) => ({ ...i, unassigned: leftBy.get(i.id) ?? 0 })),
     books: books.map((b) => {
       const h = held.get(b.id);
       const e = h?.engagementId ? byEng.get(h.engagementId) : undefined;

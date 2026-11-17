@@ -85,8 +85,8 @@ model Profile {
   notifications         Notification[]
   chatParticipations    ConversationParticipant[]
   sentMessages          Message[]
-  messageReactions MessageReaction[]
-  messageMentions  MessageMention[]
+  messageReactions      MessageReaction[]
+  messageMentions       MessageMention[]
   blocksMade            ProfileBlock[]            @relation("Blocker")
   blocksReceived        ProfileBlock[]            @relation("Blocked")
   campaignPosts         CampaignPost[]            @relation("CampaignPostAuthor")
@@ -99,6 +99,9 @@ model Profile {
   slotsSupervised       ShiftSlot[]               @relation("ShiftSlotSupervisor")
   adminActions          AdminAction[]             @relation("AdminActionStaff")
   campaignsVerified     CampaignProfile[]         @relation("CampaignVerifier")
+  addressImports        AddressImport[]           @relation("AddressImportUploader")
+  walkbooksCut          Walkbook[]                @relation("WalkbookCreator")
+  walkbookAssignments   WalkbookAssignment[]      @relation("WalkbookAssigner")
 
   @@index([orgId])
 }
@@ -283,6 +286,7 @@ model Organization {
   campaignProfiles         CampaignProfile[]
   adminActions             AdminAction[]
   orgRoles                 OrgRole[]
+  addressImports           AddressImport[]
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
 }
@@ -482,6 +486,7 @@ model Job {
   slots             ShiftSlot[]
   savedBy           SavedJob[]
   dismissedBy       DismissedJob[]
+  walkbooks         Walkbook[]
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -563,11 +568,12 @@ model Engagement {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
-  shifts        Shift[]
-  payouts       Payout[]
-  conversation  Conversation?
-  events        EngagementEvent[]
-  notifications Notification[]
+  shifts              Shift[]
+  payouts             Payout[]
+  conversation        Conversation?
+  events              EngagementEvent[]
+  notifications       Notification[]
+  walkbookAssignments WalkbookAssignment[]
 
   @@unique([jobId, workerId])
   @@index([workerId])
@@ -1608,4 +1614,105 @@ model DismissedJob {
   removedAt DateTime?
 
   @@index([workerId, removedAt])
+}
+
+// ---------------------------------------------------------------------------
+// W1: file-to-walkbook pilot (prisma/w1-walkbooks.sql). Server-only tables.
+// ---------------------------------------------------------------------------
+
+/// An authorized file an organization brought: where it came from, what it
+/// may be used for and its license, as the uploader stated them. The file is
+/// not kept. Only addresses are; every other column is dropped before the
+/// database sees it, and only the dropped columns' header names are
+/// recorded (CLAUDE.md rule 4: party, vote history and names never land).
+model AddressImport {
+  id             String       @id @default(uuid()) @db.Uuid
+  orgId          String       @db.Uuid
+  org            Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  uploadedById   String       @db.Uuid
+  uploadedBy     Profile      @relation("AddressImportUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  fileName       String
+  recordSource   String
+  purpose        String
+  license        String
+  rowCount       Int // data rows in the file
+  keptCount      Int // rows that had a usable address
+  droppedColumns String[]     @default([])
+  createdAt      DateTime     @default(now())
+
+  addresses ImportedAddress[]
+  walkbooks Walkbook[]
+
+  @@index([orgId, createdAt])
+  @@index([uploadedById])
+}
+
+/// One address from an import, and nothing else about the household.
+model ImportedAddress {
+  id        String        @id @default(uuid()) @db.Uuid
+  importId  String        @db.Uuid
+  import    AddressImport @relation(fields: [importId], references: [id], onDelete: Restrict)
+  rowNumber Int // the row in the file (1 = first data row)
+  line1     String
+  unit      String?
+  city      String
+  state     String // two letters
+  zip       String // five digits
+  lat       Float? // only when the file supplied it; there is no geocoder
+  lng       Float?
+
+  stops WalkbookStop[]
+
+  @@unique([importId, rowNumber])
+}
+
+/// A numbered book of stops on one job, cut from an import.
+model Walkbook {
+  id          String        @id @default(uuid()) @db.Uuid
+  jobId       String        @db.Uuid
+  job         Job           @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  importId    String        @db.Uuid
+  import      AddressImport @relation(fields: [importId], references: [id], onDelete: Restrict)
+  number      Int
+  name        String
+  createdById String        @db.Uuid
+  createdBy   Profile       @relation("WalkbookCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime      @default(now())
+
+  stops       WalkbookStop[]
+  assignments WalkbookAssignment[]
+
+  @@unique([jobId, number])
+  @@index([importId])
+  @@index([createdById])
+}
+
+model WalkbookStop {
+  id         String          @id @default(uuid()) @db.Uuid
+  walkbookId String          @db.Uuid
+  walkbook   Walkbook        @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
+  addressId  String          @db.Uuid
+  address    ImportedAddress @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  stopNumber Int
+
+  @@unique([walkbookId, stopNumber])
+  @@unique([walkbookId, addressId])
+  @@index([addressId])
+}
+
+/// Who holds a walkbook. Append-only (rule 3): the newest row for a
+/// walkbook is who holds it now; engagementId null means it was taken back.
+model WalkbookAssignment {
+  id           String      @id @default(uuid()) @db.Uuid
+  walkbookId   String      @db.Uuid
+  walkbook     Walkbook    @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
+  engagementId String?     @db.Uuid
+  engagement   Engagement? @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  actorId      String      @db.Uuid
+  actor        Profile     @relation("WalkbookAssigner", fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt    DateTime    @default(now())
+
+  @@index([walkbookId, createdAt])
+  @@index([engagementId])
+  @@index([actorId])
 }

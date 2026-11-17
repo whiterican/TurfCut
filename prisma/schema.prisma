@@ -102,6 +102,7 @@ model Profile {
   addressImports        AddressImport[]           @relation("AddressImportUploader")
   walkbooksCut          Walkbook[]                @relation("WalkbookCreator")
   walkbookAssignments   WalkbookAssignment[]      @relation("WalkbookAssigner")
+  stopOutcomes          StopOutcome[]             @relation("StopOutcomeRecorder")
 
   @@index([orgId])
 }
@@ -574,6 +575,7 @@ model Engagement {
   events              EngagementEvent[]
   notifications       Notification[]
   walkbookAssignments WalkbookAssignment[]
+  stopOutcomes        StopOutcome[]
 
   @@unique([jobId, workerId])
   @@index([workerId])
@@ -609,10 +611,11 @@ model Shift {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  events      WorkEvent[]
-  validations Validation[]
-  payouts     Payout[]
-  payDisputes PayDispute[]
+  events       WorkEvent[]
+  validations  Validation[]
+  payouts      Payout[]
+  payDisputes  PayDispute[]
+  stopOutcomes StopOutcome[]
 
   @@index([engagementId, startsAt])
   @@index([slotId])
@@ -1694,6 +1697,7 @@ model WalkbookStop {
   addressId  String          @db.Uuid
   address    ImportedAddress @relation(fields: [addressId], references: [id], onDelete: Restrict)
   stopNumber Int
+  outcomes   StopOutcome[]
 
   @@unique([walkbookId, stopNumber])
   @@unique([walkbookId, addressId])
@@ -1715,4 +1719,56 @@ model WalkbookAssignment {
   @@index([walkbookId, createdAt])
   @@index([engagementId])
   @@index([actorId])
+}
+
+// ---------------------------------------------------------------------------
+// W2: stop outcomes (prisma/w2-stop-outcomes.sql). Server-only, append-only.
+// ---------------------------------------------------------------------------
+
+enum StopOutcomeKind {
+  DONE
+  COME_BACK
+  NOT_HOME
+  DO_NOT_KNOCK
+  REFUSED
+  MOVED_VACANT
+}
+
+/// What happened at one walkbook stop, recorded by the worker holding the
+/// book. Append-only (rule 3): a correction is a new row; the newest row for
+/// a stop is its state now. The id comes from the worker's device, so a
+/// double tap or a retried request records once.
+model StopOutcome {
+  id           String          @id @db.Uuid
+  stopId       String          @db.Uuid
+  stop         WalkbookStop    @relation(fields: [stopId], references: [id], onDelete: Restrict)
+  engagementId String          @db.Uuid
+  engagement   Engagement      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  shiftId      String?         @db.Uuid
+  shift        Shift?          @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  outcome      StopOutcomeKind
+  recordedById String          @db.Uuid
+  recordedBy   Profile         @relation("StopOutcomeRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime        @default(now())
+
+  answers StopOutcomeAnswer[]
+
+  @@index([stopId, createdAt])
+  @@index([engagementId])
+  @@index([shiftId])
+  @@index([recordedById])
+}
+
+/// The work type's own fields for an outcome. The database accepts only
+/// talked_to, left_literature (yes/no) and signatures (0-50): no free text,
+/// and no recorded opinion of a resident.
+model StopOutcomeAnswer {
+  id        String      @id @default(uuid()) @db.Uuid
+  outcomeId String      @db.Uuid
+  outcome   StopOutcome @relation(fields: [outcomeId], references: [id], onDelete: Restrict)
+  key       String
+  intValue  Int?
+  boolValue Boolean?
+
+  @@unique([outcomeId, key])
 }

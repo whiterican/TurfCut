@@ -17,6 +17,8 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
+import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
+import { UNVISITED, type StopState } from "@/lib/stop-outcomes";
 import { cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
 
 type Tx = Prisma.TransactionClient;
@@ -242,6 +244,7 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
         GROUP BY a."importId"`
     : [];
   const leftBy = new Map(left.map((r) => [r.importId, r.n]));
+  const progress = await loadJobProgress(job.id, new Map(books.map((b) => [b.id, b._count.stops])));
   const held = await holders(books.map((b) => b.id));
   const engIds = [...new Set([...held.values()].map((h) => h.engagementId).filter((x): x is string => !!x))];
   const holderEngagements = engIds.length
@@ -261,6 +264,7 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
         name: b.name,
         stops: b._count.stops,
         importId: b.importId,
+        progress: progress.get(b.id)!,
         holder: e ? { engagementId: e.id, name: e.worker.displayName, stillHired: (HIRED as readonly string[]).includes(e.status) && !e.worker.closedAt, since: h!.at } : null,
       };
     }),
@@ -268,6 +272,7 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
 }
 
 const STOP_SELECT = {
+  id: true,
   stopNumber: true,
   address: { select: { line1: true, unit: true, city: true, state: true, zip: true, lat: true, lng: true } },
 } as const;
@@ -293,9 +298,10 @@ export async function loadWalkbookForStaff(orgId: string, walkbookId: string) {
     },
   });
   if (!wb) return null;
+  const states = await loadStopStates(wb.stops.map((s) => s.id));
   return {
     ...wb,
-    stops: wb.stops.map((s) => ({ stopNumber: s.stopNumber, ...s.address })),
+    stops: wb.stops.map((s) => ({ id: s.id, stopNumber: s.stopNumber, ...s.address, result: states.get(s.id) ?? UNVISITED })),
     history: wb.assignments.map((a) => ({ id: a.id, at: a.createdAt, name: a.engagement?.worker.displayName ?? null })),
   };
 }
@@ -323,5 +329,7 @@ export async function loadWorkerWalkbooks(workerId: string, jobId?: string) {
     orderBy: [{ jobId: "asc" }, { number: "asc" }],
     select: { id: true, number: true, name: true, job: { select: { id: true, title: true } }, stops: { orderBy: { stopNumber: "asc" }, select: STOP_SELECT } },
   });
-  return books.map((b) => ({ ...b, stops: b.stops.map((s) => ({ stopNumber: s.stopNumber, ...s.address })) }));
+  // A book carries its state with it: what the last holder recorded is what the next one sees.
+  const states = await loadStopStates(books.flatMap((b) => b.stops.map((s) => s.id)));
+  return books.map((b) => ({ ...b, stops: b.stops.map((s): { id: string; stopNumber: number; result: StopState } & (typeof b.stops)[number]["address"] => ({ id: s.id, stopNumber: s.stopNumber, ...s.address, result: states.get(s.id) ?? UNVISITED })) }));
 }

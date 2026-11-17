@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fieldsFor, latestByStop, OUTCOME_KINDS, OUTCOMES, outcomeLook, progressOf, settledPercent, UNVISITED, validateOutcome } from "@/lib/stop-outcomes";
+import { answerWords, fieldsFor, latestByStop, OUTCOME_KINDS, OUTCOMES, outcomeLook, progressOf, settledPercent, UNVISITED, validateOutcome } from "@/lib/stop-outcomes";
 
 describe("the color code", () => {
   it("has a word, a hint, a glyph and a colour for every outcome, and no two share a colour", () => {
@@ -69,5 +69,15 @@ describe("state and progress", () => {
     expect(p.byKind.DONE).toBe(2);
     expect(settledPercent(p)).toBe(60);
     expect(settledPercent(progressOf([]))).toBe(0);
+  });
+});
+
+describe("answerWords", () => {
+  it("says what was recorded, and nothing for a no or a zero", () => {
+    expect(answerWords({ outcome: "DONE", answers: { talked_to: true, left_literature: true } })).toEqual(["Talked with someone", "Left literature"]);
+    expect(answerWords({ outcome: "DONE", answers: { talked_to: false, left_literature: false } })).toEqual([]);
+    expect(answerWords({ outcome: "DONE", answers: { signatures: 1 } })).toEqual(["1 signature"]);
+    expect(answerWords({ outcome: "DONE", answers: { signatures: 0 } })).toEqual([]);
+    expect(answerWords(UNVISITED)).toEqual([]);
   });
 });

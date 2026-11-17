@@ -9,6 +9,7 @@ import { ReadingPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
+import { OutcomeLegend, ProgressBar } from "@/components/stops/Outcomes";
 import { WalkbookImport } from "@/components/staff/WalkbookImport";
 import { WalkbookCut } from "@/components/staff/WalkbookCut";
 import { assignWalkbookAction } from "./actions";
@@ -33,6 +34,8 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
   const page = Math.min(pages, Math.max(1, /^\d{1,6}$/.test(pageRaw ?? "") ? Number(pageRaw) : 1));
   const shown = books.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const stopTotal = books.reduce((n, b) => n + b.stops, 0);
+  const settled = books.reduce((n, b) => n + b.progress.settled, 0);
+  const signatures = books.reduce((n, b) => n + b.progress.signatures, 0);
   const handedOut = books.filter((b) => b.holder?.stillHired).length;
   const importLabel = (i: (typeof imports)[number]) => `${i.fileName} (${i.recordSource})`;
 
@@ -51,11 +54,12 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
       <section className="section">
         <h2 className="section-title">Walkbooks on this job</h2>
         {books.length > 0 && (
-          <dl className="grid grid-cols-3 gap-2 text-center">
+          <dl className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
             {[
               ["Walkbooks", books.length],
               ["Stops", stopTotal],
               ["Handed out", `${handedOut} of ${books.length}`],
+              [job.type === "PETITION" ? "Signatures" : "Settled", job.type === "PETITION" ? signatures : `${stopTotal ? Math.round((settled / stopTotal) * 100) : 0}%`],
             ].map(([label, value]) => (
               <div key={label} className="card !p-3">
                 <dd className="text-xl font-bold tabular-nums text-fg sm:text-2xl">{typeof value === "number" ? value.toLocaleString("en-US") : value}</dd>
@@ -64,6 +68,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
             ))}
           </dl>
         )}
+        {books.length > 0 && <OutcomeLegend />}
         {books.length === 0 ? (
           <div className="empty-state">
             <p className="empty-state-title">No walkbooks yet</p>
@@ -86,6 +91,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                       <p className="text-muted-sm">
                         {b.stops} {b.stops === 1 ? "stop" : "stops"}
                       </p>
+                      <ProgressBar progress={b.progress} />
                       <p className={`text-sm font-semibold ${b.holder ? (b.holder.stillHired ? "text-success-msg" : "text-danger-msg") : "text-muted"}`}>
                         {b.holder ? (
                           <>

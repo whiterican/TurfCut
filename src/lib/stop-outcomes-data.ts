@@ -59,18 +59,24 @@ export async function recordStopOutcome(
     const at = newest && newest.createdAt >= now ? new Date(newest.createdAt.getTime() + 1) : now;
     // The shift under way, if there is one; recording doesn't need a shift.
     const shift = await tx.shift.findFirst({ where: { engagementId: engagement.id, status: "ACTIVE" }, orderBy: { startsAt: "desc" }, select: { id: true } });
-    await tx.stopOutcome.create({
-      data: {
-        id: clientId,
-        stopId: stop.id,
-        engagementId: engagement.id,
-        shiftId: shift?.id ?? null,
-        outcome: v.value.outcome,
-        recordedById: actor.profileId,
-        createdAt: at,
-        answers: { create: v.value.answers.map((a) => ({ key: a.key, intValue: a.intValue, boolValue: a.boolValue })) },
-      },
-    });
+    // Two books don't share a lock: a device id reused on another book by a racing request lands on the primary key.
+    try {
+      await tx.stopOutcome.create({
+        data: {
+          id: clientId,
+          stopId: stop.id,
+          engagementId: engagement.id,
+          shiftId: shift?.id ?? null,
+          outcome: v.value.outcome,
+          recordedById: actor.profileId,
+          createdAt: at,
+          answers: { create: v.value.answers.map((a) => ({ key: a.key, intValue: a.intValue, boolValue: a.boolValue })) },
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false as const, reason: "Something went wrong with that tap. Try again." };
+      throw e;
+    }
     return { ok: true as const, walkbookId: stop.walkbookId, repeated: false };
   });
 }
@@ -82,11 +88,13 @@ export async function loadStopStates(stopIds: string[]): Promise<Map<string, Sto
     SELECT DISTINCT ON (o."stopId") o."id", o."stopId", o."outcome"::text AS outcome, o."createdAt"
     FROM "public"."StopOutcome" o
     WHERE o."stopId" = ANY(${stopIds}::uuid[])
-    ORDER BY o."stopId", o."createdAt" DESC`;
+    ORDER BY o."stopId", o."createdAt" DESC, o."id" DESC`;
   if (!rows.length) return new Map();
   // Only the answers that belong to each stop's newest row.
   const answers = await db().stopOutcomeAnswer.findMany({ where: { outcomeId: { in: rows.map((r) => r.id) } }, select: { outcomeId: true, key: true, intValue: true, boolValue: true } });
-  return latestByStop(rows.map((r) => ({ stopId: r.stopId, createdAt: r.createdAt, outcome: r.outcome, answers: answers.filter((a) => a.outcomeId === r.id) })));
+  const byOutcome = new Map<string, typeof answers>();
+  for (const a of answers) byOutcome.set(a.outcomeId, [...(byOutcome.get(a.outcomeId) ?? []), a]);
+  return latestByStop(rows.map((r) => ({ stopId: r.stopId, createdAt: r.createdAt, outcome: r.outcome, answers: byOutcome.get(r.id) ?? [] })));
 }
 
 /** Progress of every walkbook on a job, from each stop's newest outcome, in one query. */
@@ -98,7 +106,7 @@ export async function loadJobProgress(jobId: string, totals: Map<string, number>
     JOIN "public"."WalkbookStop" s ON s."id" = o."stopId"
     JOIN "public"."Walkbook" w ON w."id" = s."walkbookId"
     WHERE w."jobId" = ${jobId}::uuid
-    ORDER BY o."stopId", o."createdAt" DESC`;
+    ORDER BY o."stopId", o."createdAt" DESC, o."id" DESC`;
   const byBook = new Map<string, StopState[]>();
   for (const r of rows) {
     const list = byBook.get(r.walkbookId) ?? [];

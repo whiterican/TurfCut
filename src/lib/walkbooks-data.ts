@@ -207,7 +207,7 @@ async function holders(walkbookIds: string[]) {
 /** Everything the job's walkbook page shows staff. */
 export async function loadJobWalkbooks(orgId: string, jobId: string) {
   if (!UUID_RE.test(jobId)) return null;
-  const job = await db().job.findFirst({ where: { id: jobId, orgId }, select: { id: true, title: true, status: true } });
+  const job = await db().job.findFirst({ where: { id: jobId, orgId }, select: { id: true, title: true, status: true, type: true } });
   if (!job) return null;
   const [books, imports, hired] = await Promise.all([
     db().walkbook.findMany({
@@ -327,7 +327,7 @@ export async function loadWorkerWalkbooks(workerId: string, jobId?: string) {
   const books = await db().walkbook.findMany({
     where: { id: { in: ids } },
     orderBy: [{ jobId: "asc" }, { number: "asc" }],
-    select: { id: true, number: true, name: true, job: { select: { id: true, title: true } }, stops: { orderBy: { stopNumber: "asc" }, select: STOP_SELECT } },
+    select: { id: true, number: true, name: true, job: { select: { id: true, title: true, type: true } }, stops: { orderBy: { stopNumber: "asc" }, select: STOP_SELECT } },
   });
   // A book carries its state with it: what the last holder recorded is what the next one sees.
   const states = await loadStopStates(books.flatMap((b) => b.stops.map((s) => s.id)));

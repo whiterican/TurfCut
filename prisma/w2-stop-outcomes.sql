@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS "public"."StopOutcomeAnswer" (
     -- The only fields there are. Adding one is a reviewed change to this file, not a string the app can invent.
     CONSTRAINT "StopOutcomeAnswer_key" CHECK ("key" IN ('talked_to', 'left_literature', 'signatures')),
     CONSTRAINT "StopOutcomeAnswer_shape" CHECK (
-      ("key" = 'signatures' AND "intValue" BETWEEN 0 AND 50 AND "boolValue" IS NULL)
+      ("key" = 'signatures' AND "intValue" IS NOT NULL AND "intValue" BETWEEN 0 AND 50 AND "boolValue" IS NULL)
       OR ("key" IN ('talked_to', 'left_literature') AND "boolValue" IS NOT NULL AND "intValue" IS NULL))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "StopOutcomeAnswer_outcomeId_key_key" ON "public"."StopOutcomeAnswer"("outcomeId", "key");

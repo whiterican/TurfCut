@@ -656,7 +656,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, canField, canReadS
       )}
 
       {canSchedule && (job.status === "PUBLISHED" || job.status === "CLOSED") && <ShiftsSection job={job} userId={userId} />}
-      {canField && job.type === "CANVASS" && (
+      {canField && (
         <section className="section">
           <h2 className="section-title">Walkbooks</h2>
           <p className="text-muted-sm">Import an authorized address file, cut it into numbered walkbooks and hand them to the people hired here. Only addresses are kept.</p>

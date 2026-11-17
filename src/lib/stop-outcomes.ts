@@ -94,6 +94,16 @@ export function validateOutcome(type: JobType, raw: Record<string, unknown>): { 
   return { ok: true, value: { outcome, answers } };
 }
 
+/** What was recorded at a stop, in words: "Talked with someone · Left literature", "3 signatures". */
+export function answerWords(state: StopState): string[] {
+  const out: string[] = [];
+  if (state.answers.talked_to === true) out.push("Talked with someone");
+  if (state.answers.left_literature === true) out.push("Left literature");
+  const n = state.answers.signatures;
+  if (typeof n === "number" && n > 0) out.push(`${n} ${n === 1 ? "signature" : "signatures"}`);
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // State and progress
 // ---------------------------------------------------------------------------

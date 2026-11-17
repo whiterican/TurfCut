@@ -3,6 +3,8 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerWalkbooks } from "@/lib/walkbooks-data";
 import { ReadingPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
+import { OutcomeLegend, ProgressBar } from "@/components/stops/Outcomes";
+import { progressOf } from "@/lib/stop-outcomes";
 import { hasMapPoints, WalkbookMap, WalkbookStops } from "@/components/WalkbookStops";
 
 /**
@@ -22,31 +24,37 @@ export default async function MyWalkbooksPage() {
           <p className="empty-state-body">When a campaign you work for hands you a walkbook, its stops show up here, in the order to walk them.</p>
         </div>
       ) : (
-        books.map((b) => (
-          <section key={b.id} id={`book-${b.id}`} className="section scroll-mt-20">
-            <div className="space-y-0.5">
-              <p className="eyebrow">
-                <Link href={`/jobs/${b.job.id}`} className="underline-offset-2 hover:underline">
-                  {b.job.title}
-                </Link>
-              </p>
-              <h2 className="section-title">{b.name}</h2>
-              <p className="text-muted-sm">
-                {b.stops.length} {b.stops.length === 1 ? "stop" : "stops"}, in the order to walk them
-              </p>
-            </div>
-            <div className={hasMapPoints(b.stops) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start" : "max-w-2xl"}>
-              {hasMapPoints(b.stops) && (
-                <div className="lg:sticky lg:top-4 lg:order-2">
-                  <WalkbookMap stops={b.stops} className="h-56 lg:h-96" />
+        <>
+          <OutcomeLegend />
+          {books.map((b) => {
+            const progress = progressOf(b.stops.map((s) => s.result));
+            return (
+              <section key={b.id} id={`book-${b.id}`} className="section scroll-mt-20">
+                <div className="space-y-2">
+                  <div className="space-y-0.5">
+                    <p className="eyebrow">
+                      <Link href={`/jobs/${b.job.id}`} className="underline-offset-2 hover:underline">
+                        {b.job.title}
+                      </Link>
+                    </p>
+                    <h2 className="section-title">{b.name}</h2>
+                  </div>
+                  <ProgressBar progress={progress} />
                 </div>
-              )}
-              <div className="lg:order-1">
-                <WalkbookStops stops={b.stops} />
-              </div>
-            </div>
-          </section>
-        ))
+                <div className={hasMapPoints(b.stops) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start" : "max-w-2xl"}>
+                  {hasMapPoints(b.stops) && (
+                    <div className="lg:sticky lg:top-4 lg:order-2">
+                      <WalkbookMap stops={b.stops} className="h-56 lg:h-96" />
+                    </div>
+                  )}
+                  <div className="lg:order-1">
+                    <WalkbookStops stops={b.stops} record={{ jobType: b.job.type }} />
+                  </div>
+                </div>
+              </section>
+            );
+          })}
+        </>
       )}
     </ReadingPage>
   );

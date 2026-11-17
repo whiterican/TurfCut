@@ -112,6 +112,9 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
     return rs.every((x, i) => i === 0 || x > rs[i - 1]) && (await stops(cbook))[2].result.outcome === "NOT_HOME";
   })());
 
+  let noValue = false;
+  try { await p.$executeRawUnsafe(`INSERT INTO "StopOutcomeAnswer" (id, "outcomeId", key) VALUES (gen_random_uuid(), '${first.id}', 'signatures')`); } catch { noValue = true; }
+  check("the database refuses a signatures answer with no number (no NULL hole in the closed set)", noValue);
   // --- Progress ---
   const page = (await loadJobWalkbooks(ORG, canvass.id))!;
   const prog = page.books[0].progress;
@@ -130,6 +133,12 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("the next holder sees the book's state: Come back stops are still open for them", next[0]?.stops[0].result.outcome === "COME_BACK");
   const theirs = await recordStopOutcome(actor(1), c1.id, randomUUID(), { outcome: "DONE", talked_to: "on" });
   check("…and can record on it", theirs.ok, theirs);
+
+  // The same device id on two books at once: one records, the other is refused cleanly (no 500).
+  const sharedId = randomUUID();
+  const [pa, pb] = [(await stops(pbook))[2], (await stops(cbook))[1]];
+  const race = await Promise.all([recordStopOutcome(actor(0), pa.id, sharedId, { outcome: "COME_BACK" }), recordStopOutcome(actor(1), pb.id, sharedId, { outcome: "COME_BACK" })]);
+  check("one device id used on two books at once: one saves, the other is refused in words", race.filter((r) => r.ok).length === 1 && race.every((r) => r.ok || /try again/i.test(r.reason)), race);
 
   // --- A closed account and a cancelled engagement can't record ---
   await p.engagement.update({ where: { id: e1 }, data: { status: "CANCELLED" } });

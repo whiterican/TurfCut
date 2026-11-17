@@ -492,7 +492,7 @@ leaves existing logins alone; the password is never stored.
 
 The "DEMO ONLY" statewide profile expires in about 14 days. On a guarded
 demo, `npm run seed:demo -- --yes` extends it by 14 days once it has expired
-or has fewer than 7 days left, and leaves the rest of the demo data as it
+or has 7 days or fewer left, and leaves the rest of the demo data as it
 is. Run before then, it changes nothing.
 
 ### Pay now in the demo (Stripe test mode only)

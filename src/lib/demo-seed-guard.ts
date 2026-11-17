@@ -18,7 +18,7 @@ export const STATEWIDE_CO_ID = "00000000-0000-0000-0000-000000000022";
 /**
  * Live Turfcut Supabase projects: the one list, kept with the demo logins
  * (src/lib/demo-accounts.ts). The demo seed always refuses these, even when
- * TURFCUT_DEMO is on and TURFCUT_DEMO_PROJECT_REF matches.
+ * TURFCUT_DEMO is on (1, true, yes or on) and TURFCUT_DEMO_PROJECT_REF matches.
  */
 export { LIVE_SUPABASE_PROJECT_REFS };
 
@@ -87,7 +87,7 @@ export function projectRefFromDatabaseUrl(url: string | undefined): string | nul
 
 /**
  * Whether this run may create a placeholder statewide CO profile: TURFCUT_DEMO
- * is 1, and TURFCUT_DEMO_PROJECT_REF equals the ref in both
+ * is clearly on (1, true, yes or on; a typo is not), and TURFCUT_DEMO_PROJECT_REF equals the ref in both
  * NEXT_PUBLIC_SUPABASE_URL and DATABASE_URL. A mismatch or a missing value
  * is not an error for the rest of the seed — it just must not create that
  * profile. Error text never echoes the expected ref (so it can't be copied

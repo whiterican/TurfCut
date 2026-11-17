@@ -20,22 +20,35 @@ first schema comment on #202** (a review found two defects in it; see "Fixed in 
 | File | What it is |
 |---|---|
 | `polls.sql` | The poll tables: 5 tables, lock and append-only triggers, composite keys, RLS. Safe to run again. Keyed to W2's real `StopOutcome`. |
-| `polls.prisma` | The same models. Validated with `prisma validate` against W1's and W2's real models (branch `claude/eager-albattani-v4wkxr`, head `0f6b348f`). |
+| `polls.prisma` | The same models. Validated with `prisma validate` against W1's and W2's real models (branch `claude/eager-albattani-v4wkxr`, head `648e7ea4`; the two SQL files are unchanged since `0f6b348f`). |
 | `w1-amendments.sql` | **Changes W1 would need**, written as ALTERs only so they can be tested on W1's real SQL. W1's SQL isn't applied yet, so the W1 session would fold them into `w1-walkbooks.sql`. See below. |
 | `purge-conflict.sql` | A negative control: proves W1 + W2 **as written** can't run the 30-day purge. |
-| `test.sql` | 80 checks. |
+| `test.sql` | 83 checks. |
 | `race.sh` | A two-session check that a lock can't slip past an edit in flight. |
 | `run.sh` | Builds a throwaway database and runs everything. Refuses a non-local server unless `ALLOW_REMOTE=1`. |
 
 ## The purge conflict, and the fix
 `w2-stop-outcomes.sql` keys `StopOutcome.stopId` to `WalkbookStop` with `ON DELETE RESTRICT`, and stop outcomes are
-append-only. So a book's stops can never be deleted once any stop has an outcome, and the 30-day purge (delete the stops,
-then the addresses) fails. `purge-conflict.sql` reproduces it on W1's and W2's real SQL.
+append-only. So a book's stops can never be deleted once any stop has an outcome, and `ImportedAddress` rows can't be
+deleted while a stop still points at them (`WalkbookStop.addressId` is `RESTRICT` too). **The 30-day purge as designed,
+deleting the rows, can't run.** `purge-conflict.sql` reproduces the stop deletion failing on W1's and W2's real SQL.
+
+(Overwriting the rows in place does work on W1 + W2 as written: `ImportedAddress` isn't append-only, and a review
+overwrote the street, city, state, ZIP, point, record ID and stored columns with placeholders without tripping a CHECK. It
+needs no schema change, but it leaves placeholder rows and makes `AddressImport.rowCount` meaningless. Deleting is cleaner;
+overwriting is the fallback if W1's SQL is applied before the fix lands.)
 
 The fix is small, because `WalkbookStop` holds no personal data (the address is on `ImportedAddress`): make
 `WalkbookStop.addressId` nullable with `ON DELETE SET NULL`, and purge by deleting `ImportedAddress` rows only. The stop,
 its outcomes and every poll row stay, keyed by book and stop number. Screens that list a stop must cope with a stop that
-has no address after the purge. Also added: `AddressImport.deleteAfter` (default 30 days), `purgedAt`, `sourceSystem`, and
+has no address after the purge. **If the fix is folded into W1, its code changes too** (found on branch head `648e7ea4`; the
+first three I checked myself, the rest are a reviewer's grep that I haven't re-checked): `prisma/schema.prisma` (`addressId
+String` and `onDelete: Restrict` at lines 1697-1698 become `String?` and `SetNull`, which makes `WalkbookStop.address`
+nullable), `src/lib/walkbooks.ts` (`walkOrder` calls `splitHouseNumber(s.line1)` on every stop, which breaks on a stop whose
+address is gone), `src/lib/walkbooks-data.ts` (`notOnJob`, line 99, inner-joins `ImportedAddress`, so a purged stop silently
+stops counting as "already on this job" and re-cutting the same address makes a new stop; plus `STOP_SELECT` and the spreads
+of `s.address`, and the importer's write path where the new columns go), and the components that render stops
+(`WalkbookStops.tsx`, `stops/StopLine.tsx`, `stops/RecordableStop.tsx`). Also added: `AddressImport.deleteAfter` (default 30 days), `purgedAt`, `sourceSystem`, and
 `ImportedAddress.sourceRecordId` and `sourceData` (every other column of the row, at most 16 KB).
 
 **What "keep every column" means for W1** (details on #202): it reverses W1's "columns are dropped in the browser before
@@ -55,10 +68,11 @@ PGURL=postgresql://postgres@localhost:5432 docs/product/polling-schema-proposal/
 Once W1/W2 contain the purge fix, `run.sh` prints "purge control: NOT reproduced"; delete `purge-conflict.sql` then.
 
 ## What was verified, and what wasn't
-Verified on Postgres 16.15 against W1's and W2's real SQL: the amendments and the poll SQL each apply twice cleanly; all 80
+Verified on Postgres 16.15 against W1's and W2's real SQL: the amendments and the poll SQL each apply twice cleanly; all 83
 checks pass on a clean rebuild; the race check passes (an edit that arrives while a lock is in flight waits, then is refused
-and writes nothing). I also broke the purge fix and the outcome and same-stop rules on purpose: the three purge checks, and
-six poll checks, fail as they should.
+and writes nothing). I also broke things on purpose and confirmed the right checks go red: without the purge fix, the three
+purge checks fail; without the outcome and same-stop rules, six poll checks fail; with the job check loosened to the
+engagement only, the new stop-in-another-job check fails.
 
 **Fixed in review.** A separate review found two defects in the first version of `polls.sql` (the one pasted on #202), both
 reproduced and fixed, each with a test that fails without the fix: a response could supersede itself (its door then vanishes
@@ -72,8 +86,14 @@ acceptance suite should test it).
 
 ## Design choices on top of W2 that are mine, not W2's
 A COMPLETE poll needs a `DONE` stop outcome; a PARTIAL poll needs `COME_BACK` or `REFUSED` (`poll_response_scope`). A
-correction must be on the same stop as the response it supersedes. W2's owner or Caden may want different rules; each is one
-branch of that trigger and one pair of checks.
+correction must be on the same stop as the response it supersedes. The door must be on the poll's job **both** through the
+outcome's engagement and through its stop's walkbook, because W2's SQL doesn't tie the two together. W2's owner or Caden may
+want different rules; each is one branch of that trigger and one pair of checks.
+
+**One current response per stop is a results rule, not a database rule.** A stop can be visited twice (a PARTIAL poll at a
+`COME_BACK`, then a COMPLETE at `DONE`), so two responses on one stop are allowed. Results use the newest response per stop
+that nothing supersedes (tested). A poll attaches to the outcome row it is given, not only the stop's newest one, because a
+poll recorded offline can legitimately reach the server after a later outcome was added.
 
 ## If this becomes the polling acceptance suite
 `test.sql` is written to be turned into `tests/acceptance/<name>.ts` in the style of `w1-walkbooks.ts` once the schema is

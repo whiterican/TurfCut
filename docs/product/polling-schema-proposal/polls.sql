@@ -245,22 +245,24 @@ REVOKE ALL ON FUNCTION "turfcut_private"."poll_option_lock"() FROM PUBLIC, anon,
 CREATE OR REPLACE TRIGGER "PollOption_lock" BEFORE INSERT OR UPDATE OR DELETE ON "public"."PollOption"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."poll_option_lock"();
 
--- A poll response can only go on a locked version, for a door on the same job as the poll (W2's stop outcome names the
--- engagement), and only for an outcome a poll can have: COMPLETE needs DONE; PARTIAL needs COME_BACK or REFUSED. A correction
+-- A poll response can only go on a locked version, for a door on the same job as the poll (checked through BOTH the stop
+-- outcome's engagement and the stop's walkbook: W2's SQL doesn't tie the two together), and only for an outcome a poll can have: COMPLETE needs DONE; PARTIAL needs COME_BACK or REFUSED. A correction
 -- must be on the same stop as the response it supersedes (W2: the newest outcome row for a stop is its state now).
 CREATE OR REPLACE FUNCTION "turfcut_private"."poll_response_scope"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
-DECLARE s "public"."PollVersionStatus"; poll_job uuid; door_job uuid; door_outcome "public"."StopOutcomeKind"; door_stop uuid; old_stop uuid;
+DECLARE s "public"."PollVersionStatus"; poll_job uuid; door_job uuid; stop_job uuid; door_outcome "public"."StopOutcomeKind"; door_stop uuid; old_stop uuid;
 BEGIN
   SELECT "status", "jobId" INTO s, poll_job FROM "public"."PollVersion" WHERE "id" = NEW."versionId";
   IF s IS DISTINCT FROM 'LOCKED' THEN
     RAISE EXCEPTION 'PollResponse: version % is not locked', NEW."versionId" USING ERRCODE = 'check_violation';
   END IF;
-  SELECT e."jobId", so."outcome", so."stopId" INTO door_job, door_outcome, door_stop
+  SELECT e."jobId", w."jobId", so."outcome", so."stopId" INTO door_job, stop_job, door_outcome, door_stop
     FROM "public"."StopOutcome" so
     JOIN "public"."Engagement" e ON e."id" = so."engagementId"
+    JOIN "public"."WalkbookStop" ws ON ws."id" = so."stopId"
+    JOIN "public"."Walkbook" w ON w."id" = ws."walkbookId"
    WHERE so."id" = NEW."stopOutcomeId";
-  IF door_job IS DISTINCT FROM poll_job THEN
-    RAISE EXCEPTION 'PollResponse: the door and the poll version are on different jobs' USING ERRCODE = 'check_violation';
+  IF door_job IS DISTINCT FROM poll_job OR stop_job IS DISTINCT FROM poll_job THEN
+    RAISE EXCEPTION 'PollResponse: the door (its engagement and its walkbook) and the poll version are not all on the same job' USING ERRCODE = 'check_violation';
   END IF;
   IF NEW."completion" = 'COMPLETE' AND door_outcome <> 'DONE' THEN
     RAISE EXCEPTION 'PollResponse: a COMPLETE poll needs a DONE stop outcome' USING ERRCODE = 'check_violation';

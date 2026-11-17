@@ -1,0 +1,135 @@
+
+// ---------------------------------------------------------------------------
+// PROPOSAL (not built): door-to-door polling. Server-only tables, like W1.
+// ---------------------------------------------------------------------------
+
+enum PollVersionStatus {
+  DRAFT
+  LOCKED
+}
+
+enum PollQuestionKind {
+  CHOICE // yes/no is a two-option CHOICE preset in the builder
+  SCALE_5
+}
+
+enum PollCompletion {
+  COMPLETE
+  PARTIAL
+}
+
+/// One version of the poll on a job. Editable while DRAFT; LOCKED is one-way and
+/// the version, its questions and its options are then immutable (triggers).
+model PollVersion {
+  id                   String            @id @default(uuid()) @db.Uuid
+  jobId                String            @db.Uuid
+  job                  Job               @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  version              Int
+  status               PollVersionStatus @default(DRAFT)
+  title                String
+  conductedBy          String // who the worker says is conducting the poll
+  sponsor              String?
+  disclosure           String // the words read before the first question
+  researchAttestedById String?           @db.Uuid
+  researchAttestedBy   Profile?          @relation("PollAttester", fields: [researchAttestedById], references: [id], onDelete: Restrict)
+  researchAttestedAt   DateTime?
+  createdById          String            @db.Uuid
+  createdBy            Profile           @relation("PollCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt            DateTime          @default(now())
+  lockedAt             DateTime?
+
+  questions PollQuestion[]
+  responses PollResponse[]
+
+  @@unique([jobId, version])
+  @@index([createdById])
+  @@index([researchAttestedById])
+}
+
+model PollQuestion {
+  id        String           @id @default(uuid()) @db.Uuid
+  versionId String           @db.Uuid
+  version   PollVersion      @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  position  Int
+  kind      PollQuestionKind
+  text      String
+  required  Boolean          @default(true)
+
+  options PollOption[]
+  answers PollAnswer[]
+
+  @@unique([versionId, position])
+  @@unique([id, versionId]) // target of PollAnswer's composite key
+}
+
+model PollOption {
+  id         String       @id @default(uuid()) @db.Uuid
+  questionId String       @db.Uuid
+  question   PollQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  position   Int
+  label      String
+  pinnedLast Boolean      @default(false) // "Not sure" and "Prefer not to say" stay last when options shuffle
+
+  answers PollAnswer[]
+
+  @@unique([questionId, position])
+  @@unique([id, questionId]) // target of PollAnswer's composite key
+}
+
+/// The poll given at one door. APPEND-ONLY (a correction is a new row that
+/// supersedes one earlier row). The door's outcome, shift and stop live on W2's
+/// stop outcome; this row adds only the poll. The id is made on the phone and is
+/// the sync action's clientId, so a re-sent door is saved once.
+model PollResponse {
+  id             String         @id @db.Uuid
+  versionId      String         @db.Uuid
+  version        PollVersion    @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  stopOutcomeId  String         @unique @db.Uuid
+  stopOutcome    StopOutcome    @relation(fields: [stopOutcomeId], references: [id], onDelete: Restrict)
+  completion     PollCompletion
+  disclosureRead Boolean
+  actorId        String         @db.Uuid
+  actor          Profile        @relation("PollRecorder", fields: [actorId], references: [id], onDelete: Restrict)
+  supersedesId   String?        @unique @db.Uuid
+  supersedes     PollResponse?  @relation("PollCorrection", fields: [supersedesId, versionId], references: [id, versionId], onDelete: Restrict)
+  supersededBy   PollResponse?  @relation("PollCorrection")
+  receivedAt     DateTime? // when an answer recorded offline reached the server
+  createdAt      DateTime       @default(now())
+
+  answers PollAnswer[]
+
+  @@unique([id, versionId]) // target of PollAnswer's and the correction's composite keys
+  @@unique([supersedesId, versionId]) // makes the correction link one-to-one for Prisma
+  @@index([versionId, createdAt])
+  @@index([actorId])
+}
+
+/// One answer. APPEND-ONLY. Choice or scale only: no free text in v1.
+model PollAnswer {
+  id         String       @id @default(uuid()) @db.Uuid
+  responseId String       @db.Uuid
+  response   PollResponse @relation(fields: [responseId, versionId], references: [id, versionId], onDelete: Restrict)
+  versionId  String       @db.Uuid
+  questionId String       @db.Uuid
+  question   PollQuestion @relation(fields: [questionId, versionId], references: [id, versionId], onDelete: Restrict)
+  optionId   String?      @db.Uuid
+  option     PollOption?  @relation(fields: [optionId, questionId], references: [id, questionId], onDelete: Restrict)
+  scale      Int?
+
+  @@unique([responseId, questionId])
+  @@index([versionId, questionId, optionId])
+}
+
+/// PLACEHOLDER for W2's append-only stop outcome: only what the poll depends on.
+/// It names a stop by (walkbookId, stopNumber), not by a key to WalkbookStop, so
+/// the 30-day address purge can delete stops without touching append-only rows.
+model StopOutcome {
+  id           String        @id @default(uuid()) @db.Uuid
+  shiftId      String        @db.Uuid
+  shift        Shift         @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  walkbookId   String?       @db.Uuid
+  walkbook     Walkbook?     @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
+  stopNumber   Int?
+  outcome      String
+  pollResponse PollResponse?
+}

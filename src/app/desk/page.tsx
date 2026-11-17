@@ -15,6 +15,7 @@ import { liveRows } from "@/lib/field-day-data";
 import { summarizeField } from "@/lib/field-live";
 import { FieldLiveProvider, LiveFigure, LiveRatio, LiveShow } from "@/components/staff/FieldLive";
 import { CoverageMap } from "@/components/staff/CoverageMap";
+import { EmptyState } from "@/components/EmptyState";
 import { URGENCY } from "@/lib/desk";
 
 /** The "Needs you" kinds as the overview's side panel counts them, in urgency order. */
@@ -80,17 +81,24 @@ function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<t
           {live.zones.length > 0 ? (
             <CoverageMap initial={live.zones} className="overview-map" />
           ) : (
-            <div className="empty-state self-start">
-              <p className="empty-state-title">No assigned turf to show.</p>
-              <p className="empty-state-body">Turf drawn on a shift appears here as its workers check in. Nobody&apos;s position is ever on this map.</p>
-              <Link href="/field" className="btn-secondary mt-4">Open Field</Link>
-            </div>
+            // The shared empty state, compact (#198). It takes the map's slot beside the need tiles, so it takes their corners too.
+            <EmptyState
+              art="turf"
+              title="No assigned turf to show."
+              className="self-start rounded-[var(--radius-card)]"
+              actions={<Link href="/field" className="btn-secondary">Open Field</Link>}
+            >
+              Turf drawn on a shift appears here as its workers check in. Nobody&apos;s position is ever on this map.
+            </EmptyState>
           )}
-          <aside className="space-y-4" aria-label="Field activity key and what needs you">
-            <ul className="space-y-1.5 text-sm text-muted" aria-label="Map key">
-              <li className="flex items-center gap-2"><span className="legend-dot legend-turf" aria-hidden /> Assigned turf</li>
-              <li className="flex items-center gap-2"><span className="legend-dot legend-on" aria-hidden /> Workers checked in (turf only, no positions)</li>
-            </ul>
+          <aside className="space-y-4" aria-label={live.zones.length > 0 ? "Field activity key and what needs you" : "What needs you"}>
+            {/* The key explains the map, so it shows only with one. */}
+            {live.zones.length > 0 && (
+              <ul className="space-y-1.5 text-sm text-muted" aria-label="Map key">
+                <li className="flex items-center gap-2"><span className="legend-dot legend-turf" aria-hidden /> Assigned turf</li>
+                <li className="flex items-center gap-2"><span className="legend-dot legend-on" aria-hidden /> Workers checked in (turf only, no positions)</li>
+              </ul>
+            )}
             {counts.length > 0 ? (
               <ul className="space-y-2" aria-label="Needs you, by kind">
                 {counts.map(({ k, n }) => (

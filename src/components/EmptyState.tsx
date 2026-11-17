@@ -4,9 +4,9 @@
  * meaning. Colours come from the theme tokens, so each drawing works in light
  * and dark.
  */
-export type EmptyArtKind = "jobs" | "shifts" | "messages" | "earnings" | "applicants" | "campaigns" | "notices" | "offline";
+export type EmptyArtKind = "jobs" | "shifts" | "messages" | "earnings" | "applicants" | "campaigns" | "notices" | "offline" | "turf";
 
-export const EMPTY_ART_KINDS: readonly EmptyArtKind[] = ["jobs", "shifts", "messages", "earnings", "applicants", "campaigns", "notices", "offline"];
+export const EMPTY_ART_KINDS: readonly EmptyArtKind[] = ["jobs", "shifts", "messages", "earnings", "applicants", "campaigns", "notices", "offline", "turf"];
 
 const ART: Record<EmptyArtKind, React.ReactNode> = {
   // A map pin standing on a route, nothing on the route yet.
@@ -88,6 +88,15 @@ const ART: Record<EmptyArtKind, React.ReactNode> = {
       <path className="dim" d="M20 84h56" />
     </>
   ),
+  // A folded map with a turf outline drawn on it, and no pin: the field map shows turf, never a position.
+  turf: (
+    <>
+      <path className="ink paper" d="M14 26l22-8 24 8 22-8v52l-22 8-24-8-22 8z" />
+      <path className="dim" d="M36 18v52M60 26v52" />
+      <path className="lime" d="M28 38l18-6 20 8-4 20-22 4-10-12z" />
+      <path className="ink" d="M28 38l18-6 20 8-4 20-22 4-10-12z" strokeDasharray="4 4" />
+    </>
+  ),
 };
 
 export function EmptyArt({ kind }: { kind: EmptyArtKind }) {
@@ -103,6 +112,7 @@ export function EmptyState({
   title,
   children,
   actions,
+  className,
 }: {
   art?: EmptyArtKind;
   title: React.ReactNode;
@@ -110,9 +120,11 @@ export function EmptyState({
   children?: React.ReactNode;
   /** Next steps: links or buttons, laid out in a centred row. */
   actions?: React.ReactNode;
+  /** Placement only (grid alignment, the slot's radius); the look stays the shared one. */
+  className?: string;
 }) {
   return (
-    <div className="empty-state">
+    <div className={className ? `empty-state ${className}` : "empty-state"}>
       {art && <EmptyArt kind={art} />}
       <p className="empty-state-title">{title}</p>
       {children && <p className="empty-state-body">{children}</p>}

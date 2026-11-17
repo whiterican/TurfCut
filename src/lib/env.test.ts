@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getStripeSecretKey, hasStripeConfig, hasSupabaseConfig, liveStripeKeyProblem, stripeSecretKeyMode, stripeWebhookLivemodeProblem, turfcutDemoOn, turfcutDemoSetting } from "./env";
 
 describe("env helpers", () => {
@@ -96,12 +96,12 @@ describe("live Stripe keys in demo and non-production deploys", () => {
     expect(stripeWebhookLivemodeProblem(true, {})).toBeNull();
   });
 
-  it("TURFCUT_DEMO: 1/true/yes is on, 0/false/no/unset is off, anything else fails closed without throwing", () => {
-    for (const v of ["1", "true", "TRUE", "yes", "Yes", " yes "]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("on");
-    for (const v of [undefined, "", "  ", "0", "false", "FALSE", "no", " No "]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("off");
-    for (const v of ["on", "ture", "2", "off"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("unrecognized");
-    for (const v of ["on", "ture", "2", "off"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(true);
-    for (const v of ["0", "false", "no"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(false);
+  it("TURFCUT_DEMO: 1/true/yes/on is on, 0/false/no/off/unset is off, anything else fails closed without throwing", () => {
+    for (const v of ["1", "true", "TRUE", "yes", "Yes", " yes ", "on", "ON"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("on");
+    for (const v of [undefined, "", "  ", "0", "false", "FALSE", "no", " No ", "off", "Off"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("off");
+    for (const v of ["ture", "2", "enabled"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("unrecognized");
+    for (const v of ["ture", "2", "enabled"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(true);
+    for (const v of ["0", "false", "no", "off"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(false);
     expect(liveStripeKeyProblem(live, { TURFCUT_DEMO: "true" })).toMatch(/TURFCUT_DEMO is set/);
     // An unrecognized value refuses the live key with a message that names the setting, never its value.
     const p = liveStripeKeyProblem(live, { TURFCUT_DEMO: "ture" });
@@ -109,11 +109,12 @@ describe("live Stripe keys in demo and non-production deploys", () => {
     expect(p).not.toMatch(/ture/);
     expect(stripeWebhookLivemodeProblem(true, { TURFCUT_DEMO: "ture" })).toMatch(/unrecognized value/);
     // Explicitly off on production leaves the live key alone (it used to throw).
-    for (const v of ["0", "false", "no"]) expect(liveStripeKeyProblem(live, { TURFCUT_DEMO: v, VERCEL_ENV: "production" })).toBeNull();
+    for (const v of ["0", "false", "no", "off"]) expect(liveStripeKeyProblem(live, { TURFCUT_DEMO: v, VERCEL_ENV: "production" })).toBeNull();
   });
 
   it("hasStripeConfig is false when the live-key guard applies, so the Pay buttons hide; unchanged otherwise", () => {
     const saved = { STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY, TURFCUT_DEMO: process.env.TURFCUT_DEMO, VERCEL_ENV: process.env.VERCEL_ENV };
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
       delete process.env.VERCEL_ENV;
       delete process.env.TURFCUT_DEMO;
@@ -129,7 +130,12 @@ describe("live Stripe keys in demo and non-production deploys", () => {
       expect(hasStripeConfig()).toBe(false);
       delete process.env.STRIPE_SECRET_KEY;
       expect(hasStripeConfig()).toBe(false);
+      // Hidden Pay isn't a silent outage: the reason goes to the server log once per process, never the key.
+      expect(logged).toHaveBeenCalledTimes(1);
+      expect(String(logged.mock.calls[0][0])).toMatch(/^\[turfcut\] payouts are off: TURFCUT_DEMO is set/);
+      expect(String(logged.mock.calls[0][0])).not.toContain(live);
     } finally {
+      logged.mockRestore();
       for (const [k, v] of Object.entries(saved)) {
         if (v === undefined) delete process.env[k];
         else process.env[k] = v;

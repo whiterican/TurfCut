@@ -246,8 +246,8 @@ export function stripeSecretKeyMode(key: string | undefined): "none" | "test" | 
 }
 
 /**
- * TURFCUT_DEMO, read as on, off or unrecognized. "1", "true" or "yes" (any
- * case) is on; unset, empty, "0", "false" or "no" is off. Anything else is
+ * TURFCUT_DEMO, read as on, off or unrecognized. "1", "true", "yes" or "on"
+ * (any case) is on; unset, empty, "0", "false", "no" or "off" is off. Anything else is
  * unrecognized and is treated as on (fail closed), so a typo like "ture"
  * can't leave a demo deploy unguarded. It never throws: hasStripeConfig runs
  * on every pay page and in the Stripe webhook, and a throw there would take
@@ -255,8 +255,8 @@ export function stripeSecretKeyMode(key: string | undefined): "none" | "test" | 
  */
 export function turfcutDemoSetting(env: NodeJS.Dict<string> = process.env): "on" | "off" | "unrecognized" {
   const v = env.TURFCUT_DEMO?.trim();
-  if (!v || /^(0|false|no)$/i.test(v)) return "off";
-  if (/^(1|true|yes)$/i.test(v)) return "on";
+  if (!v || /^(0|false|no|off)$/i.test(v)) return "off";
+  if (/^(1|true|yes|on)$/i.test(v)) return "on";
   return "unrecognized";
 }
 
@@ -268,7 +268,7 @@ export function turfcutDemoOn(env: NodeJS.Dict<string> = process.env): boolean {
 // Names the setting, never its value.
 const demoReason = (env: NodeJS.Dict<string>) =>
   turfcutDemoSetting(env) === "unrecognized"
-    ? "TURFCUT_DEMO has an unrecognized value (use 1, true or yes for on; 0, false, no or unset for off), so it counts as on"
+    ? "TURFCUT_DEMO has an unrecognized value (use 1, true, yes or on for on; 0, false, no, off or unset for off), so it counts as on"
     : "TURFCUT_DEMO is set";
 
 const nonProductionVercel = (env: NodeJS.Dict<string>) => !!env.VERCEL_ENV && env.VERCEL_ENV !== "production";
@@ -329,8 +329,20 @@ export function getStripeWebhookSecrets(): string[] {
 /** True when payouts can reach Stripe. Without it, pay is tracked but not sent. */
 export function hasStripeConfig(): boolean {
   const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return false;
   // A key the live-key guard refuses counts as not connected, so the Pay buttons hide.
-  return Boolean(key) && !liveStripeKeyProblem(key);
+  const problem = liveStripeKeyProblem(key);
+  if (problem) warnStripeRefusedOnce(problem);
+  return !problem;
+}
+
+// Pay hidden by the guard would otherwise be a silent outage: say why once per process, in the server log
+// (Vercel → Logs). The message names settings, never their values.
+let stripeRefusedWarned = false;
+function warnStripeRefusedOnce(problem: string) {
+  if (stripeRefusedWarned) return;
+  stripeRefusedWarned = true;
+  console.error(`[turfcut] payouts are off: ${problem}`);
 }
 
 /**

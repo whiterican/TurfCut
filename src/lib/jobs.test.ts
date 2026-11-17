@@ -12,6 +12,8 @@ import {
   exclusionReasons,
   jobCardAnswers,
   jobCredentials,
+  jobRulesLabel,
+  jurisdictionLocalityProblem,
   hiringPausedMessage,
   hiringPausedReasons,
   publishBlockerList,
@@ -109,6 +111,27 @@ describe("publish gate (jurisdiction hard stop, spec p.15)", () => {
     const f = ready();
     f.job.geography = { city: "Austin", state: "TX" };
     expect(publishBlockers(f, now)).toEqual(["The job is in TX but the rule profile is for CO. Pick a TX profile."]);
+  });
+
+  it("blocks a job in another city filed under a city's profile; a statewide profile covers any city (demo audit 4)", () => {
+    const f = ready();
+    f.job.geography = { city: "Aurora", state: "CO" };
+    expect(publishBlockerList(f, now)).toEqual([
+      { text: "The job is in Aurora, but the rule profile is for Denver, CO. Pick Aurora's profile or a statewide CO one.", fixer: "job", field: "jurisdictionId" },
+    ]);
+    f.jurisdiction = { ...denver, locality: null };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.jurisdiction = { ...denver };
+    f.job.geography = { city: " denver ", state: "co" };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.job.geography = { city: "New  York", state: "CO" };
+    f.jurisdiction = { ...denver, locality: "New York" };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.jurisdiction = { ...denver };
+    f.job.geography = { state: "CO" };
+    expect(publishBlockerList(f, now)).toEqual([
+      { text: "The job doesn't name a city. Name the city it's in.", fixer: "job", field: "city" },
+    ]);
   });
 
   it("keeps a job open through its whole end date, US time", () => {
@@ -567,6 +590,34 @@ describe("publish blockers grouped by who fixes them (#126, PLAN §2)", () => {
     const b = publishBlockerList(f, now).find((x) => /Only draft or paused/.test(x.text));
     expect(b?.fixer).toBe("job");
     expect(b?.field).toBeUndefined();
+  });
+});
+
+describe("the rules line names the job's own place (demo audit 4)", () => {
+  it("a city profile on a job in that city reads as before", () => {
+    expect(jobRulesLabel({ city: "Denver", state: "CO" }, denver)).toBe("Denver, CO (rules v1)");
+    expect(jobRulesLabel({ city: "denver", state: "co" }, denver)).toBe("Denver, CO (rules v1)");
+  });
+  it("a statewide profile names the job's city", () => {
+    expect(jobRulesLabel({ city: "Aurora", state: "CO" }, { ...denver, locality: null, version: 2 })).toBe("Aurora, CO (statewide rules v2)");
+  });
+  it("a job filed under another city's profile says so instead of passing as that city", () => {
+    expect(jobRulesLabel({ city: "Lakewood", state: "CO" }, denver)).toBe("Lakewood, CO · filed under Denver rules v1");
+    // A profile from another state never reads as this state's rules.
+    expect(jobRulesLabel({ city: "Austin", state: "TX" }, { ...denver, locality: null })).toBe("Austin, TX · filed under CO rules v1");
+    expect(jobRulesLabel({ city: "Austin", state: "TX" }, denver)).toBe("Austin, TX · filed under Denver, CO rules v1");
+  });
+  it("with no city on the job, it's the profile's own label", () => {
+    expect(jobRulesLabel({ state: "CO" }, denver)).toBe("Denver, CO (rules v1)");
+    expect(jobRulesLabel(null, { ...denver, locality: null })).toBe("CO (rules v1)");
+  });
+  it("only a city profile can be the wrong city; a missing city is always blocked; inner spaces are ignored", () => {
+    expect(jurisdictionLocalityProblem("Aurora", { state: "CO", locality: null })).toBeNull();
+    expect(jurisdictionLocalityProblem("New  York", { state: "NY", locality: "New York" })).toBeNull();
+    expect(jurisdictionLocalityProblem(null, denver)).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem("   ", denver)).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem(null, { state: "CO", locality: null })).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem("Aurora", denver)).toMatch(/is in Aurora, but the rule profile is for Denver, CO/);
   });
 });
 

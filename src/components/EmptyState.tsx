@@ -94,7 +94,7 @@ const ART: Record<EmptyArtKind, React.ReactNode> = {
       <path className="ink paper" d="M14 26l22-8 24 8 22-8v52l-22 8-24-8-22 8z" />
       <path className="dim" d="M36 18v52M60 26v52" />
       <path className="lime" d="M28 38l18-6 20 8-4 20-22 4-10-12z" />
-      <path className="ink" d="M28 38l18-6 20 8-4 20-22 4-10-12z" strokeDasharray="4 4" />
+      <path className="ink dash" d="M28 38l18-6 20 8-4 20-22 4-10-12z" />
     </>
   ),
 };

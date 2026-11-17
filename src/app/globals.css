@@ -2763,24 +2763,18 @@ body {
   .sun .phone-top::before {
     display: none;
   }
-  /* The backdrop is clear, and still takes the press that closes the drawer. An installed app on an iPhone
+  /* The backdrop adds no colour (it is blurred, below), and still takes the press that closes the drawer. An installed app on an iPhone
      colours the status bar's strip from whatever is fixed across the top of the screen: a dim backdrop made
      that strip a dark band above the drawer (Caden's phone, Nov 11). The page is dimmed by the drawer's own
      shadow (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
     background: transparent;
     /* Blurred, not dimmed (Caden, Nov 17): the page behind the open menu goes soft. Only a blur: it adds no colour,
-       so the strip above the drawer is still read from the pane and the page, never from the backdrop. It eases in
-       with the drawer, and is off under reduced transparency, more contrast and Less motion's zero durations. */
+       so the strip above the drawer is still read from the pane and the page, never from the backdrop. Static, not
+       eased in: a second blur animating under the pane's own is one more thing for an iPhone to draw as a solid box
+       (Nov 13). Off in Sunlight, and under reduced transparency and more contrast. */
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
-    animation: tc-backdrop-blur var(--dur-slow) var(--ease-out) both;
-  }
-  @keyframes tc-backdrop-blur {
-    from {
-      -webkit-backdrop-filter: blur(0);
-      backdrop-filter: blur(0);
-    }
   }
   /* Forced colours drop shadows: the backdrop veils the page there. */
   @media (forced-colors: active) {
@@ -4704,8 +4698,10 @@ body:has(.thread-top) {
   --subtle: var(--fg);
   --kicker: var(--fg);
 }
-/* Sunlight is plain (the solid fallback says the same above): the drawer's layer is their solid --drawer-bg, unblurred. */
-.sun .more-sheet::before {
+/* Sunlight is plain (the solid fallback says the same above): the drawer's layer is their solid --drawer-bg, unblurred,
+   and so is the page behind it. */
+.sun .more-sheet::before,
+.sun .more-sheet::backdrop {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }

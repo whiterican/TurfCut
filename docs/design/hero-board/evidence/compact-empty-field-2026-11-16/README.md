@@ -1,9 +1,36 @@
 # Compact empty Field activity panel
 
-Implements Caden’s refinement brief while preserving the approved visual direction. Source `1341c55`. Only the no-turf dashboard state loses `overview-map`; real maps retain their fixed height. The empty state keeps its existing privacy copy and adds a link to `/field`. No loaders, permissions, data or shared theme tokens change.
+When an organization has no assigned turf, the Desk's Field activity panel no longer
+holds the map's full height (360px on a phone, 440px from 1280px up). It is the shared
+`EmptyState`, the same as every other empty page:
 
-Six actual local owner Desk captures at 390, 768 and 1440, light/dark: empty panel height is 198px on phone and 178px at larger widths. The prior map class measures 360/360/440px respectively. Those former heights come from a temporary CSS probe, not before screenshots. No page overflow or page runtime errors; link destination verified. Viewport screenshots retain the actual floating dock, so content below the viewport still requires scrolling. Navigation-clearance refinement is a separate task.
+- a new `turf` drawing: a folded map with a dashed turf outline and **no pin**, because
+  the field map never shows anyone's position;
+- the existing privacy sentence, unchanged;
+- an "Open Field" link to `/field`;
+- card corners (24px), level with the need tiles beside it, since it takes the map's slot.
 
-Fixtures reuse isolated local `turfcut_acc_st` and synthetic loopback auth from `../hiring-tablet-2026-11-08/auth-fixture.mjs`. No production services or mutation submissions. Real iPhone/Safari appearance is not established. Run the app on3020 with the isolated DB and auth URL on55521, then `PLAYWRIGHT_PATH=/path/to/playwright node docs/design/hero-board/evidence/compact-empty-field-2026-11-16/capture.mjs` from the repository root. Native Chromium is `/usr/bin/chromium`.
+The map key ("Assigned turf", "Workers checked in") shows only when there is a map.
+With turf, the map and its key are unchanged.
 
-Validation: typecheck, page/harness ESLint, all 1,229 unit tests in 137 files, and diff checks passed. The first typecheck overlapped dev-server type generation and found missing generated files; after initialization the clean rerun passed.
+Started by Codex (`1341c55`, `b12070e`); finished by Claude after Caden reassigned it,
+at `bf59ad9`.
+
+## Measured (`manifest.json`)
+
+Panel height 298px at 390, 278px at 768 and 1440, light and dark. No page overflow, no
+page errors, no map key, link to `/field`. The screenshots are the Field activity section
+only.
+
+## How it was captured
+
+Real `/desk` route, local Postgres built like the acceptance databases (shim, setup SQL,
+base seed), one OWNER profile added with the fixture's user id, and the local-only auth
+fixture `../hiring-tablet-2026-11-08/auth-fixture.mjs` on port 55521. No production
+services. Real iPhone and Safari appearance is not established.
+
+1. Start the auth fixture: `node docs/design/hero-board/evidence/hiring-tablet-2026-11-08/auth-fixture.mjs`.
+2. Start the app on port 3020 with `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:55521` and
+   `DATABASE_URL` / `DIRECT_URL` pointing at the local database.
+3. From the repository root: `PLAYWRIGHT_PATH=<playwright module> node docs/design/hero-board/evidence/compact-empty-field-2026-11-16/capture.mjs`.
+   It uses Playwright's own Chromium.

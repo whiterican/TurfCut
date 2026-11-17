@@ -249,8 +249,8 @@ describe.each([
     expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
-    // No blur anywhere up there any more: the strip under the clock is gone (Caden, Nov 16).
-    expect(solidTop).not.toMatch(/blur\(/);
+    // The one blur up there is the status bar's own glass (Caden, Nov 16): the prefixed and the plain declaration.
+    expect(solidTop.replace(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/, "").match(/blur\(/g)).toHaveLength(2);
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
     // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
     const noBar = css.slice(css.indexOf("/* ---- No bar behind the top row"));
@@ -1022,7 +1022,9 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
     // No strip under the clock on an ordinary page: the page's gradient runs up behind it. The plain colour stays for contrast settings, a chat, Sunlight and a job page.
     expect(css).toMatch(/html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: none;\s*\}/);
-    expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: var\(--root-top\);\s*\}/);
+    // Then the status bar's own glass, where the page draws under the clock: the clock strip's height, a light tint, a modest blur, a short fade at its foot.
+    expect(css).toMatch(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\) \{\s*html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: color-mix\(in srgb, var\(--root-top\) 30%, transparent\);\s*-webkit-backdrop-filter: blur\(10px\);\s*backdrop-filter: blur\(10px\);\s*-webkit-mask-image: linear-gradient\(to bottom, #000 0%, #000 75%, transparent 100%\);/);
+    expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: var\(--root-top\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;\s*\}/);
     // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).
     expect(css).toMatch(/--clock-strip: max\(min\(env\(safe-area-inset-top\), 20px\), calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
     // Only a chat's strip runs to the foot of the safe area, where its own bar begins.

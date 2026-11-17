@@ -833,8 +833,13 @@ describe("the shell (redesign B1.4)", () => {
     // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);/);
     expect(css).toMatch(/\.more-sheet::backdrop \{\s*background: transparent;/);
+    // Blurred but not tinted (Caden, Nov 17), eased in on the tokens, and plain again under reduced transparency.
+    const backdrop = css.match(/\.more-sheet::backdrop \{\s*background: transparent;[\s\S]*?\n  \}/)?.[0] ?? "";
+    expect(backdrop).toContain("backdrop-filter: blur(8px);");
+    expect(backdrop).toContain("animation: tc-backdrop-blur var(--dur-slow) var(--ease-out) both;");
+    expect(css).toMatch(/\.more-sheet::backdrop \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     // No theme gives the backdrop a colour again (only the forced-colours veil does), and the colour is the pane over the page.
-    expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);
+    expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(3); // clear + blur, the forced-colours veil, and the solid fallback
     expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
     // Clear glass over the purple: the strip is half the page's top colour, and the pane is that colour part see-through, so over the strip-coloured page it is exactly the strip.
     expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);\s*--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) (60|68)%, transparent\);/g)).toHaveLength(2);

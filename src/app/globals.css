@@ -2769,6 +2769,18 @@ body {
      shadow (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
     background: transparent;
+    /* Blurred, not dimmed (Caden, Nov 17): the page behind the open menu goes soft. Only a blur: it adds no colour,
+       so the strip above the drawer is still read from the pane and the page, never from the backdrop. It eases in
+       with the drawer, and is off under reduced transparency, more contrast and Less motion's zero durations. */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    animation: tc-backdrop-blur var(--dur-slow) var(--ease-out) both;
+  }
+  @keyframes tc-backdrop-blur {
+    from {
+      -webkit-backdrop-filter: blur(0);
+      backdrop-filter: blur(0);
+    }
   }
   /* Forced colours drop shadows: the backdrop veils the page there. */
   @media (forced-colors: active) {
@@ -4621,6 +4633,10 @@ html:has(.more-sheet[open])::view-transition {
     mask-image: none;
   }
   .more-sheet::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .more-sheet::backdrop {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }

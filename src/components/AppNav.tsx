@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { BadgeCheck, Bell, BookOpen, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
@@ -222,12 +222,24 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
   const sheet = useRef<HTMLDialogElement>(null);
   const tucked = useTuckOnScroll();
 
+  // The tab just tapped, while its page is on its way: the dock's capsule moves to it at once (Caden, Nov 15: tabs
+  // should feel quick), instead of waiting for the server. Cleared when the page arrives.
+  const [going, setGoing] = useState<string | null>(null);
   // Close on navigation (reset during render when the path changes).
   const [openedAt, setOpenedAt] = useState(pathname);
   if (openedAt !== pathname) {
     setOpenedAt(pathname);
     if (open) setOpen(false);
   }
+  // The capsule settles when the tab tapped is the one now open. A page from an earlier tap arriving first (two
+  // tabs tapped quickly) leaves it on the latest tap; a tap that lands somewhere else is cleared by the timeout.
+  if (going && current === going) setGoing(null);
+  // A tap that never navigates (a failed fetch, the same page) must not leave the capsule on the wrong tab.
+  useEffect(() => {
+    if (!going) return;
+    const t = window.setTimeout(() => setGoing(null), 8000);
+    return () => window.clearTimeout(t);
+  }, [going]);
   // The menu button lives outside this component (the phone strip, the site header).
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -337,9 +349,15 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
             <div className="mb-2 flex items-center justify-between">
               {person ? (
                 <div className="flex min-w-0 items-center gap-3">
-                  {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
+                  {/* The photo, or the initial where there is none: the same head on a worker's menu and an organization's. */}
+                  {person.photo ? <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} /> : <span className="menu-avatar" aria-hidden>{person.name[0]?.toUpperCase()}</span>}
+                  {/* The whole name, wrapped if it must (Caden, Nov 15): an email cut to "…@gmai…" told him nothing. 16px, the size of the rows and
+                      Sign out below it, which an iPhone draws sharp: at 18px it drew the name soft (Caden, Nov 16) while "Owner" under it was sharp. */}
                   <p className="min-w-0">
-                    <span className="block truncate text-lg font-semibold text-fg">{person.name}</span>
+                    <span className="block text-base leading-6 font-semibold text-fg [overflow-wrap:anywhere]">
+                      {/* An email breaks after its @ and dots first. */}
+                      {person.name.split(/(?<=[@.])/).map((part, i) => <Fragment key={i}>{i > 0 && <wbr />}{part}</Fragment>)}
+                    </span>
                     <span className="block truncate text-sm text-muted">{person.role}</span>
                   </p>
                 </div>
@@ -372,10 +390,21 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
           </div>
         </dialog>
       )}
-      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
+      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-going={going ? "" : undefined}>
         <div className="flex">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
+            <Link
+              key={t.href}
+              href={t.href}
+              className="tab"
+              aria-current={currentAttr(t.href, current, pathname)}
+              data-going={going === t.href ? "" : undefined}
+              onClick={(e) => {
+                // A plain tap on another tab: not a new window or tab, and not the page already open.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || pathname === t.href) return;
+                setGoing(t.href);
+              }}
+            >
               <Icon of={iconFor(t)} className="tab-icon" />
               <span className="tab-label">{t.label}</span>
               {t.href.endsWith(MESSAGES_HREF) && <Badge count={count} />}

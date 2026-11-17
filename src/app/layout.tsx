@@ -42,7 +42,19 @@ export function generateMetadata(): Metadata {
 }
 
 /** The page reaches every edge of the screen, the notch and the home bar included; the stylesheet pads what must stay clear. */
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+// The colour of the page's top, by day and by night (--page-top in globals.css), for the strip a device draws above
+// the page: a browser's toolbar, an installed app's window bar on a tablet. Some of them read it once, when the page
+// loads, so it has to be in the page as it arrives; StatusStripColor then keeps every one of these tags on the colour
+// the page is actually painted (the app's own theme, a chat, the drawer).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#d6c9ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#3c1f66" },
+  ],
+};
 
 export default async function RootLayout({
   children,
@@ -83,7 +95,7 @@ export default async function RootLayout({
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <NoticesProvider count={notices}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && isOrg && org.phone.length > 0 && org.more.length > 0 ? <MenuButton /> : undefined} />
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && isOrg && org.phone.length > 0 && org.more.length > 0 ? <MenuButton name={railPerson(session).name} photo={railPerson(session).photo} /> : undefined} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -117,7 +129,8 @@ export default async function RootLayout({
         <ScrollDirection />
         <StatusStripColor />
         {isOrg ? (
-          <OrgTabBar tabs={org.phone} more={org.more} person={session ? railPerson(session) : undefined} />
+          // The same drawer as a worker's (Caden, Nov 15): the person's photo and name at its head, Sign out at its foot.
+          <OrgTabBar tabs={org.phone} more={org.more} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} />
         ) : (
           // The worker's dock: Home · Jobs · Work · Map · Messages; the menu drawer holds the rest (Profile, Feed, Earnings, Settings, Sign out).
           <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} />

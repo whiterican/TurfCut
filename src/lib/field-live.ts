@@ -110,7 +110,7 @@ export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
   const facts = live
     .map(
       (r) =>
-        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}`
+        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}:${r.turf ? zoneId(r.turf) : "-"}`
     )
     .sort();
 

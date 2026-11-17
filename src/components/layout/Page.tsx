@@ -31,12 +31,12 @@ interface FrameProps {
   org?: boolean;
   /**
    * The main column's last part, which on a phone follows the panel rather than preceding it
-   * (a job's full card comes after the Apply panel there; beside it from 1024).
+   * (a job's full card comes after the Apply panel there; beside it from 1280).
    */
   tail?: ReactNode;
   /** Stays at the foot of the screen while the page scrolls, below 1280 (a job's Apply button). The last thing in the page, so it rests under everything else. */
   foot?: ReactNode;
-  /** The panel leads: first in reading order and the left column from 1024 (a section's sub-nav). */
+  /** The panel leads: first in reading order and the left column from 1280 (a section's sub-nav). */
   panelStart?: boolean;
 }
 
@@ -83,8 +83,8 @@ export function ListPage({ aside, ...p }: FrameProps & { aside?: ReactNode }) {
 
 /**
  * A list with a selected item beside it (hiring, applicants, pay lines). The
- * inspector shows from 1024 on worker pages and from 1280 on organization
- * pages (beside the rail), so the list never drops below about 720px; below
+ * inspector shows from 1280 on worker and organization pages alike (both sit
+ * beside a sidebar), so the list never drops below about 720px; below
  * that the row opens its own route, which always exists for deep links.
  */
 export function ListDetailPage({ inspector, ...p }: FrameProps & { inspector?: ReactNode }) {

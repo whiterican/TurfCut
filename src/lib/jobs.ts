@@ -103,6 +103,8 @@ export interface JobInput {
   launch: JobLaunch | null;
   /** Null when the submission said nothing about it (kept as stored). */
   tools: JobTools | null;
+  /** The organization provides training and badges on this job (PR #187). */
+  providesTraining: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +184,7 @@ export function validateDraft(raw: Record<string, unknown>): { ok: true; draft: 
   if (clean("payRate")) draft.payRateCents = value.payRateCents;
   if (clean("headcount")) draft.headcount = value.headcount;
   if (clean("hiringModes")) draft.hiringModes = value.hiringModes;
+  if (clean("providesTraining")) draft.providesTraining = value.providesTraining;
   // Flags and names are kept one by one: a training name that runs long doesn't drop the badge box.
   draft.requirements = {
     badge: clean("badge") && value.requirements.badge,
@@ -309,7 +312,7 @@ function parseJob(raw: Record<string, unknown>): { errors: Record<string, string
 
   // Optional text that would otherwise be dropped quietly (campaignName feeds "do not match me").
   for (const k of ["description", "training", "script", "campaignName"]) if (notText(raw, k)) errors[k] = "Enter this as text.";
-  for (const k of ["badge", "registration", "affidavit"]) if (!FLAG_VALUES.includes(raw[k])) errors[k] = "Tick it or leave it blank.";
+  for (const k of ["badge", "registration", "affidavit", "providesTraining"]) if (!FLAG_VALUES.includes(raw[k])) errors[k] = "Tick it or leave it blank.";
   const cancellationNoticeHours = Number(noticeStr);
   if (!/^\d+$/.test(noticeStr) || cancellationNoticeHours > 168) errors.cancellationNoticeHours = "Enter 0–168 hours.";
 
@@ -355,6 +358,7 @@ function parseJob(raw: Record<string, unknown>): { errors: Record<string, string
       cancellationNoticeHours,
       launch: hasLaunchFields(raw) && launch.ok ? launch.value : null,
       tools: hasToolsFields(raw) && tools.ok ? tools.value : null,
+      providesTraining: checked(raw.providesTraining),
     },
   };
 }
@@ -439,6 +443,42 @@ export function jurisdictionLabel(j: Pick<JurisdictionFacts, "state" | "locality
   return `${j.locality ? `${j.locality}, ` : ""}${j.state} (rules v${j.version})`;
 }
 
+const samePlace = (a: string, b: string) => a.trim().toLowerCase().replace(/\s+/g, " ") === b.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * The rules line on a job (card, facts, page head): the job's own place and
+ * which profile it runs under. A city profile on a job in that city reads as
+ * before ("Denver, CO (rules v1)"); a statewide profile names the job's city
+ * ("Aurora, CO (statewide rules v1)"); a job filed under another city's
+ * profile says so ("Aurora, CO · filed under Denver rules v1") rather than
+ * passing as that city.
+ */
+export function jobRulesLabel(geography: unknown, j: Pick<JurisdictionFacts, "state" | "locality" | "version">): string {
+  const geo = obj(geography);
+  const city = str(geo.city);
+  const state = (str(geo.state) ?? j.state).toUpperCase();
+  if (!city) return jurisdictionLabel(j);
+  // A profile from another state never reads as this state's rules.
+  if (state !== j.state.toUpperCase()) return `${city}, ${state} · filed under ${jurisdictionLabel(j).replace(/ \(rules (v\d+)\)$/, " rules $1")}`;
+  if (!j.locality) return `${city}, ${state} (statewide rules v${j.version})`;
+  if (samePlace(city, j.locality)) return jurisdictionLabel(j);
+  return `${city}, ${state} · filed under ${j.locality} rules v${j.version}`;
+}
+
+/**
+ * A city profile covers that city only: a job elsewhere in the state is
+ * filed under its own city's profile or a statewide one, never under another
+ * city's rules (demo audit finding 4). A statewide profile covers every city.
+ */
+export function jurisdictionLocalityProblem(jobCity: string | null, j: Pick<JurisdictionFacts, "state" | "locality">): string | null {
+  const city = jobCity?.trim().replace(/\s+/g, " ") ?? "";
+  if (!city) return "The job doesn't name a city. Name the city it's in.";
+  if (!j.locality) return null;
+  return samePlace(city, j.locality)
+    ? null
+    : `The job is in ${city}, but the rule profile is for ${j.locality}, ${j.state}. Pick ${city}'s profile or a statewide ${j.state} one.`;
+}
+
 /**
  * Every reason a rule profile fails the gate, with who clears it: the
  * organization (pick a profile, or file under the current version) or
@@ -460,6 +500,22 @@ export function jurisdictionProblemList(j: JurisdictionFacts | null, now: Date =
 export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = new Date()): string[] {
   return jurisdictionProblemList(j, now).map((p) => p.text);
 }
+
+/**
+ * Why a published job can't take anyone new right now (demo audit finding
+ * 5): Turfcut has withdrawn the organization's approval, or the rule profile
+ * the job is filed under fails the gate (lapsed, unapproved, superseded, not
+ * yet effective). Such a job is left out of the feed, and applying,
+ * claiming, inviting, offering and accepting are refused with these reasons;
+ * people already hired keep their place (scheduling has its own freeze,
+ * canScheduleShift). Empty = hiring is open.
+ */
+export function hiringPausedReasons(org: { approved: boolean }, j: JurisdictionFacts | null, now: Date = new Date()): string[] {
+  return [...(org.approved ? [] : ["Turfcut's approval of this organization is on hold."]), ...jurisdictionProblems(j, now)];
+}
+
+/** What a worker or organization is told when hiring is paused on a job. */
+export const hiringPausedMessage = (reasons: string[]) => `Hiring is paused on this job: ${reasons.join(" ")}`;
 
 /**
  * Spec p.13: a rule change freezes new shifts until the profile is
@@ -563,6 +619,12 @@ export function publishBlockerList(f: PublishFacts, now: Date = new Date()): Pub
     const s = jurisdictionStateProblem(str(obj(f.job.geography).state), f.jurisdiction.state);
     // No state is set in step 2; a state that doesn't match is fixed by picking its profile in step 1.
     if (s) job(s, str(obj(f.job.geography).state) ? "jurisdictionId" : "state");
+    else {
+      const city = str(obj(f.job.geography).city);
+      const l = jurisdictionLocalityProblem(city, f.jurisdiction);
+      // No city is fixed in step 2 (the city field); a city that doesn't match is fixed by picking its profile in step 1.
+      if (l) job(l, city ? "jurisdictionId" : "city");
+    }
   }
   if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");
   if (!f.job.headcount || f.job.headcount < 1) job("Set the headcount.", "headcount");
@@ -675,15 +737,27 @@ export function fitReasons(f: {
  * the feed's "No credentials" filter both use this list, so they agree.
  */
 export function jobCredentials(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): string[] {
+  return jobCredentialNeeds(job).map((n) => n.label);
+}
+
+/** One credential a job needs, as jobCredentials lists it; `need` says which, for the hiring check (job-credentials.ts). */
+export type JobCredentialNeed =
+  | { need: "registration"; label: "Circulator registration" }
+  | { need: "badge"; label: "Badge" }
+  | { need: "affidavit"; label: "Signed affidavit" }
+  | { need: "training"; label: string; course: string };
+
+/** jobCredentials, keeping which credential each line is. Same rules, same order. */
+export function jobCredentialNeeds(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): JobCredentialNeed[] {
   const req = readRequirements(job.requirements);
   const rules = obj(job.jurisdictionRules);
   const circulating = job.type === "PETITION";
-  return [
-    (req.registration || (circulating && rules.workerRegistrationRequired === true)) && "Circulator registration",
-    (req.badge || (circulating && rules.badgeRequired === true)) && "Badge",
-    (req.affidavit || (circulating && rules.affidavitRequired === true)) && "Signed affidavit",
-    req.training && `Training: ${req.training}`,
-  ].filter((x): x is string => Boolean(x));
+  const out: JobCredentialNeed[] = [];
+  if (req.registration || (circulating && rules.workerRegistrationRequired === true)) out.push({ need: "registration", label: "Circulator registration" });
+  if (req.badge || (circulating && rules.badgeRequired === true)) out.push({ need: "badge", label: "Badge" });
+  if (req.affidavit || (circulating && rules.affidavitRequired === true)) out.push({ need: "affidavit", label: "Signed affidavit" });
+  if (req.training) out.push({ need: "training", label: `Training: ${req.training}`, course: req.training });
+  return out;
 }
 
 export function jobCardAnswers(job: {
@@ -806,6 +880,7 @@ export function jobToForm(job: {
   cancellationNoticeHours: number;
   launch?: unknown;
   tools?: unknown;
+  providesTraining?: boolean;
 }): Record<string, unknown> {
   const geo = obj(job.geography);
   const req = readRequirements(job.requirements);
@@ -828,6 +903,7 @@ export function jobToForm(job: {
     ...(req.badge ? { badge: "on" } : {}),
     ...(req.registration ? { registration: "on" } : {}),
     ...(req.affidavit ? { affidavit: "on" } : {}),
+    ...(job.providesTraining ? { providesTraining: "on" } : {}),
     training: req.training ?? "",
     script: req.script ?? "",
     campaignType: d?.campaignType ?? "",

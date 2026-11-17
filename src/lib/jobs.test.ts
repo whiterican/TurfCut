@@ -12,6 +12,10 @@ import {
   exclusionReasons,
   jobCardAnswers,
   jobCredentials,
+  jobRulesLabel,
+  jurisdictionLocalityProblem,
+  hiringPausedMessage,
+  hiringPausedReasons,
   publishBlockerList,
   publishBlockers,
   readHiringModes,
@@ -109,6 +113,27 @@ describe("publish gate (jurisdiction hard stop, spec p.15)", () => {
     expect(publishBlockers(f, now)).toEqual(["The job is in TX but the rule profile is for CO. Pick a TX profile."]);
   });
 
+  it("blocks a job in another city filed under a city's profile; a statewide profile covers any city (demo audit 4)", () => {
+    const f = ready();
+    f.job.geography = { city: "Aurora", state: "CO" };
+    expect(publishBlockerList(f, now)).toEqual([
+      { text: "The job is in Aurora, but the rule profile is for Denver, CO. Pick Aurora's profile or a statewide CO one.", fixer: "job", field: "jurisdictionId" },
+    ]);
+    f.jurisdiction = { ...denver, locality: null };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.jurisdiction = { ...denver };
+    f.job.geography = { city: " denver ", state: "co" };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.job.geography = { city: "New  York", state: "CO" };
+    f.jurisdiction = { ...denver, locality: "New York" };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.jurisdiction = { ...denver };
+    f.job.geography = { state: "CO" };
+    expect(publishBlockerList(f, now)).toEqual([
+      { text: "The job doesn't name a city. Name the city it's in.", fixer: "job", field: "city" },
+    ]);
+  });
+
   it("keeps a job open through its whole end date, US time", () => {
     // End date Oct 2 is stored as 2026-10-02T00:00Z (6 pm Oct 1 in Denver).
     const f = ready();
@@ -169,8 +194,13 @@ describe("validateJob", () => {
       compensationMethod: v.compensationMethod, payRateCents: v.payRateCents, headcount: v.headcount,
       hiringMethod: { modes: v.hiringModes }, requirements: v.requirements, campaignDisclosure: v.disclosure,
       supportContacts: v.supportContacts, measureIds: v.measureIds, cancellationNoticeHours: v.cancellationNoticeHours,
+      providesTraining: v.providesTraining,
     };
     expect(validateJob(jobToForm(stored))).toEqual(r);
+    const flagged = validateJob({ ...form, providesTraining: "on" });
+    expect(flagged.ok && flagged.value.providesTraining).toBe(true);
+    if (!flagged.ok) return;
+    expect(validateJob(jobToForm({ ...stored, providesTraining: true }))).toEqual(flagged);
   });
 
   it("parses a complete form", () => {
@@ -182,6 +212,7 @@ describe("validateJob", () => {
       payRateCents: 2550,
       hiringModes: ["application", "invite"],
       requirements: { badge: true, registration: false, training: "Petition basics" },
+      providesTraining: false,
       disclosure: { issues: { housing_affordability: "support" } },
       measureIds: ["I-305", "I-12"],
       cancellationNoticeHours: 12,
@@ -559,5 +590,57 @@ describe("publish blockers grouped by who fixes them (#126, PLAN §2)", () => {
     const b = publishBlockerList(f, now).find((x) => /Only draft or paused/.test(x.text));
     expect(b?.fixer).toBe("job");
     expect(b?.field).toBeUndefined();
+  });
+});
+
+describe("the rules line names the job's own place (demo audit 4)", () => {
+  it("a city profile on a job in that city reads as before", () => {
+    expect(jobRulesLabel({ city: "Denver", state: "CO" }, denver)).toBe("Denver, CO (rules v1)");
+    expect(jobRulesLabel({ city: "denver", state: "co" }, denver)).toBe("Denver, CO (rules v1)");
+  });
+  it("a statewide profile names the job's city", () => {
+    expect(jobRulesLabel({ city: "Aurora", state: "CO" }, { ...denver, locality: null, version: 2 })).toBe("Aurora, CO (statewide rules v2)");
+  });
+  it("a job filed under another city's profile says so instead of passing as that city", () => {
+    expect(jobRulesLabel({ city: "Lakewood", state: "CO" }, denver)).toBe("Lakewood, CO · filed under Denver rules v1");
+    // A profile from another state never reads as this state's rules.
+    expect(jobRulesLabel({ city: "Austin", state: "TX" }, { ...denver, locality: null })).toBe("Austin, TX · filed under CO rules v1");
+    expect(jobRulesLabel({ city: "Austin", state: "TX" }, denver)).toBe("Austin, TX · filed under Denver, CO rules v1");
+  });
+  it("with no city on the job, it's the profile's own label", () => {
+    expect(jobRulesLabel({ state: "CO" }, denver)).toBe("Denver, CO (rules v1)");
+    expect(jobRulesLabel(null, { ...denver, locality: null })).toBe("CO (rules v1)");
+  });
+  it("only a city profile can be the wrong city; a missing city is always blocked; inner spaces are ignored", () => {
+    expect(jurisdictionLocalityProblem("Aurora", { state: "CO", locality: null })).toBeNull();
+    expect(jurisdictionLocalityProblem("New  York", { state: "NY", locality: "New York" })).toBeNull();
+    expect(jurisdictionLocalityProblem(null, denver)).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem("   ", denver)).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem(null, { state: "CO", locality: null })).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem("Aurora", denver)).toMatch(/is in Aurora, but the rule profile is for Denver, CO/);
+  });
+});
+
+describe("hiring pauses with the organization's approval and the job's rules (demo audit 5)", () => {
+  it("is open for an approved organization under current, approved rules", () => {
+    expect(hiringPausedReasons({ approved: true }, denver, now)).toEqual([]);
+  });
+  it("pauses when Turfcut's approval of the organization is withdrawn", () => {
+    expect(hiringPausedReasons({ approved: false }, denver, now)).toEqual(["Turfcut's approval of this organization is on hold."]);
+  });
+  it("pauses with every reason the rules fail the gate: lapsed, unapproved, superseded, not yet effective, unknown", () => {
+    expect(hiringPausedReasons({ approved: true }, { ...denver, approvalExpiresAt: new Date("2026-09-30T00:00:00Z") }, now)).toEqual(["Counsel approval for Denver, CO (rules v1) expired on 2026-09-30."]);
+    expect(hiringPausedReasons({ approved: true }, { ...denver, approved: false }, now)).toEqual(["Denver, CO (rules v1) hasn't been approved by counsel."]);
+    expect(hiringPausedReasons({ approved: true }, { ...denver, isCurrent: false }, now)[0]).toMatch(/superseded/);
+    expect(hiringPausedReasons({ approved: true }, { ...denver, effectiveFrom: new Date("2026-12-01T00:00:00Z") }, now)[0]).toMatch(/isn't effective until 2026-12-01/);
+    expect(hiringPausedReasons({ approved: true }, null, now)[0]).toMatch(/unknown/);
+  });
+  it("lists the organization first, then the rules, and says hiring is paused", () => {
+    const reasons = hiringPausedReasons({ approved: false }, { ...denver, approvalExpiresAt: new Date("2026-09-30T00:00:00Z") }, now);
+    expect(reasons).toHaveLength(2);
+    expect(hiringPausedMessage(reasons)).toBe("Hiring is paused on this job: Turfcut's approval of this organization is on hold. Counsel approval for Denver, CO (rules v1) expired on 2026-09-30.");
+  });
+  it("an approval that expires later doesn't pause it yet", () => {
+    expect(hiringPausedReasons({ approved: true }, { ...denver, approvalExpiresAt: new Date("2026-10-02T00:00:00Z") }, now)).toEqual([]);
   });
 });

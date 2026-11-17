@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Turfcut: rules for every coding agent
 
-Codex and Claude both work in this repo. Before writing code, read:
+Claude, Codex and Grok all work in this repo. Before writing code, read:
 
 1. `CLAUDE.md`, all of it: the working agreements and the notes for future
    sessions. Those rules bind every agent, not only Claude.

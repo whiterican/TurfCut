@@ -236,10 +236,95 @@ export function siteOriginOf(v: string | undefined): string | null {
   }
 }
 
-/** Stripe secret key (M5 payouts). Server only. */
+/** sk_test_/rk_test_ vs sk_live_/rk_live_. Leading and trailing space is ignored for the mode check. */
+export function stripeSecretKeyMode(key: string | undefined): "none" | "test" | "live" | "unknown" {
+  if (!key) return "none";
+  const t = key.trim();
+  if (/^(sk|rk)_test_/.test(t)) return "test";
+  if (/^(sk|rk)_live_/.test(t)) return "live";
+  return "unknown";
+}
+
+/**
+ * TURFCUT_DEMO, read as on, off or unrecognized. "1", "true", "yes" or "on"
+ * (any case) is on; unset, empty, "0", "false", "no" or "off" is off.
+ * Anything else is unrecognized, and the two readers below treat it in opposite,
+ * safe directions: the Stripe guards count it as on (a typo like "ture" can't
+ * leave a demo deploy unguarded), the demo seed does not (a typo can't allow
+ * seeding). It never throws: hasStripeConfig runs on every pay page and in
+ * the Stripe webhook, and a throw there would take payouts down over a
+ * mistyped setting.
+ */
+export function turfcutDemoSetting(env: NodeJS.Dict<string> = process.env): "on" | "off" | "unrecognized" {
+  const v = env.TURFCUT_DEMO?.trim();
+  if (!v || /^(0|false|no|off)$/i.test(v)) return "off";
+  if (/^(1|true|yes|on)$/i.test(v)) return "on";
+  return "unrecognized";
+}
+
+/**
+ * Demo mode is clearly on: 1, true, yes or on. A value it doesn't recognize is NOT on. This is the strict reading,
+ * for code that allows something only in a demo database (the seed's placeholder profile): a typo must refuse.
+ */
+export function turfcutDemoOn(env: NodeJS.Dict<string> = process.env): boolean {
+  return turfcutDemoSetting(env) === "on";
+}
+
+/**
+ * The live-Stripe guards apply: demo mode is on, or set to a value it doesn't recognize. The opposite, safe
+ * direction from turfcutDemoOn: here a typo must refuse live keys, not allow them.
+ */
+export function turfcutDemoGuardsLive(env: NodeJS.Dict<string> = process.env): boolean {
+  return turfcutDemoSetting(env) !== "off";
+}
+
+// Names the setting, never its value.
+const demoReason = (env: NodeJS.Dict<string>) =>
+  turfcutDemoSetting(env) === "unrecognized"
+    ? "TURFCUT_DEMO has an unrecognized value (use 1, true, yes or on for on; 0, false, no, off or unset for off), so it counts as on"
+    : "TURFCUT_DEMO is set";
+
+const nonProductionVercel = (env: NodeJS.Dict<string>) => !!env.VERCEL_ENV && env.VERCEL_ENV !== "production";
+
+/**
+ * When a live Stripe secret key must be refused. Demo mode (TURFCUT_DEMO)
+ * always refuses sk_live_ and rk_live_. So does a set VERCEL_ENV that isn't
+ * "production" (preview or development). Unset VERCEL_ENV (local or CI)
+ * and production are left alone, unless demo mode is on.
+ */
+export function liveStripeKeyProblem(key: string | undefined, env: NodeJS.Dict<string> = process.env): string | null {
+  if (stripeSecretKeyMode(key) !== "live") return null;
+  if (turfcutDemoGuardsLive(env)) {
+    return `${demoReason(env)}, but STRIPE_SECRET_KEY is a live key (sk_live_ or rk_live_). Demo deploys must use a test key.`;
+  }
+  if (nonProductionVercel(env)) {
+    return "This deployment isn't production (VERCEL_ENV is preview or development), but STRIPE_SECRET_KEY is a live key. Use a test key.";
+  }
+  return null;
+}
+
+/** Live-mode Stripe webhook events: refused in demo mode, and on non-production Vercel deploys. */
+export function stripeWebhookLivemodeProblem(livemode: boolean, env: NodeJS.Dict<string> = process.env): string | null {
+  if (!livemode) return null;
+  if (turfcutDemoGuardsLive(env)) {
+    return `${demoReason(env)}, but this Stripe event is from live mode. Demo deploys only accept test-mode events.`;
+  }
+  if (nonProductionVercel(env)) {
+    return "This deployment isn't production (VERCEL_ENV is preview or development), but this Stripe event is from live mode.";
+  }
+  return null;
+}
+
+/**
+ * Stripe secret key (M5 payouts). Server only. Throws the live-key guard's
+ * message when it applies; the payout provider turns that into a definitive
+ * ProviderError.
+ */
 export function getStripeSecretKey(): string {
   const v = process.env.STRIPE_SECRET_KEY;
   if (!v) throw missing("STRIPE_SECRET_KEY");
+  const problem = liveStripeKeyProblem(v);
+  if (problem) throw new Error(problem);
   return v;
 }
 
@@ -256,7 +341,21 @@ export function getStripeWebhookSecrets(): string[] {
 
 /** True when payouts can reach Stripe. Without it, pay is tracked but not sent. */
 export function hasStripeConfig(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY);
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return false;
+  // A key the live-key guard refuses counts as not connected, so the Pay buttons hide.
+  const problem = liveStripeKeyProblem(key);
+  if (problem) warnStripeRefusedOnce(problem);
+  return !problem;
+}
+
+// Pay hidden by the guard would otherwise be a silent outage: say why once per process, in the server log
+// (Vercel → Logs). The message names settings, never their values.
+let stripeRefusedWarned = false;
+function warnStripeRefusedOnce(problem: string) {
+  if (stripeRefusedWarned) return;
+  stripeRefusedWarned = true;
+  console.error(`[turfcut] payouts are off: ${problem}`);
 }
 
 /**

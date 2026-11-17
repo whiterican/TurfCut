@@ -90,6 +90,12 @@ describe("summarizeField", () => {
     expect(Object.keys(JSON.parse(json)).sort()).toEqual(["at", "groups", "today", "version", "zones"]);
   });
 
+  it("changes its version when a shift's turf changes, so other open pages refresh", () => {
+    const withA = [row("a", { turf: turfA })];
+    expect(summarizeField([row("a", { turf: turfB })], now).version).not.toBe(summarizeField(withA, now).version);
+    expect(summarizeField([row("a")], now).version).not.toBe(summarizeField(withA, now).version);
+  });
+
   it("changes its version when a shift's state changes, or one becomes due, and not with the clock alone", () => {
     const base = [row("a"), row("b", { s: { checkedInAt: inAt } })];
     const v1 = summarizeField(base, now).version;

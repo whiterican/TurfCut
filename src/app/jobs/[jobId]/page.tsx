@@ -10,7 +10,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jobRulesLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { JobPhoto } from "@/components/JobPhoto";
@@ -118,7 +118,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
     {isOwnOrg ? (
       <Masthead
         className="job-head"
-        eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
+        eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jobRulesLabel(job.geography, job.jurisdiction)}`}
         title={job.title}
         titleClassName="w-fit"
         titleStyle={shareStyle(`job-${job.id}`)}
@@ -194,7 +194,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
     </div>
   ) : undefined;
   return (
-    // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
+    // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1280.
     <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} pref={pref} />} panelLabel="Your place on this job" foot={joinFoot} tail={fullCard}>
       {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
       {job.description && (

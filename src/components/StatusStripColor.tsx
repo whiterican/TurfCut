@@ -4,25 +4,28 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 /**
- * Tells the phone what colour the strip behind the clock and battery is: the colour the root is
- * painted (globals.css), kept in <meta name="theme-color">. An installed iPhone app takes that
+ * Tells the phone what colour the strip behind the clock and battery is: the root's --root-top
+ * (globals.css), kept in <meta name="theme-color">. An installed iPhone app takes that
  * strip from the page once and does not look again, so after a change of theme the strip kept
  * the old theme's colour (Caden's iPhone, Nov 12: a light strip over the dark app).
  *
- * The root's colour changes with the theme (classes on the root), the page (a header or a chat),
- * and the menu drawer, so it is read again after each of those, once a frame. Renders nothing.
+ * The strip's colour (--root-top) changes with the theme (classes on the root), the page (a header
+ * or a chat), and the menu drawer, so it is read again after each of those, once a frame. Renders nothing.
  */
 export function StatusStripColor() {
   const pathname = usePathname();
   useEffect(() => {
     const root = document.documentElement;
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement("meta");
+    // The layout sends one tag for the device's light theme and one for its dark (so a value is there at load):
+    // every one is kept on the page's real colour, whichever the device is reading.
+    const tags = () => {
+      const found = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')];
+      if (found.length) return found;
+      const meta = document.createElement("meta");
       meta.name = "theme-color";
       document.head.appendChild(meta);
-    }
-    const tag = meta;
+      return [meta];
+    };
     let frame = 0;
     let timer = 0;
     // One pixel, to turn whatever the browser computed (it may be a color(srgb …) from a color-mix) into plain rgb().
@@ -31,7 +34,8 @@ export function StatusStripColor() {
     let plain = "";
     const read = () => {
       frame = 0;
-      const computed = getComputedStyle(root).backgroundColor;
+      // The strip's colour, not the root's own: the root paints the foot of the page (globals.css --root-foot).
+      const computed = getComputedStyle(root).getPropertyValue("--root-top").trim();
       if (!computed) return;
       if (computed !== seen) {
         seen = computed;
@@ -49,7 +53,7 @@ export function StatusStripColor() {
           }
         }
       }
-      if (plain && tag.content !== plain) tag.content = plain;
+      if (plain) for (const tag of tags()) if (tag.content !== plain) tag.content = plain;
     };
     const soon = () => {
       if (!frame) frame = requestAnimationFrame(read);
@@ -69,6 +73,8 @@ export function StatusStripColor() {
     // A header or a chat's bar that arrives after the page (streamed in) changes the root's colour with no event.
     const arrivals = new MutationObserver(soon);
     arrivals.observe(document.body, { childList: true, subtree: true });
+    // The framework can put fresh tags in the head on a change of page or of its query, with the layout's fixed colours.
+    arrivals.observe(document.head, { childList: true });
     const phone = window.matchMedia("(prefers-color-scheme: light)");
     phone.addEventListener("change", after);
     window.addEventListener("click", after, { passive: true });

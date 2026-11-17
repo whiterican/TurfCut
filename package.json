@@ -2,6 +2,9 @@
   "name": "turfcut-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
@@ -11,6 +14,7 @@
     "test": "vitest run",
     "seed": "tsx prisma/seed.ts",
     "seed:demo": "tsx prisma/demo-seed.ts",
+    "seed:demo-accounts": "tsx prisma/demo-accounts.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "test:acceptance": "tests/acceptance/run.sh"

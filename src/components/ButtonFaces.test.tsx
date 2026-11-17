@@ -31,8 +31,8 @@ describe("button faces (P1.2)", () => {
 });
 
 describe("empty states (P1.2)", () => {
-  it("draws all eight, decorative, in theme colours only", () => {
-    expect(EMPTY_ART_KINDS).toHaveLength(8);
+  it("draws all nine, decorative, in theme colours only", () => {
+    expect(EMPTY_ART_KINDS).toHaveLength(9);
     for (const kind of EMPTY_ART_KINDS) {
       const html = renderToStaticMarkup(<EmptyArt kind={kind} />);
       expect(html).toContain('aria-hidden="true"');

@@ -1652,7 +1652,7 @@ model ImportedAddress {
   id        String        @id @default(uuid()) @db.Uuid
   importId  String        @db.Uuid
   import    AddressImport @relation(fields: [importId], references: [id], onDelete: Restrict)
-  rowNumber Int // the row in the file (1 = first data row)
+  rowNumber Int // the line of the file the row starts on (the header is line 1)
   line1     String
   unit      String?
   city      String

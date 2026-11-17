@@ -64,7 +64,7 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
                 <td role="cell" data-label="Basis" className="text-muted">
                   {/* A reference never breaks at its hyphens. */}
                   {l.formula}
-                  {l.corrects && <> · <span className="whitespace-nowrap">corrects {l.corrects}</span></>}
+                  {l.corrects && <> · corrects <span className="whitespace-nowrap">{l.corrects}</span></>}
                   {l.receipt && <> · <span className="whitespace-nowrap">{l.receipt}</span></>}
                 </td>
                 <td role="cell" data-label="Pay" className="num">{amount(l.amountCents)}</td>

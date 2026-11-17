@@ -1,6 +1,8 @@
 /* Match columns across independently grouped job tables only when the ledger
    has room. The container threshold also respects sidebars and browser zoom.
-   Compact tables, stacked phone rows and printed statements keep their layout. */
+   Compact tables, stacked phone rows and printed statements keep their layout.
+   The frame is a size container, so its width never comes from its table: fine inside a block (every
+   caller of LinesTable), but it would collapse to nothing inside a shrink-to-fit parent. */
 .frame {
   container-type: inline-size;
 }
@@ -16,12 +18,15 @@
     }
 
     .columns { display: table-column-group; }
+    /* Measured in a browser (#177 review): at a 60rem container, Pay and Fee at 15% and 13% hold
+       -$1,234,567.89 and -$12,345.67 inside their cells, so the right edges stay aligned; the date
+       column had room to spare. Current state at 17% keeps the longest status to two lines. */
     .worker { width: 17%; }
-    .date { width: 22%; }
-    .basis { width: 22%; }
-    .pay { width: 13%; }
-    .fee { width: 11%; }
-    .state { width: 15%; }
+    .date { width: 18%; }
+    .basis { width: 20%; }
+    .pay { width: 15%; }
+    .fee { width: 13%; }
+    .state { width: 17%; }
 
     .lines tbody th[scope="row"] {
       white-space: normal;

@@ -364,8 +364,9 @@ and stops (exit 1, nothing written) when:
   `NEXT_PUBLIC_SUPABASE_URL`, `DATABASE_URL`, `DIRECT_URL` or
   `TURFCUT_DEMO_PROJECT_REF`, anywhere in the value. No setting overrides
   this;
-- `DATABASE_URL` is any other hosted Supabase database (`*.supabase.co`,
-  `*.pooler.supabase.com`) and the run isn't guarded: `TURFCUT_DEMO=1`, and
+- `DATABASE_URL` is any other hosted Supabase database (a `supabase.co`,
+  `supabase.com` or `supabase.in` host, the pooler included, or a `?host=`
+  naming one) and the run isn't guarded: `TURFCUT_DEMO=1`, and
   `TURFCUT_DEMO_PROJECT_REF` equal to the ref in both
   `NEXT_PUBLIC_SUPABASE_URL` and `DATABASE_URL`. The message says what to
   set. Because the stop comes first, a run with the settings missing can't

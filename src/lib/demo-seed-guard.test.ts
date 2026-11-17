@@ -155,6 +155,9 @@ describe("where seed:demo may write (hard stop before any write)", () => {
       "postgresql://postgres:secret@db.abcd1234.supabase.co:5432/postgres",
       "postgresql://postgres.abcd1234:secret@aws-0-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true",
       "postgresql://postgres@localhost:5432/postgres?host=db.abcd1234.supabase.co",
+      "postgresql://postgres@db.abcd1234.supabase.co.:5432/postgres",
+      "postgresql://postgres.abcd1234:secret@aws-0-us-east-2.pooler.supabase.com.:6543/postgres",
+      "postgresql://postgres@localhost:5432/postgres?host=db.abcd1234.supabase.co.",
     ];
     for (const DATABASE_URL of hosted) {
       expect(isHostedSupabaseDatabaseUrl(DATABASE_URL)).toBe(true);

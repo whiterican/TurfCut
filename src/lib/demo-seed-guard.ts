@@ -153,12 +153,13 @@ function mentionsLiveRef(value: string | undefined): boolean {
   return LIVE_SUPABASE_PROJECT_REFS.some((live) => haystack.includes(live));
 }
 
-const HOSTED_SUPABASE_HOST = /(^|\.)supabase\.(co|com|in)$/i;
+// A trailing dot (db.<ref>.supabase.co.) is the same host to DNS, so it counts too.
+const HOSTED_SUPABASE_HOST = /(^|\.)supabase\.(co|com|in)\.*$/i;
 
 /**
- * Whether DATABASE_URL is a hosted Supabase database: a *.supabase.co /
- * *.supabase.in host (direct db.<ref>), a *.pooler.supabase.com host, or a
- * libpq-style ?host= override naming one. Anything else (localhost,
+ * Whether DATABASE_URL is a hosted Supabase database: any supabase.co,
+ * supabase.com or supabase.in host (direct db.<ref> or the pooler), with or
+ * without a trailing dot, or a libpq-style ?host= override naming one. Anything else (localhost,
  * 127.0.0.1, a CI service container, a Unix socket) counts as local.
  */
 export function isHostedSupabaseDatabaseUrl(url: string): boolean {

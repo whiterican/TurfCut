@@ -2,6 +2,7 @@
 import { db } from "@/lib/db";
 import { ACCOUNT_CLOSED_NOTE } from "@/lib/engagements";
 import { applyToJob, claimJob, inviteWorker, loadEngagementEvents, loadPipelineFacts, moveEngagement, moveEngagements } from "@/lib/engagements-data";
+import { credentialed } from "./credentialed";
 import { loadApplicants } from "@/lib/applicants-data";
 import { applicantCells } from "@/lib/applicants";
 import { saveSharing } from "@/lib/sharing-data";
@@ -62,6 +63,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
     { id: W5, profileId: W5, displayName: "Casey Lin" },
     { id: W6, profileId: W6, displayName: "Morgan Diaz" },
   ] });
+  await credentialed(p, [W1, W2, W3, W4, W5, W6]);
   const jurisdictionId = (await p.job.findUniqueOrThrow({ where: { id: JOB } })).jurisdictionId;
   const newJob = (title: string, headcount: number | null, extra: Record<string, unknown> = {}) =>
     p.job.create({ data: { orgId: ORG, jurisdictionId, type: "CANVASS", title, status: "PUBLISHED", hiringMethod: { modes: ["application", "invite", "instant_claim"] }, headcount, ...extra } });
@@ -439,6 +441,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const N = (n: number) => `00000000-0000-0000-0000-0000000003${String(n).padStart(2, "0")}`;
   await p.profile.createMany({ data: [1, 2, 3].map((n) => ({ id: N(n), role: "WORKER" as const })) });
   await p.worker.createMany({ data: [1, 2, 3].map((n) => ({ id: N(n), profileId: N(n), displayName: `Notice ${n}` })) });
+  await credentialed(p, [1, 2, 3].map(N));
   const notices = (engagementId: string) => p.notification.findMany({ where: { engagementId }, select: { recipientId: true, kind: true }, orderBy: { createdAt: "asc" } });
   const hiringStaff = (await p.profile.findMany({ where: { orgId: ORG, ...areaMembers("hiring"), closedAt: null }, select: { id: true } })).map((x) => x.id).sort();
   const jn = await newJob("Notice job", 3);
@@ -470,6 +473,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   // N(4) has a relationship with the organization (an application elsewhere) and nothing on this job.
   await p.profile.create({ data: { id: N(4), role: "WORKER" } });
   await p.worker.create({ data: { id: N(4), profileId: N(4), displayName: "Notice 4" } });
+  await credentialed(p, [N(4)]);
   await applyToJob(N(4), N(4), (await newJob("Relationship job", 2)).id);
   const lateInvite = await inviteWorker(ORG, OWNER, jn.id, N(4));
   check("a closed job takes no applications or invitations", !lateApply.ok && lateApply.reason === "This job isn't open." && !lateInvite.ok && lateInvite.reason === "This job isn't open.", { lateApply, lateInvite });

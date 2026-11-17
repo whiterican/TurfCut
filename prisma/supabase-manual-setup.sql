@@ -190,6 +190,7 @@ CREATE TABLE "public"."Job" (
     "launch" JSONB,
     "tools" JSONB,
     "publishedAt" TIMESTAMP(3),
+    "providesTraining" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -2683,3 +2684,7 @@ ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_activity_live" CHECK (
 CREATE INDEX IF NOT EXISTS "Job_sector_activity_idx" ON "public"."Job"("sector", "activity");
 
 COMMIT;
+
+-- "We provide training" on jobs (PR #187). Also in prisma/c3-provides-training.sql.
+-- Existing jobs stay false. Safe to run again (no-op when the column is already on CREATE TABLE above).
+ALTER TABLE "public"."Job" ADD COLUMN IF NOT EXISTS "providesTraining" BOOLEAN NOT NULL DEFAULT false;

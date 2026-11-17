@@ -101,11 +101,11 @@
   --fg: #0f172a; /* = Text */
   /* Secondary type that may sit on a Muted fill: one step darker than Subtle
      (derived; Subtle itself is 3.84:1 on Muted, so it stays on white and Cream). */
-  --muted: #475569;
+  --muted: #3b4658;
   --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
-  --subtle-on-glass: #4a576b; /* derived: Subtle stepped nearly to Muted, for the same captions on the purple page and on glass (AA at the page's strongest) */
+  --subtle-on-glass: #3f4a5c; /* derived: Subtle stepped nearly to Muted, for the same captions on the purple page and on glass (AA at the page's strongest) */
   --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
-  --kicker: #475569;
+  --kicker: #3b4658;
   --focus: #157a46; /* = Forest */
   --selected: #157a46; /* = Forest: the chosen option's ring and card edge */
   /* Status as text has to read on Muted too, and (Nov 12) on the purple at the top of the page: these are
@@ -329,8 +329,9 @@
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
 html {
-  /* Two colours (Caden's iPhone, Nov 15). --root-top is the strip behind the clock and battery: html::after paints
-     it and the theme-color tag carries it (components/StatusStripColor.tsx). The root itself paints --root-foot,
+  /* Two colours (Caden's iPhone, Nov 15). --root-top is the strip behind the clock and battery: the theme-color tag
+     carries it (components/StatusStripColor.tsx), and html::after paints it on a chat, Sunlight and under the contrast
+     settings (elsewhere nothing is painted over the page there). The root itself paints --root-foot,
      the colour at the foot of the page: an installed iPhone app counts a page too short to scroll as shorter than
      the screen, and shows the root's own colour in the band below that; the top colour there was a purple bar
      across the bottom of every short page. The page itself is painted by the fixed layer under the body (below). */
@@ -2569,8 +2570,10 @@ body {
     box-shadow: 0 0 0 100vmax rgb(8 4 14 / 0.6);
   }
   @media (prefers-reduced-motion: no-preference) {
+    /* backwards, not both: once it has slid in the drawer keeps no transform, so an iPhone draws it as page, not as a
+       moved layer (Caden's iPhone, Nov 15: the name at its head was drawn soft while the rest was crisp). */
     .more-sheet[open] {
-      animation: tc-drawer-in var(--dur-slow) var(--ease-out) both;
+      animation: tc-drawer-in var(--dur-slow) var(--ease-out) backwards;
     }
   }
   /* The menu drawer's rows: icon, label, a chevron; rounded, no dividers. */
@@ -2600,25 +2603,53 @@ body {
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
-    /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
-    background: var(--drawer-bg);
     border-color: var(--glass-border);
-    /* Blur only: the usual glass recipe also saturates what shows through, and the pane's top would no longer be the strip's colour. */
+    box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
+  }
+  /* The drawer's glass is a layer of its own under the words, not the pane they sit in (Caden, Nov 15: "keep the blur,
+     overlay the name on top of it"). An iPhone drew text inside a blurred pane soft; text above one is drawn as
+     page. The dialog holds the layer (it does not scroll), the pane holds the words and scrolls over it. No sheen and
+     no lit top edge: the pane meets the status bar's strip, which is one flat colour. Blur only: the usual glass recipe
+     also saturates what shows through, and the pane's top would no longer be the strip's colour. */
+  .more-sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-end-end-radius: var(--radius-lg);
+    background: var(--drawer-bg);
     -webkit-backdrop-filter: blur(24px);
     backdrop-filter: blur(24px);
-    box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
+    pointer-events: none;
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
   .menu-button {
     @apply relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition;
   }
+  /* The pill's pane is a layer under the photo and the name (Caden, Nov 15): an iPhone drew the
+     name soft while it sat inside the blurred pill; above the layer it is drawn as page. z-index 0 holds the layer
+     inside the pill (a stacking context). The pane has no blur at all now (Nov 16): it is solid. */
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
-    background: var(--glass-sheen), var(--glass-bg-strong);
-    border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight);
+    z-index: 0;
+    /* The pill's own border only keeps its size; the edge is drawn on the layer, which lies over it. */
+    border-color: transparent;
+  }
+  .menu-button[data-named]::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border: 1px solid var(--glass-border);
+    border-radius: inherit;
+    /* Solid and sharp (Caden, Nov 16: "the white pill not blurred"): the plain surface, no blur behind it, no sheen,
+       and a tight shadow instead of the wide soft glow, so its edge is a line and not a haze. */
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgb(28 15 46 / 0.16);
+    pointer-events: none;
+  }
+  .dark .menu-button[data-named]::before {
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
   }
   .menu-avatar {
     @apply flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold;
@@ -2648,6 +2679,14 @@ body {
   /* The admin console stands alone (tablet pass, #136): no worker or organization menu on its pages. */
   body:has(.staff-band) :is(.phone-top, .site-header .menu-button) {
     display: none;
+  }
+  /* An organization's phone: the header leads with the person's pill, as a worker's phone does, and the pill takes
+     the logo's place (Caden, Nov 15: the two menus match; on a 320px phone the pill ran over the wordmark). */
+  @media (max-width: 47.99rem) {
+    body:not(:has(.staff-band)) .site-header:has(.menu-button[data-named]) .site-brand {
+      /* !important: the link's own flex utility sits in a later layer and would win. */
+      display: none !important;
+    }
   }
   /* In the site header the button shows only where the dock does. */
   @media (min-width: 48rem) {
@@ -3975,10 +4014,11 @@ html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
-/* Under the phone's clock (an installed iPhone app draws the page there): a cap in the colour the root is painted,
-   on every page and in every mode, so nothing scrolls behind the clock where no glass covers it (a job's page,
-   Sunlight, the solid fallback, a chat). Under the glass and the headers (z 44, 45), which draw over it. It has no
-   height anywhere the phone keeps no strip. */
+/* Under the phone's clock (an installed iPhone app draws the page there): a cap in the colour the root is painted, so
+   nothing scrolls behind the clock where the page has no plain strip of its own (a chat, Sunlight, the solid fallback).
+   On an ordinary page it is painted over nothing, by a later rule (Nov 16: the page's gradient runs up behind the
+   clock), and a job's page has its panes. Under the headers (z 44, 45), which draw over it. It has no height anywhere
+   the phone keeps no strip. */
 html::after {
   content: "";
   position: fixed;
@@ -4526,7 +4566,7 @@ html:has(.more-sheet[open])::view-transition {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
     --drawer-root: var(--surface);
-  --drawer-bg: var(--surface);
+    --drawer-bg: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);
@@ -4563,7 +4603,7 @@ html:has(.more-sheet[open])::view-transition {
     -webkit-mask-image: none;
     mask-image: none;
   }
-  .more-sheet-panel {
+  .more-sheet::before {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -4631,7 +4671,8 @@ body:has(.thread-top) {
   --subtle: var(--fg);
   --kicker: var(--fg);
 }
-.sun .more-sheet-panel {
+/* Sunlight is plain (the solid fallback says the same above): the drawer's layer is their solid --drawer-bg, unblurred. */
+.sun .more-sheet::before {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -4707,7 +4748,7 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after, always solid) is what is left. A row held
+   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, light glass elsewhere) is what is left. A row held
    in place by keyboard focus keeps its bar. */
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
@@ -4735,9 +4776,9 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
 /* "This whole top bar should not exist except for the logo and buttons overlayed on the gradient underneath the
    bar." The band behind the header row (and behind a worker's profile pill, and the sidebar layout's) is gone at
    every width: the logo and the round buttons stand on the page's own gradient, which is fixed to the screen, so
-   there is no edge where a band would stop. The header has no pane of its own either. What stays: the strip under
-   the phone's clock (html::after), the page's top colour and no taller than the clock's own strip, so text never
-   passes behind the time and battery; a job page's shade over its photograph and its strip once past it (both
+   there is no edge where a band would stop. The header has no pane of its own either. What stays: the plain strip under
+   the phone's clock (html::after) on a chat, Sunlight and the contrast settings (on an ordinary page it was removed on
+   Nov 16 and the page runs up behind the clock); a job page's shade over its photograph and its strip once past it (both
    only that tall on a phone); a chat's bar, the staff band and Sunlight's plain bar, which are surfaces. */
 html:not(.sun) .phone-top::before {
   display: none !important;
@@ -4753,10 +4794,28 @@ html:not(.sun) body:not(:has(.job-photo-head, .staff-band, .thread-top))::after 
 html:not(.sun) .site-header {
   --header-bg: transparent;
 }
-/* With no bar below it, the strip under the clock is the top of the page's own gradient, sized as the page's ground
-   is (body::before), so it meets the page with no edge. A chat by day keeps its dark strip (the rule above). */
+/* No strip at all (Caden, Nov 16: "get rid of the bar and glass entirely, make the top status area have the same colors
+   as all modes so it matches seamlessly like the rest of the background"). The page's own gradient runs up behind the
+   clock and battery; nothing is painted over it, so there is no edge and no tint. What scrolls up under the time then
+   shows behind it. Sunlight and a chat keep their plain dark strip (the phone draws the clock in white, and a pale page
+   would lose it), a job's page its shade, and the contrast settings below the solid colour, which is what they ask for. */
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-  background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--page-top);
+  background: none;
+}
+/* Then blurred and see-through, the status bar's own size (Caden, Nov 16: "make the status bar blurred and
+   transparent but only as big as it is now"): the clock's strip (Nov 15: it ends just under the time and battery, at the
+   foot of the camera, so it never reaches a name), a light tint of the page's top colour over a modest blur, and a short fade in its last quarter so the edge reads as glass
+   and not a block. At rest the page behind it is the same colour and nothing shows; what scrolls up under the clock
+   softens. Only where the page draws under the clock (an installed iPhone app): elsewhere the safe area is 0 and so
+   is this. A Safari tab's strip is Safari's own and is not touched by this. */
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+    background: color-mix(in srgb, var(--root-top) 30%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+  }
 }
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.
@@ -4779,5 +4838,9 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     background: var(--root-top);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }

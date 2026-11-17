@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import {
   exclusionReasons,
   jobCredentials,
+  hiringPausedReasons,
   openJobsEndAfter,
   publishBlockers,
   readDisclosure,
@@ -45,6 +46,7 @@ function jobData(input: JobInput) {
     // Nothing said about the launch leaves it as stored (an API edit from before C4).
     ...(input.launch ? { launch: json(input.launch) } : {}),
     ...(input.tools ? { tools: json(input.tools) } : {}),
+    providesTraining: input.providesTraining,
   };
 }
 
@@ -75,6 +77,7 @@ function draftData(d: DraftInput) {
     ...(d.cancellationNoticeHours !== undefined ? { cancellationNoticeHours: d.cancellationNoticeHours } : {}),
     ...(d.launch ? { launch: json(d.launch) } : {}),
     ...(d.tools ? { tools: json(d.tools) } : {}),
+    ...(d.providesTraining !== undefined ? { providesTraining: d.providesTraining } : {}),
   };
 }
 
@@ -271,7 +274,10 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
   const pref = workerId ? effectivePreference(await loadLatestPreference(workerId)) : null;
   const shown: typeof jobs = [];
   const hidden: Array<{ id: string; title: string; reasons: string[] }> = [];
+  const now = new Date();
   for (const j of jobs) {
+    // Not hiring (organization approval withdrawn, rules lapsed): not open work, so not in the feed (hiringPausedReasons).
+    if (hiringPausedReasons(j.org, j.jurisdiction, now).length) continue;
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(j.campaignDisclosure), orgName: j.org.name, measureIds: j.measureIds });
     if (reasons.length) hidden.push({ id: j.id, title: j.title, reasons });
     else shown.push(j);

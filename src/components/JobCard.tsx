@@ -28,6 +28,7 @@ export function JobCard({
     cancellationNoticeHours: number;
     launch?: unknown;
     tools?: unknown;
+    providesTraining?: boolean;
     orgName: string;
     jurisdictionRules: unknown;
   };
@@ -43,7 +44,12 @@ export function JobCard({
         <Row label="Who you work for">{a.who}</Row>
         <Row label="What you're paid">{a.paidFor}</Row>
         <Row label="What counts as payable">{a.payable}</Row>
-        <Row label="Credentials needed">{a.credentials.join(" · ")}</Row>
+        <Row label="Credentials needed">{a.credentials.join(" · ") || "None"}</Row>
+        {job.providesTraining && (
+          <Row label="We provide training">
+            The organization provides training for the badges and courses this job needs, including any badge the state requires. You still need any required circulator registration or signed affidavit.
+          </Row>
+        )}
         <Row label="Who handles problems">
           {a.contacts ? (
             <>

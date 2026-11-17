@@ -103,6 +103,8 @@ export interface JobInput {
   launch: JobLaunch | null;
   /** Null when the submission said nothing about it (kept as stored). */
   tools: JobTools | null;
+  /** The organization provides training and badges on this job (PR #187). */
+  providesTraining: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +184,7 @@ export function validateDraft(raw: Record<string, unknown>): { ok: true; draft: 
   if (clean("payRate")) draft.payRateCents = value.payRateCents;
   if (clean("headcount")) draft.headcount = value.headcount;
   if (clean("hiringModes")) draft.hiringModes = value.hiringModes;
+  if (clean("providesTraining")) draft.providesTraining = value.providesTraining;
   // Flags and names are kept one by one: a training name that runs long doesn't drop the badge box.
   draft.requirements = {
     badge: clean("badge") && value.requirements.badge,
@@ -309,7 +312,7 @@ function parseJob(raw: Record<string, unknown>): { errors: Record<string, string
 
   // Optional text that would otherwise be dropped quietly (campaignName feeds "do not match me").
   for (const k of ["description", "training", "script", "campaignName"]) if (notText(raw, k)) errors[k] = "Enter this as text.";
-  for (const k of ["badge", "registration", "affidavit"]) if (!FLAG_VALUES.includes(raw[k])) errors[k] = "Tick it or leave it blank.";
+  for (const k of ["badge", "registration", "affidavit", "providesTraining"]) if (!FLAG_VALUES.includes(raw[k])) errors[k] = "Tick it or leave it blank.";
   const cancellationNoticeHours = Number(noticeStr);
   if (!/^\d+$/.test(noticeStr) || cancellationNoticeHours > 168) errors.cancellationNoticeHours = "Enter 0–168 hours.";
 
@@ -355,6 +358,7 @@ function parseJob(raw: Record<string, unknown>): { errors: Record<string, string
       cancellationNoticeHours,
       launch: hasLaunchFields(raw) && launch.ok ? launch.value : null,
       tools: hasToolsFields(raw) && tools.ok ? tools.value : null,
+      providesTraining: checked(raw.providesTraining),
     },
   };
 }
@@ -494,6 +498,22 @@ export function jurisdictionProblemList(j: JurisdictionFacts | null, now: Date =
 export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = new Date()): string[] {
   return jurisdictionProblemList(j, now).map((p) => p.text);
 }
+
+/**
+ * Why a published job can't take anyone new right now (demo audit finding
+ * 5): Turfcut has withdrawn the organization's approval, or the rule profile
+ * the job is filed under fails the gate (lapsed, unapproved, superseded, not
+ * yet effective). Such a job is left out of the feed, and applying,
+ * claiming, inviting, offering and accepting are refused with these reasons;
+ * people already hired keep their place (scheduling has its own freeze,
+ * canScheduleShift). Empty = hiring is open.
+ */
+export function hiringPausedReasons(org: { approved: boolean }, j: JurisdictionFacts | null, now: Date = new Date()): string[] {
+  return [...(org.approved ? [] : ["Turfcut's approval of this organization is on hold."]), ...jurisdictionProblems(j, now)];
+}
+
+/** What a worker or organization is told when hiring is paused on a job. */
+export const hiringPausedMessage = (reasons: string[]) => `Hiring is paused on this job: ${reasons.join(" ")}`;
 
 /**
  * Spec p.13: a rule change freezes new shifts until the profile is
@@ -713,15 +733,27 @@ export function fitReasons(f: {
  * the feed's "No credentials" filter both use this list, so they agree.
  */
 export function jobCredentials(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): string[] {
+  return jobCredentialNeeds(job).map((n) => n.label);
+}
+
+/** One credential a job needs, as jobCredentials lists it; `need` says which, for the hiring check (job-credentials.ts). */
+export type JobCredentialNeed =
+  | { need: "registration"; label: "Circulator registration" }
+  | { need: "badge"; label: "Badge" }
+  | { need: "affidavit"; label: "Signed affidavit" }
+  | { need: "training"; label: string; course: string };
+
+/** jobCredentials, keeping which credential each line is. Same rules, same order. */
+export function jobCredentialNeeds(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): JobCredentialNeed[] {
   const req = readRequirements(job.requirements);
   const rules = obj(job.jurisdictionRules);
   const circulating = job.type === "PETITION";
-  return [
-    (req.registration || (circulating && rules.workerRegistrationRequired === true)) && "Circulator registration",
-    (req.badge || (circulating && rules.badgeRequired === true)) && "Badge",
-    (req.affidavit || (circulating && rules.affidavitRequired === true)) && "Signed affidavit",
-    req.training && `Training: ${req.training}`,
-  ].filter((x): x is string => Boolean(x));
+  const out: JobCredentialNeed[] = [];
+  if (req.registration || (circulating && rules.workerRegistrationRequired === true)) out.push({ need: "registration", label: "Circulator registration" });
+  if (req.badge || (circulating && rules.badgeRequired === true)) out.push({ need: "badge", label: "Badge" });
+  if (req.affidavit || (circulating && rules.affidavitRequired === true)) out.push({ need: "affidavit", label: "Signed affidavit" });
+  if (req.training) out.push({ need: "training", label: `Training: ${req.training}`, course: req.training });
+  return out;
 }
 
 export function jobCardAnswers(job: {
@@ -844,6 +876,7 @@ export function jobToForm(job: {
   cancellationNoticeHours: number;
   launch?: unknown;
   tools?: unknown;
+  providesTraining?: boolean;
 }): Record<string, unknown> {
   const geo = obj(job.geography);
   const req = readRequirements(job.requirements);
@@ -866,6 +899,7 @@ export function jobToForm(job: {
     ...(req.badge ? { badge: "on" } : {}),
     ...(req.registration ? { registration: "on" } : {}),
     ...(req.affidavit ? { affidavit: "on" } : {}),
+    ...(job.providesTraining ? { providesTraining: "on" } : {}),
     training: req.training ?? "",
     script: req.script ?? "",
     campaignType: d?.campaignType ?? "",

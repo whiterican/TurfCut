@@ -5,6 +5,7 @@ import { alreadyConfirmed, loadSharing, orgViewer, saveSharing } from "@/lib/sha
 import { DEFAULT_SHARING, SHARE_PARTS, SHARING_TEXT_VERSION, sharingToRow, visibleParts } from "@/lib/sharing";
 import { savePreferences } from "@/lib/political-fit-data";
 import { applyToJob } from "@/lib/engagements-data";
+import { credentialed } from "./credentialed";
 import type { HiringSnapshot } from "@/lib/engagements";
 import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
 import { loadAvailability, loadOrgAvailabilities, loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
@@ -183,7 +184,12 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   await p.job.update({ where: { id: JOB }, data: { hiringMethod: { modes: ["application"] } } });
   await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
   await savePreferences(W2, W2, { visibilityMode: "APPLIED_TO", identityLabels: [{ label: "independent", shared: true }], partyRelationship: null, issuePositions: {}, campaignBoundaries: [] }, null);
+  // Hiring checks credentials (job-credentials.ts), and W2's own wallet is the subject below: for this one application
+  // the job asks for none, so the wallet stays as those checks expect.
+  const asSeeded = await p.job.findUniqueOrThrow({ where: { id: JOB }, select: { type: true, requirements: true } });
+  await p.job.update({ where: { id: JOB }, data: { type: "CANVASS", requirements: {} } });
   const applied = await applyToJob(W2, W2, JOB);
+  await p.job.update({ where: { id: JOB }, data: { type: asSeeded.type, requirements: asSeeded.requirements ?? {} } });
   check("W2 applies to ORG's job with everything shared", applied.ok, applied);
   const eng = await p.engagement.findFirstOrThrow({ where: { workerId: W2, jobId: JOB } });
   const snap = eng.applicationSnapshot as unknown as HiringSnapshot;
@@ -338,11 +344,15 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   // An organization Turfcut doesn't approve gets no political fit on a hiring snapshot, as it gets no scorecard.
   await savePreferences(W3, W3, { visibilityMode: "APPLIED_TO", identityLabels: [{ label: "independent", shared: true }], partyRelationship: null, issuePositions: {}, campaignBoundaries: [] }, null);
   await p.organization.update({ where: { id: ORG }, data: { approved: false } });
+  await credentialed(p, [W3]);
   const unapprovedApply = await applyToJob(W3, W3, JOB);
+  const unapprovedRows = await p.engagement.count({ where: { workerId: W3, jobId: JOB } });
   await p.organization.update({ where: { id: ORG }, data: { approved: true } });
-  const w3snap = (await p.engagement.findFirst({ where: { workerId: W3, jobId: JOB } }))?.applicationSnapshot as unknown as HiringSnapshot | undefined;
-  check("an unapproved organization's snapshot carries no political fit and no scorecard part",
-    unapprovedApply.ok && !!w3snap && Object.values(w3snap.fit.fields).every((f) => !f.shared) && !!w3snap.scorecard.shared && Object.values(w3snap.scorecard.shared).every((x) => !x), { unapprovedApply, w3snap });
+  // Hiring pauses while Turfcut's approval is withdrawn (demo audit 5), so an unapproved organization gets no snapshot at all: no political fit, no scorecard part.
+  check("an unapproved organization can't take an application, so it gets no hiring snapshot",
+    !unapprovedApply.ok && /Hiring is paused on this job: Turfcut's approval of this organization is on hold\./.test(unapprovedApply.reason) && unapprovedRows === 0, { unapprovedApply, unapprovedRows });
+  const reapproved = await applyToJob(W3, W3, JOB);
+  check("…and once approved again, the worker can apply", reapproved.ok, reapproved);
   const w3view = await loadOrgProfile(W3, ORG, at);
   check("once approved again, the live page shows the fit the worker shares with it", !!w3view && w3view.fit.fields.identity.shared === true, w3view?.fit);
 

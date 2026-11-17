@@ -458,6 +458,8 @@ export function jobRulesLabel(geography: unknown, j: Pick<JurisdictionFacts, "st
   const city = str(geo.city);
   const state = (str(geo.state) ?? j.state).toUpperCase();
   if (!city) return jurisdictionLabel(j);
+  // A profile from another state never reads as this state's rules.
+  if (state !== j.state.toUpperCase()) return `${city}, ${state} · filed under ${jurisdictionLabel(j).replace(/ \(rules (v\d+)\)$/, " rules $1")}`;
   if (!j.locality) return `${city}, ${state} (statewide rules v${j.version})`;
   if (samePlace(city, j.locality)) return jurisdictionLabel(j);
   return `${city}, ${state} · filed under ${j.locality} rules v${j.version}`;
@@ -618,8 +620,10 @@ export function publishBlockerList(f: PublishFacts, now: Date = new Date()): Pub
     // No state is set in step 2; a state that doesn't match is fixed by picking its profile in step 1.
     if (s) job(s, str(obj(f.job.geography).state) ? "jurisdictionId" : "state");
     else {
-      const l = jurisdictionLocalityProblem(str(obj(f.job.geography).city), f.jurisdiction);
-      if (l) job(l, "jurisdictionId");
+      const city = str(obj(f.job.geography).city);
+      const l = jurisdictionLocalityProblem(city, f.jurisdiction);
+      // No city is fixed in step 2 (the city field); a city that doesn't match is fixed by picking its profile in step 1.
+      if (l) job(l, city ? "jurisdictionId" : "city");
     }
   }
   if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");

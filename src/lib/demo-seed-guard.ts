@@ -3,7 +3,8 @@
  * without a database. A placeholder statewide CO profile is only created
  * when the seed is clearly pointed at a dedicated demo database.
  */
-import { cleanDatabaseUrl } from "./env";
+import { LIVE_SUPABASE_PROJECT_REFS } from "./demo-accounts";
+import { cleanDatabaseUrl, turfcutDemoOn } from "./env";
 
 /** How long a demo-created statewide profile stays approved. */
 export const DEMO_STATEWIDE_EXPIRY_DAYS = 14;
@@ -15,13 +16,11 @@ export const DEMO_ONLY_NOTES =
 export const STATEWIDE_CO_ID = "00000000-0000-0000-0000-000000000022";
 
 /**
- * Live Turfcut Supabase projects. The demo seed always refuses these, even
- * when TURFCUT_DEMO=1 and TURFCUT_DEMO_PROJECT_REF matches. This is the only
- * project in the TurfCut org ("caden1@me.com's Project"), and the GitHub
- * "Supabase Preview" check links to its dashboard. Same list as #185
- * (src/lib/demo-accounts.ts); kept here because that PR is not merged yet.
+ * Live Turfcut Supabase projects: the one list, kept with the demo logins
+ * (src/lib/demo-accounts.ts). The demo seed always refuses these, even when
+ * TURFCUT_DEMO is on and TURFCUT_DEMO_PROJECT_REF matches.
  */
-export const LIVE_SUPABASE_PROJECT_REFS: readonly string[] = ["txzxtvsfzxfhgfiurufq"];
+export { LIVE_SUPABASE_PROJECT_REFS };
 
 export function isLiveSupabaseRef(ref: string | null | undefined): boolean {
   return !!ref && LIVE_SUPABASE_PROJECT_REFS.includes(ref.trim().toLowerCase());
@@ -95,8 +94,19 @@ export function projectRefFromDatabaseUrl(url: string | undefined): string | nul
  * onto a live project).
  */
 export function demoDatabaseGuard(env: DemoSeedEnv): { ok: true; ref: string } | { ok: false; reason: string } {
-  if (env.TURFCUT_DEMO !== "1") {
-    return { ok: false, reason: "TURFCUT_DEMO is not 1: a placeholder statewide profile is only created in a dedicated demo database." };
+  let demoOn = false;
+  try {
+    demoOn = turfcutDemoOn(env);
+  } catch {
+    demoOn = false;
+  }
+  if (!demoOn) {
+    return { ok: false, reason: "TURFCUT_DEMO is not on (1, true or yes): a placeholder statewide profile is only created in a dedicated demo database." };
+  }
+  // A live project's ref anywhere in DATABASE_URL is refused, as the demo logins do (src/lib/demo-accounts.ts).
+  const lowered = (env.DATABASE_URL ?? "").toLowerCase();
+  if (LIVE_SUPABASE_PROJECT_REFS.some((live) => lowered.includes(live))) {
+    return { ok: false, reason: "DATABASE_URL points at the live Turfcut project. The demo seed goes only into a dedicated demo project." };
   }
   const supabaseRef = projectRefFromSupabaseUrl(env.NEXT_PUBLIC_SUPABASE_URL);
   const databaseRef = projectRefFromDatabaseUrl(env.DATABASE_URL);

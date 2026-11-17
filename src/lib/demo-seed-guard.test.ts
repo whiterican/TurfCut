@@ -72,7 +72,13 @@ describe("the demo database must be named on purpose", () => {
 
   it("refuses when the flag is off, a value is missing, or either URL points at a different project", () => {
     expect(demoDatabaseGuard({ ...matching, TURFCUT_DEMO: undefined }).ok).toBe(false);
-    expect(demoDatabaseGuard({ ...matching, TURFCUT_DEMO: "true" }).ok).toBe(false);
+    // The same values the app accepts (lib/env turfcutDemoOn): 1, true or yes; anything else is off, never an error here.
+    expect(demoDatabaseGuard({ ...matching, TURFCUT_DEMO: "true" }).ok).toBe(true);
+    expect(demoDatabaseGuard({ ...matching, TURFCUT_DEMO: "YES" }).ok).toBe(true);
+    expect(demoDatabaseGuard({ ...matching, TURFCUT_DEMO: "on" }).ok).toBe(false);
+    expect(demoDatabaseGuard({ ...matching, TURFCUT_DEMO: "0" }).ok).toBe(false);
+    // The live project's ref anywhere in DATABASE_URL is refused, whatever else matches.
+    expect(demoDatabaseGuard({ ...matching, DATABASE_URL: `${matching.DATABASE_URL}?options=txzxtvsfzxfhgfiurufq` }).ok).toBe(false);
     expect(reasonOf({ ...matching, TURFCUT_DEMO_PROJECT_REF: undefined })).toMatch(/TURFCUT_DEMO_PROJECT_REF/);
     expect(reasonOf({ ...matching, NEXT_PUBLIC_SUPABASE_URL: undefined })).toMatch(/NEXT_PUBLIC_SUPABASE_URL/);
     expect(reasonOf({ ...matching, DATABASE_URL: undefined })).toMatch(/DATABASE_URL/);

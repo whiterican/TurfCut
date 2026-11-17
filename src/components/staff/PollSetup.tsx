@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { addQuestionAction, changeQuestionAction, type PollFormState } from "@/app/jobs/[jobId]/walkbooks/poll-actions";
 import { POLL_CHOICE_MAX, POLL_MAX_CHOICES, POLL_MAX_QUESTIONS, POLL_PROMPT_MAX, type PollQuestionView } from "@/lib/poll";
 import { PendingButton } from "@/components/PendingButton";
@@ -15,14 +15,15 @@ function QuestionForm({ jobId, question, onDone }: { jobId: string; question?: P
   const [seen, setSeen] = useState(state);
   if (seen !== state) {
     setSeen(state);
-    if (state.ok) {
-      if (!question) {
-        setPrompt("");
-        setChoices("");
-      }
-      onDone?.(state.message);
+    // Its own fields may be cleared while rendering; telling the parent (another component's state) waits for the effect below.
+    if (state.ok && !question) {
+      setPrompt("");
+      setChoices("");
     }
   }
+  useEffect(() => {
+    if (state.ok) onDone?.(state.message);
+  }, [state, onDone]);
   const err = (k: string) => (state.errors[k] ? <p className="field-error">{state.errors[k]}</p> : null);
   const n = choices.split(/\r?\n/).filter((l) => l.trim()).length;
   return (

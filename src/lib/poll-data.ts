@@ -175,7 +175,7 @@ async function record(who: Who, stopIdRaw: unknown, clientIdRaw: unknown, raw: R
       // The poll is asked at a door that was reached.
       // For a worker, a Done they recorded themselves: a hand-on carries a stop's state to the next holder, but not the visit.
       const outcome = await tx.stopOutcome.findFirst({ where: { stopId: stop.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { outcome: true, engagementId: true } });
-      if (outcome?.outcome !== "DONE" || (who.kind === "WORKER" && outcome.engagementId !== engagementId)) return { ok: false as const, reason: "Record this door as Done before its poll." };
+      if (outcome?.outcome !== "DONE" || (who.kind === "WORKER" && outcome.engagementId !== engagementId)) return { ok: false as const, reason: who.kind === "WORKER" ? "Record this door as Done yourself before its poll." : "This door isn't recorded as Done." };
       const read = readAnswers(raw, questions);
       if (!read.ok) return { ok: false as const, reason: read.reason };
 
@@ -235,10 +235,16 @@ export interface WorkerAnswer {
  */
 export async function loadWorkerPollAnswers(workerId: string, stopIds: string[]): Promise<Map<string, WorkerAnswer[]>> {
   if (!stopIds.length) return new Map();
-  const rows = await db().pollAnswer.findMany({
-    where: { stopId: { in: stopIds }, engagement: { workerId, status: { in: [...HIRED] }, worker: { closedAt: null } } },
-    select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true },
-  });
+  // In chunks: one `IN` list of tens of thousands of ids is more than the database client takes at once.
+  const rows: Array<{ stopId: string; questionId: string; choiceId: string | null; declined: boolean; createdAt: Date }> = [];
+  for (let i = 0; i < stopIds.length; i += 5000) {
+    rows.push(
+      ...(await db().pollAnswer.findMany({
+        where: { stopId: { in: stopIds.slice(i, i + 5000) }, engagement: { workerId, status: { in: [...HIRED] }, worker: { closedAt: null } } },
+        select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true },
+      }))
+    );
+  }
   const out = new Map<string, WorkerAnswer[]>();
   for (const r of newestAnswers(rows).values()) out.set(r.stopId, [...(out.get(r.stopId) ?? []), { questionId: r.questionId, choiceId: r.choiceId, declined: r.declined }]);
   return out;
@@ -315,6 +321,18 @@ export async function loadNewestJobAnswers(orgId: string, jobIdRaw: string, stop
  * answers are the most sensitive thing the app holds about residents, so a
  * read leaves a trace like an export does.
  */
-export async function auditPollRead(actor: Staff, jobId: string, kind: "stop_history" | "results", stopId?: string): Promise<void> {
-  await db().auditEvent.create({ data: { actorId: actor.profileId, action: "poll.answers_read", entityType: "Job", entityId: jobId, metadata: { kind, ...(stopId ? { stopId } : {}) } } });
+export async function auditPollRead(actor: Staff, jobId: string, kind: "stop_history" | "results", stopId?: string, now = new Date()): Promise<void> {
+  // One row per actor, job and kind (and stop) in ten minutes: a filter click or a refresh after an edit re-reads the same thing and isn't a new read.
+  const recent = await db().auditEvent.findFirst({
+    where: {
+      actorId: actor.profileId,
+      action: "poll.answers_read",
+      entityId: jobId,
+      createdAt: { gt: new Date(now.getTime() - 10 * 60_000) },
+      AND: [{ metadata: { path: ["kind"], equals: kind } }, ...(stopId ? [{ metadata: { path: ["stopId"], equals: stopId } }] : [])],
+    },
+    select: { id: true },
+  });
+  if (recent) return;
+  await db().auditEvent.create({ data: { actorId: actor.profileId, action: "poll.answers_read", entityType: "Job", entityId: jobId, metadata: { kind, ...(stopId ? { stopId } : {}) }, createdAt: now } });
 }

@@ -109,7 +109,10 @@ the organization deletes the job's data. Schema approved.
 - **Results** are counts per question in the poll's own order. Nothing is
   combined across questions, split by worker, ranked or scored (rules 4 and 5).
 - **Export**: one column per current question ("Poll 1: ..."), answers in words,
-  no worker names, full field access only.
+  full field access only. With poll columns the file carries no worker name and
+  no time, so it can't be pivoted into a per-worker breakdown of what residents
+  said (rule 5). Answers given to *earlier wording* of a changed question are not
+  exported (they stay visible in the console history).
 - **Not enforced by the database** (the app does): that an answer's stop and its
   question belong to the same job. A composite key would need approval.
 - Retention is "until the organization deletes the job's data": there is no

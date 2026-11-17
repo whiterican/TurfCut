@@ -43,9 +43,14 @@ describe("exportCsv", () => {
     const cols = [{ id: "q1", prompt: "Measure 3?" }, { id: "q2", prompt: "Top issue?" }];
     const csv = exportCsv([{ ...base, outcome: "DONE", poll: { q1: "Support", q2: "Declined" } }, { ...base, stopNumber: 3 }], cols);
     const lines = csv.trimEnd().split("\r\n");
-    expect(lines[0].endsWith('"Poll 1: Measure 3?","Poll 2: Top issue?"')).toBe(true);
+    expect(lines[0].endsWith('"Signatures","Poll 1: Measure 3?","Poll 2: Top issue?"')).toBe(true);
     expect(lines[1].endsWith('"Support","Declined"')).toBe(true);
     expect(lines[2].endsWith('"",""')).toBe(true);
+    // No worker name and no time beside the opinions (rule 5): a pivot of this file can't break answers down by person.
+    expect(lines[0]).not.toMatch(/Held by|Recorded at/);
+    expect(csv).not.toContain("Alex Rivera");
+    const named = exportCsv([{ ...base, holder: "Alex Rivera", outcome: "DONE", poll: { q1: "Support" } }], cols);
+    expect(named).not.toContain("Alex Rivera");
     // Without a poll the file is exactly what it was.
     expect(exportCsv([base]).split("\r\n")[0].endsWith('"Held by"')).toBe(true);
   });

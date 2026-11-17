@@ -6,7 +6,9 @@ import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
 import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff } from "@/lib/walkbooks-data";
 import { recordStopOutcome } from "@/lib/stop-outcomes-data";
-import { addPollQuestion, changePollQuestion, loadCurrentPolls, loadNewestJobAnswers, loadPollResults, loadPollSetup, loadStopPollHistory, loadWorkerPollAnswers, recordPollAnswers, staffRecordPollAnswers } from "@/lib/poll-data";
+import { loadExportRows } from "@/lib/stop-console-data";
+import { exportCsv } from "@/lib/stop-console";
+import { auditPollRead, addPollQuestion, changePollQuestion, loadCurrentPolls, loadNewestJobAnswers, loadPollResults, loadPollSetup, loadStopPollHistory, loadWorkerPollAnswers, recordPollAnswers, staffRecordPollAnswers } from "@/lib/poll-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OTHER_ORG = "00000000-0000-0000-0000-0000000000ff";
@@ -169,6 +171,23 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("staff change it, and that is a row of its own", viaStaff.ok && viaStaff.saved === 1);
   await p.engagement.update({ where: { id: e1.ok ? e1.engagementId : "" }, data: { status: "CANCELLED" } });
   check("a worker no longer hired reads nothing back, and can't record", (await loadWorkerPollAnswers(W[1], [s1.id, s2.id])).size === 0 && !(await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[0].id }))).ok);
+
+  // --- Reading is audited, once per window; the export carries no worker name ---
+  const t0 = new Date();
+  await auditPollRead(owner, job.id, "results", undefined, t0);
+  await auditPollRead(owner, job.id, "results", undefined, new Date(t0.getTime() + 60_000));
+  await auditPollRead(owner, job.id, "stop_history", s1.id, new Date(t0.getTime() + 61_000));
+  await auditPollRead(owner, job.id, "stop_history", s2.id, new Date(t0.getTime() + 62_000));
+  await auditPollRead(owner, job.id, "results", undefined, new Date(t0.getTime() + 11 * 60_000));
+  check("reads are audited once per actor, job, kind and stop in ten minutes (two results reads a minute apart are one row; another stop is its own; eleven minutes later is a new one)", (await p.auditEvent.count({ where: { action: "poll.answers_read", entityId: job.id } })) === 4, await p.auditEvent.count({ where: { action: "poll.answers_read" } }));
+  const ex = await loadExportRows(ORG, job.id, { outcome: null, bookId: null, holderId: null }, true);
+  if (ex.ok) {
+    const csv = exportCsv(ex.rows, ex.pollColumns);
+    check("the export has a column per current question, answers in words", ex.pollColumns.length === 2 && /Poll 1: /.test(csv.split("\r\n")[0]), csv.split("\r\n")[0]);
+    check("…and no worker name, no 'Held by' and no time beside the opinions", !/Held by|Recorded at|Alex Rivera|Jordan Blake/.test(csv), csv.split("\r\n").slice(0, 2));
+  } else check("the export loads", false, ex);
+  const noPoll = await loadExportRows(ORG, job.id, { outcome: null, bookId: null, holderId: null }, false);
+  check("without poll access the export has no poll columns", noPoll.ok && noPoll.pollColumns.length === 0);
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

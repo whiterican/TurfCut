@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, BadgeCheck, CalendarDays, ClipboardCheck, MapPinned, ShieldCheck } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { openJobsEndAfter, payShort } from "@/lib/jobs";
+import { hiringOpenWhere, openJobsEndAfter, payShort } from "@/lib/jobs";
 import { day } from "@/components/DateRangeChip";
 import Image from "next/image";
 import { HeroPage } from "@/components/layout/Page";
@@ -22,7 +22,8 @@ const steps = [
 async function featuredJob() {
   try {
     return await db().job.findFirst({
-      where: { status: "PUBLISHED", org: { approved: true }, endsAt: { gt: openJobsEndAfter(new Date()) } },
+      // hiringOpenWhere: an approved organization and rules that pass the gate, as the feed requires.
+      where: { status: "PUBLISHED", endsAt: { gt: openJobsEndAfter(new Date()) }, AND: [hiringOpenWhere()] },
       orderBy: [{ startsAt: "asc" }],
       select: { id: true, title: true, type: true, startsAt: true, endsAt: true, geography: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } } },
     });

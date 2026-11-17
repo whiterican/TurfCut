@@ -1,7 +1,10 @@
 /* Hiring stops when an organization's approval is withdrawn or its job's rules lapse (demo audit finding 5), on real
    Postgres: those jobs leave the feed, and applying, claiming, inviting, offering and accepting are refused with the
    reason, not only scheduling. People already hired keep their place, and everything comes back when it's cleared. */
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { listHiringJobs, listPublicCampaigns } from "@/lib/campaign-social-data";
+import { hiringOpenWhere, hiringPausedReasons } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
 
@@ -78,6 +81,56 @@ const idOf = (r: { ok: boolean } & ({ engagementId: string } | object)) => ("eng
   const claimOk = await claimJob(A, A, j1.id);
   const acceptOk = await moveEngagement(cApplied, "accept", worker(C));
   check("…and claiming and accepting go through", claimOk.ok && acceptOk.ok, { claimOk, acceptOk });
+
+  // --- Lists that count or pick open jobs in the database leave paused jobs out, as the feed does ---
+  const camp = await p.campaignProfile.create({ data: { orgId: ORG2, handle: "second_field_co", displayName: "Second Field Co", publishedAt: new Date(Date.now() - DAY) }, select: { id: true, orgId: true } });
+  await p.job.update({ where: { id: j2.id }, data: { campaignProfileId: camp.id } });
+  const listed = async () => ({
+    hiring: (await listHiringJobs(camp)).jobs.map((j) => j.id),
+    count: (await listPublicCampaigns()).campaigns.find((c) => c.id === camp.id)?.hiring ?? null,
+  });
+  const open = await listed();
+  check("an open job is on its campaign's hiring list and in the directory's count", open.hiring.includes(j2.id) && open.count === 1, open);
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: false } });
+  const unapproved = await listed();
+  check("approval withdrawn: off the hiring list (the directory drops the campaign)", unapproved.hiring.length === 0 && unapproved.count === null, unapproved);
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: true } });
+  await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: new Date(Date.now() - DAY) } });
+  const lapsedList = await listed();
+  check("rules lapsed: off the hiring list, and the directory counts 0", lapsedList.hiring.length === 0 && lapsedList.count === 0, lapsedList);
+  await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: null } });
+  check("cleared: back on the list and in the count", (await listed()).count === 1);
+
+  // hiringOpenWhere (the query) and hiringPausedReasons (the feed and the server) agree, profile state by profile state.
+  const original = await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: JUR } });
+  const now = new Date();
+  const states: Array<[string, Prisma.JurisdictionProfileUpdateInput, boolean]> = [
+    ["as seeded", {}, true],
+    ["not approved by counsel", { approved: false }, true],
+    ["superseded", { isCurrent: false }, true],
+    ["not yet effective", { effectiveFrom: new Date(now.getTime() + DAY) }, true],
+    ["effective since yesterday", { effectiveFrom: new Date(now.getTime() - DAY) }, true],
+    ["approval expired", { approvalExpiresAt: new Date(now.getTime() - DAY) }, true],
+    ["approval expires tomorrow", { approvalExpiresAt: new Date(now.getTime() + DAY) }, true],
+    ["no compensation rules", { rules: { notes: "none" } }, true],
+    ["compensation rules not a list", { rules: { compensationAllowed: "HOURLY" } }, true],
+    ["an empty list of methods", { rules: { compensationAllowed: [] } }, true],
+    ["organization on hold", {}, false],
+  ];
+  const disagree: string[] = [];
+  for (const [label, change, orgApproved] of states) {
+    await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approved: original.approved, isCurrent: original.isCurrent, effectiveFrom: original.effectiveFrom, approvalExpiresAt: original.approvalExpiresAt, rules: original.rules as Prisma.InputJsonValue, ...change } });
+    await p.organization.update({ where: { id: ORG2 }, data: { approved: orgApproved } });
+    const row = await p.job.findUniqueOrThrow({ where: { id: j2.id }, include: { org: true, jurisdiction: true } });
+    const byQuery = (await p.job.count({ where: { id: j2.id, AND: [hiringOpenWhere(now)] } })) === 1;
+    const byReasons = hiringPausedReasons(row.org, row.jurisdiction, now).length === 0;
+    // The directory's count is the same rule in SQL (an organization on hold drops the whole campaign).
+    const bySql = ((await listPublicCampaigns({ now })).campaigns.find((c) => c.id === camp.id)?.hiring ?? 0) === 1;
+    if (byQuery !== byReasons || bySql !== byReasons) disagree.push(`${label}: query ${byQuery}, directory ${bySql}, reasons ${byReasons}`);
+  }
+  check("hiringOpenWhere and the directory count match hiringPausedReasons in every profile state", disagree.length === 0, disagree);
+  await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approved: original.approved, isCurrent: original.isCurrent, effectiveFrom: original.effectiveFrom, approvalExpiresAt: original.approvalExpiresAt, rules: original.rules as Prisma.InputJsonValue } });
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: true } });
 
   // --- Paused while a hire waits for the lock: checked again under it (rule 6) ---
   // Holds the worker's lock so the action passes the early check and then waits inside its transaction,

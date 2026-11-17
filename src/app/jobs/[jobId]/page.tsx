@@ -10,7 +10,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jobRulesLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, hiringPausedMessage, hiringPausedReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jobRulesLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { JobPhoto } from "@/components/JobPhoto";
@@ -187,15 +187,18 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   }
   // One read of the worker's own preferences decides the panel and the foot alike.
   const pref = effectivePreference(await loadLatestPreference(session.workerId!));
+  // Hiring paused (organization approval on hold, rules failing the gate): the server refuses joining and accepting,
+  // so the page doesn't offer them (hiringPausedReasons, as the feed).
+  const paused = job.status === "PUBLISHED" ? hiringPausedReasons(job.org, job.jurisdiction, new Date()) : [];
   // The join action as the page's foot, exactly where the panel shows it: no place on the job yet, a way to join, and not hidden by the worker's own preferences.
-  const joinFoot = !engagement && canJoin(modes) && ownExclusions(pref, job).length === 0 ? (
+  const joinFoot = !engagement && canJoin(modes) && !paused.length && ownExclusions(pref, job).length === 0 ? (
     <div className="job-cta-bar">
       <JoinButtons jobId={job.id} modes={modes} />
     </div>
   ) : undefined;
   return (
     // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1280.
-    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} pref={pref} />} panelLabel="Your place on this job" foot={joinFoot} tail={fullCard}>
+    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} pref={pref} paused={paused} />} panelLabel="Your place on this job" foot={joinFoot} tail={fullCard}>
       {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
       {job.description && (
         <section className="section">
@@ -229,6 +232,15 @@ function JoinButtons({ jobId, modes }: { jobId: string; modes: string[] }) {
   );
 }
 
+/** Hiring is paused: the reason, as the server gives it when anyone tries to join or accept. */
+function PausedNote({ reasons }: { reasons: string[] }) {
+  return (
+    <p role="status" className="alert-info text-sm">
+      {hiringPausedMessage(reasons)} You can join or accept once it&apos;s cleared.
+    </p>
+  );
+}
+
 type WorkerPref = ReturnType<typeof effectivePreference>;
 /** Why the worker's own do-not-match answers keep this job from them (shown to them alone, never to the organization). */
 const ownExclusions = (pref: WorkerPref, job: JobWithRefs) => exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
@@ -241,6 +253,7 @@ async function WorkerPanel({
   workerId,
   acceptedCount,
   pref,
+  paused,
 }: {
   job: JobWithRefs;
   engagement: { id: string; jobId: string; status: EngagementStatus; createdAt: Date; applicationSnapshot: unknown; inviteNote: string | null; inviteExpiresAt: Date | null } | null;
@@ -249,6 +262,8 @@ async function WorkerPanel({
   acceptedCount: number;
   /** The worker's own preferences, read once by the page: they decide the panel and the page's foot alike. */
   pref: WorkerPref;
+  /** Why hiring is paused on this job (empty = open): no joining or accepting is offered while it is. */
+  paused: string[];
 }) {
   const reasons = ownExclusions(pref, job);
   const excluded = (
@@ -278,6 +293,7 @@ async function WorkerPanel({
         <p className="flex items-center gap-2 font-medium text-fg">
           Your status <StatusBadge status={engagementStatus(engagement, facts, new Date())} />
         </p>
+        {paused.length > 0 && (engagement.status === "INVITED" || engagement.status === "OFFERED") && <PausedNote reasons={paused} />}
         {engagement.status === "INVITED" && (
           <>
             {closed ? (
@@ -288,7 +304,7 @@ async function WorkerPanel({
               engagement.inviteExpiresAt && <p className="text-muted-sm">Answer by {day(engagement.inviteExpiresAt)}. The organization&apos;s note, if any, is in the history below.</p>
             )}
             <div className="flex flex-wrap items-start gap-2">
-              {!closed && !inviteExpired && <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />}
+              {!closed && !inviteExpired && !paused.length && <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />}
               <ActionButton action={declineAsWorker} fields={fields} label="Decline" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this invitation? ${final}`, label: "Yes, decline" }} />
             </div>
             <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
@@ -304,7 +320,7 @@ async function WorkerPanel({
                   : `The organization offered you a spot. Nothing starts until you accept (${timeLeft(offerDeadline)}). Any note it sent is in the history below.`}
             </p>
             <div className="flex flex-wrap items-start gap-2">
-              {!offerExpired && offerDeadline && !closed && <ActionButton action={acceptInvitation} fields={fields} label="Accept offer" pendingLabel="Accepting…" />}
+              {!offerExpired && offerDeadline && !closed && !paused.length && <ActionButton action={acceptInvitation} fields={fields} label="Accept offer" pendingLabel="Accepting…" />}
               <ActionButton action={declineAsWorker} fields={fields} label="Decline offer" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this offer? ${final}`, label: "Yes, decline the offer" }} />
             </div>
           </div>
@@ -368,7 +384,9 @@ async function WorkerPanel({
     {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits. */}
     <section className="space-y-4" aria-label="Apply">
       {/* From 1280 the action sits here, in the aside beside the page. Below that it is the page's foot, which stays on screen. */}
-      {canJoin(modes) ? (
+      {paused.length ? (
+        <PausedNote reasons={paused} />
+      ) : canJoin(modes) ? (
         <div className="job-cta-bar hidden xl:block">
           <JoinButtons jobId={job.id} modes={modes} />
         </div>

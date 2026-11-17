@@ -15,6 +15,7 @@
  *   same option lists workers answer with, so overlap is a direct comparison
  *   and nothing about a worker is ever inferred.
  */
+import type { Prisma } from "@prisma/client";
 import type { Validated } from "@/lib/experience";
 import { hasLaunchFields, launchBlocker, launchToForm, readLaunch, validateLaunch, type JobLaunch } from "@/lib/job-launch";
 import { hasToolsFields, readTools, toolsToForm, validateTools, type JobTools } from "@/lib/job-tools";
@@ -512,6 +513,30 @@ export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = ne
  */
 export function hiringPausedReasons(org: { approved: boolean }, j: JurisdictionFacts | null, now: Date = new Date()): string[] {
   return [...(org.approved ? [] : ["Turfcut's approval of this organization is on hold."]), ...jurisdictionProblems(j, now)];
+}
+
+/**
+ * hiringPausedReasons as a query filter, for lists that count or pick jobs in
+ * the database ("hiring now", the directory's count, the home page's job):
+ * the organization is approved, and the rule profile is approved, current,
+ * in effect, not expired and has compensation rules (jurisdictionProblemList,
+ * line for line). Keep the two in step; the hp acceptance checks compare
+ * them.
+ */
+export function hiringOpenWhere(now: Date = new Date()): Prisma.JobWhereInput {
+  return {
+    org: { approved: true },
+    jurisdiction: {
+      approved: true,
+      isCurrent: true,
+      AND: [
+        { OR: [{ effectiveFrom: null }, { effectiveFrom: { lte: now } }] },
+        { OR: [{ approvalExpiresAt: null }, { approvalExpiresAt: { gt: now } }] },
+        // Array.isArray(rules.compensationAllowed): any array, empty included.
+        { rules: { path: ["compensationAllowed"], array_contains: [] } },
+      ],
+    },
+  };
 }
 
 /** What a worker or organization is told when hiring is paused on a job. */

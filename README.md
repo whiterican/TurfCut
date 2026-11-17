@@ -361,7 +361,14 @@ would write. It makes:
   Each demo worker holds a self-reported Colorado circulator registration,
   affidavit status, badge and the "Petition basics" and "Canvass basics"
   training, since hiring checks credentials;
-- 27 published Colorado jobs, all titled "… (demo)" and fictional: local
+- 27 published Colorado jobs across eight cities, all titled "… (demo)" and
+  fictional. Denver jobs are filed under the base seed's Denver profile. On
+  a guarded demo database (`TURFCUT_DEMO=1` and `TURFCUT_DEMO_PROJECT_REF`
+  matching the ref in `NEXT_PUBLIC_SUPABASE_URL` and `DATABASE_URL`), the
+  rest go under a statewide CO profile: the database's current usable one,
+  or one the demo seed adds with a 14-day expiry and a "DEMO ONLY" label
+  (not counsel-approved). Elsewhere those jobs are filed in Denver, and no
+  statewide profile is created. They cover local
   measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,
   Republican, Libertarian, Green, other). The candidates have invented
@@ -438,8 +445,11 @@ live Supabase project (`txzxtvsfzxfhgfiurufq`) is never the demo project:
    (`sk_test_…`) with its test-mode `STRIPE_WEBHOOK_SECRET`, and
    `TURFCUT_DEMO=1`. Its name and URL are up to the owner; this README
    doesn't assume one. Redeploy after setting them.
-5. **Seed it**, from a shell holding only the demo project's values:
-   `npm run seed`, `npm run seed:demo -- --yes`, then the demo logins below.
+5. **Seed it**, from a shell holding only the demo project's values, with
+   `NEXT_PUBLIC_SUPABASE_URL`, `TURFCUT_DEMO_PROJECT_REF=<demo-ref>` and
+   `TURFCUT_DEMO=1` exported **before** seeding (as in the block below), so
+   `seed:demo` runs guarded: `npm run seed`, `npm run seed:demo -- --yes`,
+   then the demo logins below.
 
 ### Demo logins (a dedicated demo project only)
 
@@ -451,11 +461,12 @@ logins there:
 ```bash
 # In the demo project's shell only. Nothing here goes in a committed file.
 export DATABASE_URL=…                 # the demo project's database (same project as the URL below)
+export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
+export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the ref in the URL and in DATABASE_URL: "yes, this is the demo project"
+export TURFCUT_DEMO=1                 # with the two above, seed:demo runs guarded
 npm run seed && npm run seed:demo -- --yes
 npm run seed:demo-accounts -- --plan  # lists every login it would make; writes nothing
-export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=…    # the demo project's secret key
-export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the URL's project ref: "yes, this is the demo project"
 export DEMO_ACCOUNTS_PASSWORD=…       # 12+ characters, shared by every demo login
 npm run seed:demo-accounts -- --yes
 ```
@@ -478,6 +489,11 @@ unless `DATABASE_URL` is the same project (`db.<ref>.supabase.co`, or user
 the seeds didn't make: a profile in the database or a login in Supabase
 Auth that isn't a demo login means real people use it. Re-running it
 leaves existing logins alone; the password is never stored.
+
+The "DEMO ONLY" statewide profile expires in about 14 days. On a guarded
+demo, `npm run seed:demo -- --yes` extends it by 14 days once it has expired
+or has 7 days or fewer left, and leaves the rest of the demo data as it
+is. Run before then, it changes nothing.
 
 ### Pay now in the demo (Stripe test mode only)
 
@@ -1563,6 +1579,14 @@ roles, one slice at a time.
   version's page shows the rules as the gate reads them, each open job and
   what freezes it, the other versions of the place, and Turfcut's decisions
   on it.
+- **A city profile covers that city only (demo audit, Nov 2026).** A job
+  in Aurora can't publish under the Denver profile. It's filed under
+  Aurora's own profile or a statewide CO one (no locality), and the publish
+  gate says which to pick. A statewide profile covers every city in its
+  state. Jobs already published keep running, and their rules line says
+  "Aurora, CO · filed under Denver rules v1" instead of passing as Denver.
+  The rules line on job cards and job pages names the job's own city
+  ("Aurora, CO (statewide rules v1)").
 - **Hiring pauses with the rules and the organization's approval (demo
   audit, Nov 2026).** A published job whose rule profile fails the gate
   (expired, unapproved, superseded, not yet effective), or whose

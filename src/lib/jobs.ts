@@ -443,6 +443,42 @@ export function jurisdictionLabel(j: Pick<JurisdictionFacts, "state" | "locality
   return `${j.locality ? `${j.locality}, ` : ""}${j.state} (rules v${j.version})`;
 }
 
+const samePlace = (a: string, b: string) => a.trim().toLowerCase().replace(/\s+/g, " ") === b.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * The rules line on a job (card, facts, page head): the job's own place and
+ * which profile it runs under. A city profile on a job in that city reads as
+ * before ("Denver, CO (rules v1)"); a statewide profile names the job's city
+ * ("Aurora, CO (statewide rules v1)"); a job filed under another city's
+ * profile says so ("Aurora, CO · filed under Denver rules v1") rather than
+ * passing as that city.
+ */
+export function jobRulesLabel(geography: unknown, j: Pick<JurisdictionFacts, "state" | "locality" | "version">): string {
+  const geo = obj(geography);
+  const city = str(geo.city);
+  const state = (str(geo.state) ?? j.state).toUpperCase();
+  if (!city) return jurisdictionLabel(j);
+  // A profile from another state never reads as this state's rules.
+  if (state !== j.state.toUpperCase()) return `${city}, ${state} · filed under ${jurisdictionLabel(j).replace(/ \(rules (v\d+)\)$/, " rules $1")}`;
+  if (!j.locality) return `${city}, ${state} (statewide rules v${j.version})`;
+  if (samePlace(city, j.locality)) return jurisdictionLabel(j);
+  return `${city}, ${state} · filed under ${j.locality} rules v${j.version}`;
+}
+
+/**
+ * A city profile covers that city only: a job elsewhere in the state is
+ * filed under its own city's profile or a statewide one, never under another
+ * city's rules (demo audit finding 4). A statewide profile covers every city.
+ */
+export function jurisdictionLocalityProblem(jobCity: string | null, j: Pick<JurisdictionFacts, "state" | "locality">): string | null {
+  const city = jobCity?.trim().replace(/\s+/g, " ") ?? "";
+  if (!city) return "The job doesn't name a city. Name the city it's in.";
+  if (!j.locality) return null;
+  return samePlace(city, j.locality)
+    ? null
+    : `The job is in ${city}, but the rule profile is for ${j.locality}, ${j.state}. Pick ${city}'s profile or a statewide ${j.state} one.`;
+}
+
 /**
  * Every reason a rule profile fails the gate, with who clears it: the
  * organization (pick a profile, or file under the current version) or
@@ -583,6 +619,12 @@ export function publishBlockerList(f: PublishFacts, now: Date = new Date()): Pub
     const s = jurisdictionStateProblem(str(obj(f.job.geography).state), f.jurisdiction.state);
     // No state is set in step 2; a state that doesn't match is fixed by picking its profile in step 1.
     if (s) job(s, str(obj(f.job.geography).state) ? "jurisdictionId" : "state");
+    else {
+      const city = str(obj(f.job.geography).city);
+      const l = jurisdictionLocalityProblem(city, f.jurisdiction);
+      // No city is fixed in step 2 (the city field); a city that doesn't match is fixed by picking its profile in step 1.
+      if (l) job(l, city ? "jurisdictionId" : "city");
+    }
   }
   if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");
   if (!f.job.headcount || f.job.headcount < 1) job("Set the headcount.", "headcount");

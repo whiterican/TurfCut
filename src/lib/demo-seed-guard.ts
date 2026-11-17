@@ -28,6 +28,7 @@ export function isLiveSupabaseRef(ref: string | null | undefined): boolean {
 
 export type DemoSeedEnv = {
   TURFCUT_DEMO?: string;
+  DIRECT_URL?: string;
   TURFCUT_DEMO_PROJECT_REF?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   DATABASE_URL?: string;
@@ -133,6 +134,84 @@ export function demoDatabaseGuard(env: DemoSeedEnv): { ok: true; ref: string } |
     return { ok: false, reason: "TURFCUT_DEMO_PROJECT_REF doesn't match DATABASE_URL." };
   }
   return { ok: true, ref: confirmed };
+}
+
+/** The settings a guarded run needs, said the same way in every refusal. */
+const GUARDED_SETTINGS =
+  "Set TURFCUT_DEMO=1, NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co and TURFCUT_DEMO_PROJECT_REF=<demo-ref> for the dedicated demo project, with DATABASE_URL pointing at that same project, then run it again.";
+
+/** The live project's ref appears anywhere in this value (raw or URL-decoded, any case). */
+function mentionsLiveRef(value: string | undefined): boolean {
+  if (!value) return false;
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    /* keep the raw value */
+  }
+  const haystack = `${value}\n${decoded}`.toLowerCase();
+  return LIVE_SUPABASE_PROJECT_REFS.some((live) => haystack.includes(live));
+}
+
+const HOSTED_SUPABASE_HOST = /(^|\.)supabase\.(co|com|in)$/i;
+
+/**
+ * Whether DATABASE_URL is a hosted Supabase database: a *.supabase.co /
+ * *.supabase.in host (direct db.<ref>), a *.pooler.supabase.com host, or a
+ * libpq-style ?host= override naming one. Anything else (localhost,
+ * 127.0.0.1, a CI service container, a Unix socket) counts as local.
+ */
+export function isHostedSupabaseDatabaseUrl(url: string): boolean {
+  const u = new URL(cleanDatabaseUrl(url));
+  if (HOSTED_SUPABASE_HOST.test(u.hostname)) return true;
+  const hostParam = u.searchParams.get("host") ?? "";
+  return hostParam.split(",").some((h) => HOSTED_SUPABASE_HOST.test(h.trim().replace(/:\d+$/, "")));
+}
+
+export type DemoSeedTarget =
+  | { ok: true; kind: "guarded"; ref: string }
+  | { ok: true; kind: "local"; guard: ReturnType<typeof demoDatabaseGuard> }
+  | { ok: false; reason: string };
+
+/**
+ * Where `npm run seed:demo` may write. Checked before the seed reads or
+ * writes anything; a refusal exits 1 with nothing written.
+ *
+ * 1. The live Turfcut project, named anywhere in NEXT_PUBLIC_SUPABASE_URL,
+ *    DATABASE_URL, DIRECT_URL or TURFCUT_DEMO_PROJECT_REF: always refused.
+ *    No setting overrides it.
+ * 2. Any other hosted Supabase database: refused unless the run is guarded
+ *    (demoDatabaseGuard: TURFCUT_DEMO=1 and a matching ref in both URLs). So
+ *    a hosted run can never fall back to filing every job in Denver.
+ * 3. A local Postgres (anything that isn't hosted Supabase): runs as it
+ *    always has, with no extra settings. Unguarded, jobs outside Denver are
+ *    filed in Denver and no statewide profile is created.
+ * An unset or unreadable DATABASE_URL is refused, since it can't be classified.
+ */
+export function demoSeedTarget(env: DemoSeedEnv): DemoSeedTarget {
+  if ([env.NEXT_PUBLIC_SUPABASE_URL, env.DATABASE_URL, env.DIRECT_URL, env.TURFCUT_DEMO_PROJECT_REF].some(mentionsLiveRef)) {
+    return {
+      ok: false,
+      reason: "This is the live Turfcut Supabase project. The demo seed never writes there, whatever TURFCUT_DEMO or TURFCUT_DEMO_PROJECT_REF say. Point DATABASE_URL and NEXT_PUBLIC_SUPABASE_URL at a dedicated demo project or a local Postgres.",
+    };
+  }
+  if (!env.DATABASE_URL?.trim()) {
+    return { ok: false, reason: "DATABASE_URL is not set. Export the demo database's DATABASE_URL in this shell (tsx doesn't read .env.local)." };
+  }
+  let hosted: boolean;
+  try {
+    hosted = isHostedSupabaseDatabaseUrl(env.DATABASE_URL);
+  } catch {
+    return { ok: false, reason: "DATABASE_URL isn't a usable Postgres URL, so the demo seed can't tell where it would write." };
+  }
+  const guard = demoDatabaseGuard(env);
+  if (hosted) {
+    if (!guard.ok) {
+      return { ok: false, reason: `DATABASE_URL is a hosted Supabase database, and this run isn't guarded: ${guard.reason} ${GUARDED_SETTINGS}` };
+    }
+    return { ok: true, kind: "guarded", ref: guard.ref };
+  }
+  return guard.ok ? { ok: true, kind: "guarded", ref: guard.ref } : { ok: true, kind: "local", guard };
 }
 
 export type ExistingStatewide = { id: string; isCurrent: boolean; usable: boolean };

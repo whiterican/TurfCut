@@ -355,7 +355,27 @@ testers. Run it against a **dedicated demo project** (see **Setting up a
 dedicated demo project** below), never the live one: its rows are
 append-only and stay. Export that project's `DATABASE_URL` in the shell
 first; tsx doesn't read `.env.local`. Without `--yes` it only says where it
-would write. It makes:
+would write.
+
+Before it reads or writes anything, `seed:demo` checks where it is pointed
+and stops (exit 1, nothing written) when:
+
+- the live Turfcut Supabase project (`txzxtvsfzxfhgfiurufq`) appears in
+  `NEXT_PUBLIC_SUPABASE_URL`, `DATABASE_URL`, `DIRECT_URL` or
+  `TURFCUT_DEMO_PROJECT_REF`, anywhere in the value. No setting overrides
+  this;
+- `DATABASE_URL` is any other hosted Supabase database (`*.supabase.co`,
+  `*.pooler.supabase.com`) and the run isn't guarded: `TURFCUT_DEMO=1`, and
+  `TURFCUT_DEMO_PROJECT_REF` equal to the ref in both
+  `NEXT_PUBLIC_SUPABASE_URL` and `DATABASE_URL`. The message says what to
+  set. Because the stop comes first, a run with the settings missing can't
+  file demo jobs under the wrong place and then refuse to be redone;
+- `DATABASE_URL` is unset or can't be read.
+
+A local Postgres (anything that isn't hosted Supabase, such as
+`localhost` in development and the acceptance checks) runs as before with
+no extra settings. There, jobs outside Denver are filed in Denver unless
+the run is guarded. It makes:
 
 - six organizations with their staff and twelve workers, all named "… (demo)".
   Each demo worker holds a self-reported Colorado circulator registration,
@@ -367,7 +387,8 @@ would write. It makes:
   matching the ref in `NEXT_PUBLIC_SUPABASE_URL` and `DATABASE_URL`), the
   rest go under a statewide CO profile: the database's current usable one,
   or one the demo seed adds with a 14-day expiry and a "DEMO ONLY" label
-  (not counsel-approved). Elsewhere those jobs are filed in Denver, and no
+  (not counsel-approved), settled before any job is created. On an
+  unguarded local database those jobs are filed in Denver, and no
   statewide profile is created. They cover local
   measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,
@@ -410,8 +431,8 @@ WHERE status = 'PUBLISHED' AND "orgId" IN (
 
 Creating the project is the owner's call; nothing here is automated. The
 live Supabase project (`txzxtvsfzxfhgfiurufq`) is never the demo project:
-`seed:demo-accounts` refuses it by design, by its URL and anywhere in
-`DATABASE_URL`, whatever `TURFCUT_DEMO_PROJECT_REF` says.
+`seed:demo` and `seed:demo-accounts` both refuse it by design, by its URL
+and anywhere in `DATABASE_URL`, whatever `TURFCUT_DEMO_PROJECT_REF` says.
 
 1. **A second Supabase project.** supabase.com → New project, in the same
    region as the live one (us-east-2, next to the `cle1` functions in
@@ -448,8 +469,9 @@ live Supabase project (`txzxtvsfzxfhgfiurufq`) is never the demo project:
 5. **Seed it**, from a shell holding only the demo project's values, with
    `NEXT_PUBLIC_SUPABASE_URL`, `TURFCUT_DEMO_PROJECT_REF=<demo-ref>` and
    `TURFCUT_DEMO=1` exported **before** seeding (as in the block below), so
-   `seed:demo` runs guarded: `npm run seed`, `npm run seed:demo -- --yes`,
-   then the demo logins below.
+   `seed:demo` runs guarded. On a hosted project it refuses to start
+   without them, and writes nothing. Run `npm run seed`,
+   `npm run seed:demo -- --yes`, then the demo logins below.
 
 ### Demo logins (a dedicated demo project only)
 
@@ -464,7 +486,7 @@ export DATABASE_URL=…                 # the demo project's database (same proj
 export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
 export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the ref in the URL and in DATABASE_URL: "yes, this is the demo project"
 export TURFCUT_DEMO=1                 # with the two above, seed:demo runs guarded
-npm run seed && npm run seed:demo -- --yes
+npm run seed && npm run seed:demo -- --yes   # if not already done in step 5
 npm run seed:demo-accounts -- --plan  # lists every login it would make; writes nothing
 export SUPABASE_SERVICE_ROLE_KEY=…    # the demo project's secret key
 export DEMO_ACCOUNTS_PASSWORD=…       # 12+ characters, shared by every demo login

@@ -210,7 +210,7 @@
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
   /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
-     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+     pane is that same colour part see-through. While the menu is open the strip behind the clock is this colour dimmed like the page beside the drawer (Nov 17). */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
   --drawer-bg: color-mix(in srgb, var(--drawer-root) 68%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
@@ -389,7 +389,7 @@ html {
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
   /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
-     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+     pane is that same colour part see-through. While the menu is open the strip behind the clock is this colour dimmed like the page beside the drawer (Nov 17). */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
   --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   /* The page is one purple gradient (Caden, Nov 12): strong and opaque at the top of the screen, easing to
@@ -2622,7 +2622,7 @@ body {
   /* The drawer's glass is a layer of its own under the words, not the pane they sit in (Caden, Nov 15: "keep the blur,
      overlay the name on top of it"). An iPhone drew text inside a blurred pane soft; text above one is drawn as
      page. The dialog holds the layer (it does not scroll), the pane holds the words and scrolls over it. No sheen and
-     no lit top edge: the pane meets the status bar's strip, which is one flat colour. Blur only: the usual glass recipe
+     no lit top edge: the pane's top meets the status bar's strip. Blur only: the usual glass recipe
      also saturates what shows through, and the pane's top would no longer be the strip's colour. */
   .more-sheet::before {
     content: "";
@@ -4707,8 +4707,8 @@ body:has(.thread-top) {
 }
 /* An installed app on a phone draws the status bar's strip itself, above the page, where the page
    cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across
-   the top. While the menu drawer is open both take the drawer's colour (and its backdrop is clear), and
-   the drawer's top edge is square, so the drawer reads as running to the top of the screen.
+   the top. While the menu drawer is open the root takes the drawer's colour dimmed like the page beside it (Nov 17; the
+   phone's strip is not under the drawer's shadow), and the drawer's top edge is square.
    Unlayered on purpose: the root's and the body's own backgrounds are unlayered, and a layered rule would lose to them. */
 @media screen {
   /* A page with a header across the top: the strip takes the header's pane, not the bare purple. On a

@@ -31,6 +31,9 @@ DATABASE_URL="$PGURL/$db" npx tsx prisma/seed.ts >/dev/null
 for f in "$W1_SQL" "$here/w2-stub.sql" "$here/polls.sql" "$here/polls.sql"; do $P "$PGURL/$db" -f "$f" >/dev/null; done
 out="$(psql -v ON_ERROR_STOP=1 -X -q -A -t "$PGURL/$db" -f "$here/test.sql" 2>&1)" || { echo "test.sql stopped on an error:"; echo "$out"; exit 1; }
 echo "$out" | grep -E '\|FAIL\|' || true
+race="$("$here/race.sh" "$PGURL/$db" 2>&1)" || true
+echo "$race" | grep -E '\|FAIL\|' || true
 summary="$(echo "$out" | grep -E '^[0-9]+\|[0-9]+$' | tail -1)"
 echo "   ${summary%%|*} checks pass, ${summary##*|} fail"
-[ "${summary##*|}" = "0" ]
+echo "   $(echo "$race" | grep -q '|PASS|' && echo 'race check passes' || echo 'race check FAILS')"
+[ "${summary##*|}" = "0" ] && echo "$race" | grep -q '|PASS|' 

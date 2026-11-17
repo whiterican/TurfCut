@@ -9,6 +9,8 @@ import { createRequire } from 'node:module';
 import { createHmac } from 'node:crypto';
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || 'playwright');
 const dir = new URL('./', import.meta.url).pathname;
+// The manifest pins HEAD, so the code it describes must be committed.
+if (execFileSync('git', ['status', '--porcelain', '--', 'src'], { encoding: 'utf8' }).trim()) throw new Error('Commit the changes under src/ first: the manifest records the commit the captures show.');
 const sub = '00000000-0000-0000-0000-0000000000aa';
 const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 const browser = await chromium.launch(); // Playwright's own Chromium; no system browser path.
@@ -30,14 +32,17 @@ try {
     assert.equal(await panel.locator('a').getAttribute('href'), '/field');
     const m = await section.evaluate((s) => {
       const e = s.querySelector('.empty-state'); const cs = getComputedStyle(e); const tile = s.querySelector('.need-tile');
+      // What the panel used to be: the map's own box (.overview-map), measured at this width with a temporary probe.
+      const probe = document.createElement('div'); probe.className = 'overview-map'; s.querySelector('.overview-grid').prepend(probe);
+      const formerMapHeight = Math.round(probe.getBoundingClientRect().height); probe.remove();
       return {
-        height: Math.round(e.getBoundingClientRect().height),
+        height: Math.round(e.getBoundingClientRect().height), formerMapHeight,
         radius: cs.borderTopLeftRadius, needTileRadius: tile ? getComputedStyle(tile).borderTopLeftRadius : null,
         art: e.querySelector('svg[data-art]')?.dataset.art ?? null, mapKeyShown: !!s.querySelector('[aria-label="Map key"]'),
         overflow: document.documentElement.scrollWidth - innerWidth,
       };
     });
-    assert.equal(m.overflow, 0); assert.equal(m.art, 'turf'); assert.equal(m.mapKeyShown, false); assert.deepEqual(errors, []);
+    assert.ok(m.height < m.formerMapHeight); assert.equal(m.overflow, 0); assert.equal(m.art, 'turf'); assert.equal(m.mapKeyShown, false); assert.deepEqual(errors, []);
     await section.screenshot({ path: `${dir}${width}-${theme}.png` });
     results.push({ width, theme, ...m, errors }); await c.close();
   }

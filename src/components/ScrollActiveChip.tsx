@@ -14,8 +14,9 @@ export function ScrollActiveChip() {
     const row = ref.current?.parentElement;
     const on = row?.querySelector<HTMLElement>('[aria-current="true"]');
     if (!row || !on) return;
-    const to = on.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
-    row.scrollTo({ left: Math.max(0, to), behavior: "auto" });
+    // Measured against the row itself (offsetLeft is against whatever is positioned above it).
+    const at = on.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
+    row.scrollTo({ left: Math.max(0, at - (row.clientWidth - on.offsetWidth) / 2), behavior: "auto" });
   });
   return <span ref={ref} hidden />;
 }

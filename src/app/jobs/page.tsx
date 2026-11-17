@@ -98,6 +98,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore") },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials },
     { label: "Saved", href: toggle("saved", "1"), on: savedOnly },
+    // A category chosen in the sheet that has no chip of its own still shows, so what narrows the list is always on screen.
+    ...(filters.campaign && filters.campaign !== "candidate" ? [{ label: `Category: ${CAMPAIGN_TYPES.find((c) => c.value === filters.campaign)?.label ?? filters.campaign}`, href: toggle("campaign", filters.campaign), on: true }] : []),
   ];
   const anyFilter = !!(filters.type || filters.campaign || filters.minRateCents || filters.startsBefore || filters.noCredentials || filters.q || savedOnly || showHidden);
   // The date field shows a typed date only, not the "This week" window.

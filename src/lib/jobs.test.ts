@@ -442,6 +442,21 @@ describe("cardAffiliation (the job card's colour)", () => {
   });
 });
 
+describe("publish blocker for a missing campaign disclosure points at the step that has the gap", () => {
+  const blockerField = (disclosure: unknown) => {
+    const f = ready();
+    f.job.campaignDisclosure = disclosure;
+    return publishBlockerList(f, now).find((b) => /Disclose the campaign/.test(b.text))?.field;
+  };
+  it("sends a missing type to step 1 and a missing affiliation or message to step 5", () => {
+    expect(blockerField(null)).toBe("campaignType");
+    expect(blockerField({ affiliation: "nonpartisan", message: "m" })).toBe("campaignType");
+    expect(blockerField({ campaignType: "candidate", message: "m" })).toBe("affiliation");
+    expect(blockerField({ campaignType: "candidate", affiliation: "nonpartisan" })).toBe("message");
+    expect(blockerField({ campaignType: "candidate", affiliation: "nonpartisan", message: "m" })).toBeUndefined();
+  });
+});
+
 describe("job discovery category labels", () => {
   const disclosed = (campaignType: string) => ({ campaignType, affiliation: "nonpartisan", message: "Public campaign disclosure" });
   it("distinguishes canvassing purpose while preserving the work type", () => {

@@ -585,7 +585,12 @@ export function publishBlockerList(f: PublishFacts, now: Date = new Date()): Pub
   if (!f.job.startsAt || !f.job.endsAt) job("Set the start and end dates.", "startsAt");
   else if (f.job.endsAt < f.job.startsAt) job("The end date is before the start date.", "endsAt");
   else if (jobEndPassed(f.job.endsAt, now)) job("The job's end date has passed.", "endsAt");
-  if (!readDisclosure(f.job.campaignDisclosure)) job("Disclose the campaign's type, affiliation and message.", "campaignType");
+  if (!readDisclosure(f.job.campaignDisclosure)) {
+    // Point at the step that has what is missing: the type is in step 1, the affiliation and message in step 5.
+    const d = obj(f.job.campaignDisclosure);
+    const has = (k: string) => typeof d[k] === "string" && (d[k] as string).trim() !== "";
+    job("Disclose the campaign's type, affiliation and message.", !has("campaignType") ? "campaignType" : !has("affiliation") ? "affiliation" : "message");
+  }
   if (!readSupportContacts(f.job.supportContacts)) job("Name who handles emergencies, disputes and lost materials.", "contactEmergency");
   if (readHiringModes(f.job.hiringMethod).length === 0) job("Pick at least one way to hire.", "hiringModes");
   // A job that says how its days start has to say it fully; one from before C4 (no launch) stays as it was: staging set per shift.

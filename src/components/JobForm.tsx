@@ -405,23 +405,25 @@ export function JobForm({
           </select>
           {err("type")}
         </label>
-        <label className="space-y-1.5 sm:col-span-2">
-          <span className="label">Campaign type</span>
-          <ReadableSelect name="campaignType" className="field" defaultValue={d("campaignType")} required onChange={(e) => setCategory(e.target.value)} {...describe("campaignType")}>
-            <option value="" disabled>Choose…</option>
-            {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </ReadableSelect>
-          {err("campaignType")}
-          {/* The work and the campaign are two separate choices; this is what they add up to on the worker's side. */}
-          <span className="text-hint block" aria-live="polite">
+        <div className="space-y-1.5 sm:col-span-2">
+          <label className="space-y-1.5 block">
+            <span className="label">Campaign type</span>
+            <ReadableSelect name="campaignType" className="field" defaultValue={d("campaignType")} required onChange={(e) => setCategory(e.target.value)} {...describe("campaignType")} aria-describedby={["hint-campaignType", describe("campaignType")["aria-describedby"]].filter(Boolean).join(" ")}>
+              <option value="" disabled>Choose…</option>
+              {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </ReadableSelect>
+            {err("campaignType")}
+          </label>
+          {/* The work and the campaign are two separate choices; this is what they add up to on the worker's side, once the disclosure is complete. Outside the label so the select's own name stays "Campaign type". */}
+          <p id="hint-campaignType" className="text-hint" aria-live="polite">
             {category ? (
-              <>Workers will see this job as <strong className="font-semibold text-fg">{discoveryLabelFor(kind as JobType, category)}</strong>.</>
+              <>Once the disclosure is complete, workers will see this job as <strong className="font-semibold text-fg">{discoveryLabelFor(kind as JobType, category)}</strong>.</>
             ) : (
               "Pick who the campaign is for: workers see it with the work type, before they apply."
             )}
             {category === "candidate" && kind === "CANVASS" && " Candidate campaign canvassing is in development: a candidate job can be posted, and workers see it tagged so until its own tools launch."}
-          </span>
-        </label>
+          </p>
+        </div>
         <label className="space-y-1.5">
           <span className="label">Jurisdiction rule profile</span>
           <select name="jurisdictionId" className="field" defaultValue={d("jurisdictionId")} required {...describe("jurisdictionId")}>
@@ -675,7 +677,7 @@ function Review({ raw, jurisdictions, goTo, live }: { raw: Record<string, unknow
   const launchText = s("launchMode") === "SELF" ? "Self-launch: workers start from wherever they are" : points.length ? `Staged: ${points.join(", ")}` : "Staged, no staging point yet (needed to publish)";
   const rows: Array<{ step: number; label: string; value: string }> = [
     { step: 0, label: "Title", value: s("title") },
-    { step: 0, label: "Type", value: labelOf(JOB_TYPES, s("type")) },
+    { step: 0, label: "Type", value: `${labelOf(JOB_TYPES, s("type"))} · ${labelOf(CAMPAIGN_TYPES, s("campaignType")) || "no campaign type yet"}` },
     { step: 0, label: "Jurisdiction", value: jurisdictions.find((j) => j.id === s("jurisdictionId"))?.label ?? "—" },
     { step: 0, label: "Description", value: s("description") || "—" },
     { step: 1, label: "Dates", value: `${s("startsAt") || "—"} to ${s("endsAt") || "—"}` },
@@ -689,7 +691,7 @@ function Review({ raw, jurisdictions, goTo, live }: { raw: Record<string, unknow
     { step: 3, label: "Script", value: s("script") || "—" },
     { step: 3, label: "Canvassing app", value: s("canvassApp") ? `${labelOf(CANVASS_APPS, s("canvassApp"))}${s("toolList") ? `: ${s("toolList")}` : ""}` : "None" },
     { step: 3, label: "Contacts", value: `Emergencies: ${s("contactEmergency") || "—"} · Disputes: ${s("contactDisputes") || "—"} · Lost materials: ${s("contactLostMaterials") || "—"}` },
-    { step: 4, label: "Campaign", value: `${labelOf(CAMPAIGN_TYPES, s("campaignType")) || "—"} · ${s("affiliation") ? affiliationLabel(s("affiliation")) : "—"}${s("campaignName") ? ` · ${s("campaignName")}` : ""}` },
+    { step: 4, label: "Campaign", value: `${s("affiliation") ? affiliationLabel(s("affiliation")) : "—"}${s("campaignName") ? ` · ${s("campaignName")}` : ""}` },
     { step: 4, label: "Ballot measure IDs", value: s("measureIds") || "—" },
     { step: 4, label: "Message", value: s("message") || "—" },
     { step: 4, label: "Issue positions", value: issues.join(", ") || "None disclosed" },

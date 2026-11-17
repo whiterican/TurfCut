@@ -131,6 +131,7 @@ describe("live Stripe keys in demo and non-production deploys", () => {
       delete process.env.STRIPE_SECRET_KEY;
       expect(hasStripeConfig()).toBe(false);
       // Hidden Pay isn't a silent outage: the reason goes to the server log once per process, never the key.
+      // The once-flag is module-level: this must stay the first test in the file that makes hasStripeConfig refuse.
       expect(logged).toHaveBeenCalledTimes(1);
       expect(String(logged.mock.calls[0][0])).toMatch(/^\[turfcut\] payouts are off: TURFCUT_DEMO is set/);
       expect(String(logged.mock.calls[0][0])).not.toContain(live);

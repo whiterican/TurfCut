@@ -247,8 +247,8 @@ export function stripeSecretKeyMode(key: string | undefined): "none" | "test" | 
 
 /**
  * TURFCUT_DEMO, read as on, off or unrecognized. "1", "true", "yes" or "on"
- * (any case) is on; unset, empty, "0", "false", "no" or "off" is off. Anything else is
- * unrecognized and is treated as on (fail closed), so a typo like "ture"
+ * (any case) is on; unset, empty, "0", "false", "no" or "off" is off.
+ * Anything else is unrecognized and is treated as on (fail closed), so a typo like "ture"
  * can't leave a demo deploy unguarded. It never throws: hasStripeConfig runs
  * on every pay page and in the Stripe webhook, and a throw there would take
  * payouts down over a mistyped setting.

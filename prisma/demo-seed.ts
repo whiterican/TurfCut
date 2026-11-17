@@ -481,18 +481,27 @@ async function main() {
   if (shiftsWorked === 0) throw new Error("demo seed: no shifts were worked — the hires above didn't take");
 
   // --- Upcoming jobs: applications waiting for a decision, claimed spots and invitations out ---
+  // Some are refused on purpose, mostly invitations to a worker who never
+  // worked for that organization and isn't findable ("Worker not found.", the
+  // no-directory rule in engagements-data.ts). They're counted by reason and
+  // printed, not dropped silently.
   let pending = 0;
+  const skipped = new Map<string, number>();
+  // One counter per attempt, so a job's 1–4 tries go to different workers.
+  // (Keyed on successes, as before, it came back to the same worker.)
+  let attempt = 0;
   for (const job of jobs.filter((j) => !j.past)) {
     const { org, owner } = orgs[job.orgIdx];
     const n = int(1, 4);
     for (let k = 0; k < n; k++) {
-      const { worker, profile } = workers[(pending * 5 + k) % workers.length];
+      const { worker, profile } = workers[attempt++ % workers.length];
       const r = job.modes.includes("application")
         ? await applyToJob(worker.id, profile.id, job.id)
         : job.modes.includes("instant_claim")
           ? await claimJob(worker.id, profile.id, job.id)
           : await inviteWorker(org.id, owner.id, job.id, worker.id);
       if (r.ok) pending++;
+      else skipped.set(r.reason, (skipped.get(r.reason) ?? 0) + 1);
     }
   }
 
@@ -522,6 +531,10 @@ async function main() {
   console.log("Demo data loaded:");
   console.log(`  ${orgs.length} organizations, ${workers.length} workers, ${jobs.length} published jobs`);
   console.log(`  ${shiftsWorked} worked shifts, ${pending} waiting applications, claims and invitations, ${engagements.length} message threads`);
+  if (skipped.size) {
+    console.log(`  Not made (${[...skipped.values()].reduce((a, b) => a + b, 0)}), by the app's reason:`);
+    for (const [reason, count] of skipped) console.log(`    ${count} × ${reason}`);
+  }
 }
 
 main()

@@ -247,7 +247,17 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
 
   // The tally sends after a short pause in the tapping, not on every tap: one send for a burst, well inside
   // the sync route's limit (60 a minute), and one refresh of the page instead of one per signature.
-  useEffect(() => () => clearTimeout(tallySends.get(shift.shiftId)), [shift.shiftId]);
+  // Leaving the page with a burst still waiting sends it now (flush needs no component), so the board doesn't lag.
+  useEffect(
+    () => () => {
+      const waiting = tallySends.get(shift.shiftId);
+      if (waiting === undefined) return;
+      clearTimeout(waiting);
+      tallySends.delete(shift.shiftId);
+      void flush(shift.userId, shift.shiftId);
+    },
+    [shift.shiftId, shift.userId],
+  );
 
   function record(action: Action, o: { what?: string; batched?: boolean } = {}): boolean {
     // Judged on the server's clock (as of the last sync), like the server will.
@@ -263,7 +273,10 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     setNote({ kind: "entry", id: item.clientId, what: o.what ?? (checkIn ? `Check-in at ${when(item.at + clockOffset())}` : describe(action)), checkIn });
     if (o.batched) {
       clearTimeout(tallySends.get(shift.shiftId));
-      tallySends.set(shift.shiftId, setTimeout(() => void sync(), 1500));
+      tallySends.set(shift.shiftId, setTimeout(() => {
+        tallySends.delete(shift.shiftId);
+        void sync();
+      }, 1500));
     } else void sync();
     return true;
   }

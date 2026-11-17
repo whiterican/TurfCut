@@ -9,9 +9,10 @@ import { clampScroll, isScrolled, photoPassed, scrollDirection, type ScrollDir }
  * row can step aside on the way down and come back on the way up (Caden, Nov 12; globals.css).
  * It also marks whether the page has left its top (data-scrolled): the glass across the top of the screen
  * shows only then (Caden, Nov 14), so at rest it never sits over a photograph or a page's own buttons.
- * And whether a job's photograph has passed under the top of the screen (data-past-photo): the clear pane
- * over the photograph gives way to the page's own glass then. Read again when the page changes, since a new
- * page arrives at its top with no scroll to say so.
+ * And whether a job's photograph has passed under the top of the screen (data-past-photo). Since Nov 17 no style
+ * reads it: a job page's strip under the clock is the page's colour from the start (globals.css), so it no longer
+ * switches as the photograph goes by. It can go once nothing is planned for it. Read again when the page changes,
+ * since a new page arrives at its top with no scroll to say so.
  * One passive listener, read once a frame. Renders nothing.
  */
 export function ScrollDirection() {

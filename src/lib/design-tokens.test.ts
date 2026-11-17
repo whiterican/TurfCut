@@ -252,7 +252,7 @@ describe.each([
     // strip under the clock is the page's top colour from the start and stays on the way down.
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*content: none !important;\s*\}/);
     expect(solidTop).toMatch(/html:not\(\.sun\) body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.thread-top\)\)::after \{\s*height: var\(--clock-strip\) !important;\s*opacity: 1 !important;\s*\}/);
-    expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.staff-band\)\)::after \{\s*opacity: 1 !important;/);
+    expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.staff-band\)\):not\(\.x\)::after \{\s*opacity: 1 !important;/);
     // The one blur up there is the status bar's own glass (Caden, Nov 16): the prefixed and the plain declaration.
     expect(solidTop.replace(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/, "").match(/blur\(/g)).toHaveLength(2);
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
@@ -291,8 +291,8 @@ describe.each([
     expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0, #000 calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.22\), transparent 100%\);/);
     // Solid through the strip the phone keeps for its clock, fading only below it: the cap under the clock is solid to
     // the strip's foot, and glass that thinned out above that showed the cap's edge as a faint line (Caden, Nov 14).
-    // Every glass band is written the same way.
-    expect(css.match(/var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix/g)).toHaveLength(4);
+    // Every glass band is written the same way. (Three now: a job page's strip is solid page colour since Nov 17.)
+    expect(css.match(/var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix/g)).toHaveLength(3);
     expect(css).not.toMatch(/var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%/);
     expect(css).not.toMatch(/#000 0%, #000 22%, transparent 100%/);
     // The glass is not its own layer in a page transition: as one, an iPhone drew it as a solid strip over the arriving page's title.

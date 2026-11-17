@@ -140,6 +140,15 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   const after = await p.walkbook.findMany({ where: { jobId: job.id }, orderBy: { number: "asc" } });
   check("two cuts at once (one id in upper case): one cuts, the other finds nothing left; numbers carry on, no gaps", racing.filter((r) => r.ok).length === 1 && after.map((b) => b.number).join(",") === "1,2,3,4,5,6", { racing, n: after.map((b) => b.number) });
 
+  // The same file imported twice: its doors are already on the job's books, so nothing new is cut.
+  const dup = await importAddresses(owner, META, FILE);
+  const dupCut = dup.ok ? await cutWalkbooks(owner, job.id, dup.importId, "2") : null;
+  check("the same doors from a second import aren't put on a second walkbook", !!dupCut && !dupCut.ok && /already on one/.test(dupCut.reason), dupCut);
+  const mixedFile = FILE + "\nV6,New,Person,DEM,7 Ash Ave,,Denver,CO,80202,Y,,";
+  const part = await importAddresses(owner, META, mixedFile);
+  const partCut = part.ok ? await cutWalkbooks(owner, job.id, part.importId, "50") : null;
+  check("…and a file with one new door cuts just that one, counting the repeats", !!partCut && partCut.ok && partCut.stops === 1 && partCut.repeats === 4, partCut);
+
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }
 })().catch((e) => { console.error(e); process.exit(1); });

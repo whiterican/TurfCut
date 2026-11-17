@@ -17,7 +17,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
-import { cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
+import { addressKey, cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
 
 type Tx = Prisma.TransactionClient;
 type Fail = { ok: false; reason: string; errors?: Record<string, string> };
@@ -92,7 +92,7 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
  * draft can be readied before it publishes, a closed job keeps working for
  * the people already hired), and only hired workers can be handed one.
  */
-export async function cutWalkbooks(actor: Staff, jobId: string, importId: string, perBookRaw: unknown, now = new Date()): Promise<{ ok: true; books: number; stops: number; jobId: string } | Fail> {
+export async function cutWalkbooks(actor: Staff, jobId: string, importId: string, perBookRaw: unknown, now = new Date()): Promise<{ ok: true; books: number; stops: number; repeats: number; jobId: string } | Fail> {
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   if (!UUID_RE.test(importId)) return { ok: false, reason: "Pick a file to cut from." };
   // The lock is keyed on job.id as read back from the database, not on jobId as it arrived.
@@ -105,10 +105,20 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       const imp = await tx.addressImport.findFirst({ where: { id: importId, orgId: actor.orgId }, select: { id: true } });
       if (!imp) return { ok: false as const, reason: "Pick a file to cut from." };
       await lock(tx, `walkbooks:${job.id}`);
-      const free = await tx.importedAddress.findMany({
+      const unused = await tx.importedAddress.findMany({
         where: { importId, stops: { none: { walkbook: { jobId } } } },
         select: { id: true, line1: true, unit: true, zip: true },
       });
+      // The same door from another file (or the same file imported twice) is already on a book: don't send anyone twice.
+      const onJob = await tx.$queryRaw<Array<{ key: string }>>`
+        SELECT DISTINCT upper(a."line1") || '|' || upper(coalesce(a."unit", '')) || '|' || a."zip" AS key
+        FROM "public"."WalkbookStop" s
+        JOIN "public"."Walkbook" w ON w."id" = s."walkbookId"
+        JOIN "public"."ImportedAddress" a ON a."id" = s."addressId"
+        WHERE w."jobId" = ${job.id}::uuid`;
+      const taken = new Set(onJob.map((r) => r.key));
+      const free = unused.filter((a) => !taken.has(addressKey(a)));
+      const repeats = unused.length - free.length;
       if (!free.length) return { ok: false as const, reason: "Every address in this file is already on one of this job's walkbooks." };
       const last = await tx.walkbook.aggregate({ where: { jobId }, _max: { number: true } });
       const books = cutBooks(walkOrder(free), per.value, (last._max.number ?? 0) + 1);
@@ -118,9 +128,9 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       await tx.walkbook.createMany({ data: made.map((b) => ({ id: b.id, jobId: job.id, importId: imp.id, number: b.number, name: b.name, createdById: actor.profileId, createdAt: now })) });
       await tx.walkbookStop.createMany({ data: made.flatMap((b) => b.stops.map((s, i) => ({ walkbookId: b.id, addressId: s.id, stopNumber: i + 1 }))) });
       await tx.auditEvent.create({
-        data: { actorId: actor.profileId, action: "walkbook.cut", entityType: "Job", entityId: job.id, metadata: { importId, books: books.length, stops: free.length, stopsPerBook: per.value, firstNumber: books[0].number }, createdAt: now },
+        data: { actorId: actor.profileId, action: "walkbook.cut", entityType: "Job", entityId: job.id, metadata: { importId, books: books.length, stops: free.length, repeats, stopsPerBook: per.value, firstNumber: books[0].number }, createdAt: now },
       });
-      return { ok: true as const, books: books.length, stops: free.length, jobId: job.id };
+      return { ok: true as const, books: books.length, stops: free.length, repeats, jobId: job.id };
     },
     { timeout: 30_000 }
   );

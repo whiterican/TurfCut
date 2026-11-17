@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import { BadgeCheck, Bell, BookOpen, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, BookOpen, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, ListOrdered, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { closesDrawer, opensDrawer, SWIPE_OWNERS, tracksTouch, type Point } from "@/lib/edge-swipe";
@@ -34,6 +34,7 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   receipts: ReceiptText,
   availability: CalendarCheck,
   notifications: Bell,
+  walkbooks: ListOrdered,
   more: Menu,
 };
 const iconFor = (t: NavTab): LucideIcon => ICONS[t.icon];

@@ -27,6 +27,7 @@ export type TabIconId =
   | "receipts"
   | "availability"
   | "notifications"
+  | "walkbooks"
   | "more";
 
 export interface NavTab {
@@ -99,6 +100,7 @@ export const WORKER_MORE: NavTab[] = [
   { href: "/earnings/receipts", label: "Payment history", icon: "receipts" },
   { href: "/profile/credentials", label: "Credentials", icon: "credentials" },
   { href: "/profile/availability", label: "Availability", icon: "availability" },
+  { href: "/walkbooks", label: "Walkbooks", icon: "walkbooks" },
   { href: "/guide", label: "Guide", icon: "guide" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];

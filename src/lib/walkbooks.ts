@@ -278,7 +278,7 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
     if (!/^[A-Z]{2}$/.test(state)) return skipped.push({ rowNumber, reason: "The state isn't a two-letter code." });
     const zip = readZip(zipRaw);
     if (!zip) return skipped.push({ rowNumber, reason: "The ZIP code isn't five digits." });
-    const key = `${line1.toUpperCase()}|${unit.toUpperCase()}|${zip}`;
+    const key = addressKey({ line1, unit, zip });
     if (seen.has(key)) return skipped.push({ rowNumber, reason: "Same address as an earlier row." });
     seen.add(key);
     let lat: number | null = null;
@@ -296,6 +296,9 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
   }
   return { ok: true, file: { rowCount: data.length, rows, skipped, dropped: mapped.map.dropped, withPoint: rows.filter((r) => r.lat !== null).length, unitsLeftOff } };
 }
+
+/** One door: the same first line, unit and ZIP, ignoring case. The database's copy of this is in cutWalkbooks. */
+export const addressKey = (a: { line1: string; unit: string | null; zip: string }) => `${a.line1.toUpperCase()}|${(a.unit ?? "").toUpperCase()}|${a.zip}`;
 
 // ---------------------------------------------------------------------------
 // What the uploader states about the file

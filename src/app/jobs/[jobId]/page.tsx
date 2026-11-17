@@ -180,7 +180,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   if (isOwnOrg) {
     return (
       <RecordPage org head={head} aside={<JobFacts job={job} acceptedCount={acceptedCount} />} panelLabel="Job facts" tail={fullCard}>
-        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} canReadSettings={canUse(session, "orgSettings", "read")} userId={session.userId} />
+        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} canField={canUse(session, "field", "read")} canReadSettings={canUse(session, "orgSettings", "read")} userId={session.userId} />
         {job.description && <p className="lead">{job.description}</p>}
       </RecordPage>
     );
@@ -528,7 +528,7 @@ async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: s
   );
 }
 
-async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, userId }: { job: JobWithRefs; canHire: boolean; canEdit: boolean; canSchedule: boolean; canReadSettings: boolean; userId: string }) {
+async function OrgPanel({ job, canHire, canEdit, canSchedule, canField, canReadSettings, userId }: { job: JobWithRefs; canHire: boolean; canEdit: boolean; canSchedule: boolean; canField: boolean; canReadSettings: boolean; userId: string }) {
   const blockers = job.status === "DRAFT" || job.status === "PAUSED"
     ? publishBlockerList({ job, jurisdiction: job.jurisdiction, org: job.org })
     : [];
@@ -656,6 +656,13 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, u
       )}
 
       {canSchedule && (job.status === "PUBLISHED" || job.status === "CLOSED") && <ShiftsSection job={job} userId={userId} />}
+      {canField && job.type === "CANVASS" && (
+        <section className="section">
+          <h2 className="section-title">Walkbooks</h2>
+          <p className="text-muted-sm">Import an authorized address file, cut it into numbered walkbooks and hand them to the people hired here. Only addresses are kept.</p>
+          <Link href={`/jobs/${job.id}/walkbooks`} className="btn-secondary btn-sm">Open walkbooks</Link>
+        </section>
+      )}
     </>
   );
 }

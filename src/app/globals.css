@@ -3762,15 +3762,13 @@ body:has(.staff-band)::after {
 }
 /* A job's own page on a phone has no site bar and no menu strip (Caden, Nov 14): they took a fifth of the screen,
    and the arrow on the photograph is the way back to everything they held. So the photograph runs to the very
-   top of the screen, under the clock (white there in every mode), with the page's buttons on it below the
-   clock. For everyone, a worker or an organization alike.
+   top of the screen, with the page's buttons on it below the clock. For everyone, a worker or an organization alike.
 
-   Two panes share the top of that screen, one at a time (Caden, Nov 14):
-   - over the photograph, clear glass under the clock: a light blur and a breath of shade, no colour of the page's,
-     so the time and battery read on any picture and the picture still shows through;
-   - once the photograph has passed under it (components/ScrollDirection.tsx marks the root), the page's own
-     glass, the gradient that every other page has, so text never passes behind the clock.
-   They cross-fade. Sunlight has neither: its plain cap under the clock (html::after) stays. */
+   Under the clock is the page's own strip, in the page's top colour, from the start (Caden, Nov 17: "the top bar
+   needs to be the same color as the gradient"). It replaced two panes that cross-faded as the photograph went by,
+   a clear masked shade over it and then the page's glass: an iPhone drew the masked shade as a solid pale bar.
+   The strip's colour and its staying on the way down are set again in "The top of the screen is solid" below.
+   Sunlight keeps its own cap. */
 @media (width < 48rem) {
   body:has(.job-photo-head) :is(.site-header, .phone-top) {
     display: none;
@@ -3784,55 +3782,27 @@ body:has(.staff-band)::after {
   body:has(.job-photo-head) .job-head-actions {
     top: calc(1rem + env(safe-area-inset-top));
   }
-  /* The clear pane. Fixed to the screen, so it stays under the clock while the photograph moves beneath it. It
-     is strongest under the clock and feathers away well below it (Caden, Nov 14: stronger, and not a straight bar
-     across the picture), so it has no foot to see. No height where the phone keeps no strip. The page's buttons
-     stand above it, sharp. */
-  html:not(.sun) .job-photo-head::after {
-    content: "";
-    position: fixed;
-    inset: 0 0 auto;
-    height: calc(env(safe-area-inset-top) * 2.4);
-    z-index: 43;
-    pointer-events: none;
-    background: linear-gradient(to bottom, rgb(0 0 0 / 0.34) 0%, rgb(0 0 0 / 0.22) 35%, rgb(0 0 0 / 0.08) 70%, transparent 100%);
-    -webkit-backdrop-filter: blur(18px) saturate(1.4);
-    backdrop-filter: blur(18px) saturate(1.4);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgb(0 0 0 / 0.72) 48%, rgb(0 0 0 / 0.4) 66%, rgb(0 0 0 / 0.15) 84%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgb(0 0 0 / 0.72) 48%, rgb(0 0 0 / 0.4) 66%, rgb(0 0 0 / 0.15) 84%, transparent 100%);
-    transition: opacity var(--dur-base) var(--ease-standard);
-  }
+  /* The buttons stand above any layer at the top, sharp. */
   body:has(.job-photo-head) .job-head-actions {
     z-index: 44;
   }
-  html:not(.sun)[data-past-photo] .job-photo-head::after {
-    opacity: 0;
-  }
-  /* The page's glass, for when the photograph has gone by. Heavier than the headers' own rules for this layer
-     (four classes with the root's against their three), so its height is this one, not that of a header that is
-     hidden here. */
+  /* The strip: fixed to the screen, the clock's own height, the page's top colour. Heavier than the headers' own
+     rules for this layer (four classes with the root's against their three), so its height is this one, not that
+     of a header that is hidden here. */
   html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(env(safe-area-inset-top) + 2.25rem);
+    height: var(--clock-strip);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
-    opacity: 0;
+    background: var(--page-top);
   }
-  html:not(.sun)[data-past-photo] body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
-    opacity: 1;
-  }
-  /* Sunlight: no pane of either kind, only its cap. */
+  /* Sunlight: no strip of this kind, only its cap. */
   html.sun body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
     content: none;
   }
-  /* The two panes stand in for the cap under the clock on this page. */
+  /* The strip stands in for the cap under the clock on this page. */
   html:not(.sun):has(.job-photo-head)::after {
     opacity: 0;
   }
@@ -4629,15 +4599,7 @@ html:has(.more-sheet[open])::view-transition {
     background: var(--dock-capsule);
     box-shadow: none;
   }
-  /* A job's page on a phone: no blur to lean on, so the pane over the photograph is plain shade, and the one
-     after it is the page's plain colour. */
-  html:not(.sun) .job-photo-head::after {
-    background: rgb(0 0 0 / 0.5);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
+  /* A job's page on a phone: no blur to lean on, so the strip under the clock is the page's plain colour. */
   @media (width < 48rem) {
     html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
       height: var(--clock-strip);
@@ -4650,7 +4612,7 @@ html:has(.more-sheet[open])::view-transition {
     /* That strip is all that keeps text from passing behind the clock, and the page has no top row for it to leave
        with: it stays on the way down as on the way up (the rule below hides a header's bar with its row). Only on
        a phone: wider, a job's page keeps its header and that rule is right. */
-    html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
       opacity: 1 !important;
     }
   }
@@ -4772,19 +4734,19 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
   opacity: 0 !important;
 }
 @media (width < 48rem) {
-  /* A job's page on a phone: the photograph still runs to the top of the screen. The shade under the clock stays
-     (the phone draws the clock in white, and a pale photograph would lose it) but it is only shade now: nothing
-     behind it is blurred. Once the photograph has gone by, the strip under the clock is the page's top colour
-     and no taller than the clock's own strip; the page has no row there for it to leave with, so it stays on the
-     way down too. */
+  /* A job's page on a phone (Caden, Nov 17: "the top bar needs to be the same color as the gradient"): the strip
+     under the clock is the page's top colour from the start, as on every other page, and covers the top of the
+     photograph. No layer over the photograph: an iPhone drew the masked shade that stood there as a solid pale
+     bar. The page has no row up there for the strip to leave with, so it stays on the way down too: the last rule
+     beats the one above that hides a bar with its row, by one class (the :not(.x)), not by its place in the file. */
   html:not(.sun) .job-photo-head::after {
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+    content: none !important;
   }
   html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
     height: var(--clock-strip) !important;
+    opacity: 1 !important;
   }
-  html[data-past-photo][data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:has(.job-photo-head):has(.tpl):not(:has(.staff-band))::after {
+  html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:has(.job-photo-head):has(.tpl):not(:has(.staff-band)):not(.x)::after {
     opacity: 1 !important;
   }
 }
@@ -4795,7 +4757,7 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
    every width: the logo and the round buttons stand on the page's own gradient, which is fixed to the screen, so
    there is no edge where a band would stop. The header has no pane of its own either. What stays: the plain strip under
    the phone's clock (html::after) on a chat, Sunlight and the contrast settings (on an ordinary page it was removed on
-   Nov 16 and the page runs up behind the clock); a job page's shade over its photograph and its strip once past it (both
+   Nov 16 and the page runs up behind the clock); a job page's strip under the clock (from Nov 17 shown from the start, no shade over the photograph; it is
    only that tall on a phone); a chat's bar, the staff band and Sunlight's plain bar, which are surfaces. */
 html:not(.sun) .phone-top::before {
   display: none !important;
@@ -4815,7 +4777,7 @@ html:not(.sun) .site-header {
    as all modes so it matches seamlessly like the rest of the background"). The page's own gradient runs up behind the
    clock and battery; nothing is painted over it, so there is no edge and no tint. What scrolls up under the time then
    shows behind it. Sunlight and a chat keep their plain dark strip (the phone draws the clock in white, and a pale page
-   would lose it), a job's page its shade, and the contrast settings below the solid colour, which is what they ask for. */
+   would lose it), a job's page its strip, and the contrast settings below the solid colour, which is what they ask for. */
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   background: none;
 }

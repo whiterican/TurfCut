@@ -1,6 +1,11 @@
 
 // ---------------------------------------------------------------------------
-// PROPOSAL (not built): door-to-door polling. Server-only tables, like W1.
+// PROPOSAL (not built): door-to-door polling. Server-only tables, like W1 and W2.
+// Needs W1's and W2's models (branch claude/eager-albattani-v4wkxr) and these back-relations:
+//   StopOutcome.pollResponse PollResponse?   Job.pollVersions PollVersion[]
+//   Profile.pollsCreated PollVersion[] @relation("PollCreator")
+//   Profile.pollsAttested PollVersion[] @relation("PollAttester")
+//   Profile.pollResponsesRecorded PollResponse[] @relation("PollRecorder")
 // ---------------------------------------------------------------------------
 
 enum PollVersionStatus {
@@ -77,8 +82,8 @@ model PollOption {
 }
 
 /// The poll given at one door. APPEND-ONLY (a correction is a new row that
-/// supersedes one earlier row). The door's outcome, shift and stop live on W2's
-/// stop outcome; this row adds only the poll. The id is made on the phone and is
+/// supersedes one earlier row, on the same stop). The door's outcome, engagement,
+/// shift and stop live on W2's StopOutcome; this row adds only the poll. The id is made on the phone and is
 /// the sync action's clientId, so a re-sent door is saved once.
 model PollResponse {
   id             String         @id @db.Uuid
@@ -118,18 +123,4 @@ model PollAnswer {
 
   @@unique([responseId, questionId])
   @@index([versionId, questionId, optionId])
-}
-
-/// PLACEHOLDER for W2's append-only stop outcome: only what the poll depends on.
-/// It names a stop by (walkbookId, stopNumber), not by a key to WalkbookStop, so
-/// the 30-day address purge can delete stops without touching append-only rows.
-model StopOutcome {
-  id           String        @id @default(uuid()) @db.Uuid
-  shiftId      String        @db.Uuid
-  shift        Shift         @relation(fields: [shiftId], references: [id], onDelete: Restrict)
-  walkbookId   String?       @db.Uuid
-  walkbook     Walkbook?     @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
-  stopNumber   Int?
-  outcome      String
-  pollResponse PollResponse?
 }

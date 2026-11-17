@@ -26,7 +26,9 @@ SELECT gen_random_uuid() AS j2, gen_random_uuid() AS e2, gen_random_uuid() AS s2
        gen_random_uuid() AS so1, gen_random_uuid() AS so1b, gen_random_uuid() AS so2, gen_random_uuid() AS so3, gen_random_uuid() AS so4,
        gen_random_uuid() AS r1, gen_random_uuid() AS r2, gen_random_uuid() AS r3, gen_random_uuid() AS r4, gen_random_uuid() AS r5,
        gen_random_uuid() AS a1, gen_random_uuid() AS a2, gen_random_uuid() AS a3, gen_random_uuid() AS a4, gen_random_uuid() AS a5,
-       gen_random_uuid() AS o3b, gen_random_uuid() AS ov3a, gen_random_uuid() AS ov3b \gset
+       gen_random_uuid() AS o3b, gen_random_uuid() AS ov3a, gen_random_uuid() AS ov3b,
+       gen_random_uuid() AS imp2, gen_random_uuid() AS adr3, gen_random_uuid() AS adr4, gen_random_uuid() AS adr5, gen_random_uuid() AS wb2, gen_random_uuid() AS ws3,
+       gen_random_uuid() AS so1c, gen_random_uuid() AS so_nh, gen_random_uuid() AS so_cb, gen_random_uuid() AS r6 \gset
 SELECT (SELECT "id" FROM "Job" ORDER BY "createdAt" LIMIT 1) AS j1,
        (SELECT "orgId" FROM "Job" ORDER BY "createdAt" LIMIT 1) AS org,
        (SELECT "id" FROM "Profile" ORDER BY "createdAt" LIMIT 1) AS p,
@@ -44,11 +46,27 @@ CREATE TEMP TABLE sclone AS SELECT * FROM "Shift" WHERE "id" = :'s1';
 UPDATE sclone SET "id" = :'s2', "engagementId" = :'e2';
 INSERT INTO "Shift" SELECT * FROM sclone;
 
--- W1 rows: one import, one book on job 1, two stops.
-INSERT INTO "AddressImport"("id","orgId","uploadedById","fileName","recordSource","purpose","license","rowCount","keptCount") VALUES (:'imp', :'org', :'p', 'f.csv', 'test', 'test', 'test', 2, 2);
-INSERT INTO "ImportedAddress"("id","importId","rowNumber","line1","city","state","zip") VALUES (:'adr1', :'imp', 2, '1 Main St', 'Denver', 'CO', '80202'), (:'adr2', :'imp', 3, '2 Main St', 'Denver', 'CO', '80202');
-INSERT INTO "Walkbook"("id","jobId","importId","number","name","createdById") VALUES (:'wb', :'j1', :'imp', 1, 'Book 1', :'p');
-INSERT INTO "WalkbookStop"("id","walkbookId","addressId","stopNumber") VALUES (:'ws1', :'wb', :'adr1', 1), (:'ws2', :'wb', :'adr2', 2);
+-- W1 rows (with the amendments applied): two imports; a book on job 1 (two stops) and a book on job 2 (one stop).
+-- Rows keep their source record ID and every other column of the file.
+INSERT INTO "AddressImport"("id","orgId","uploadedById","fileName","recordSource","purpose","license","rowCount","keptCount") VALUES (:'imp', :'org', :'p', 'f.csv', 'test', 'test', 'test', 3, 3), (:'imp2', :'org', :'p', 'g.csv', 'test', 'test', 'test', 1, 1);
+INSERT INTO "ImportedAddress"("id","importId","rowNumber","line1","city","state","zip","sourceRecordId","sourceData") VALUES
+  (:'adr1', :'imp', 2, '1 Main St', 'Denver', 'CO', '80202', 'EC-1', '{"Name": "A Voter", "Party": "X", "Vote history": "2022G,2024G"}'),
+  (:'adr2', :'imp', 3, '2 Main St', 'Denver', 'CO', '80202', 'EC-2', '{"Name": "B Voter"}'),
+  (:'adr3', :'imp', 4, '3 Main St', 'Denver', 'CO', '80202', 'EC-3', NULL),
+  (:'adr4', :'imp2', 2, '4 Main St', 'Denver', 'CO', '80202', 'EC-1', '{"Name": "C Voter"}');
+INSERT INTO "Walkbook"("id","jobId","importId","number","name","createdById") VALUES (:'wb', :'j1', :'imp', 1, 'Book 1', :'p'), (:'wb2', :'j2', :'imp', 1, 'Book 1 on job 2', :'p');
+INSERT INTO "WalkbookStop"("id","walkbookId","addressId","stopNumber") VALUES (:'ws1', :'wb', :'adr1', 1), (:'ws2', :'wb', :'adr2', 2), (:'ws3', :'wb2', :'adr3', 1);
+
+-- ===== W1 amendments: everything stored, and the 30-day clock =====
+SELECT pg_temp.fails('a record ID names one row of one import', format($f$INSERT INTO "ImportedAddress"("id","importId","rowNumber","line1","city","state","zip","sourceRecordId") VALUES (%L,%L,9,'9 Main St','Denver','CO','80202','EC-1')$f$, :'adr5', :'imp'), 'ImportedAddress_importId_sourceRecordId_key');
+SELECT pg_temp.ok('...the same record ID is fine in another import (adr4 in the second import has EC-1)', (SELECT count(*) FROM "ImportedAddress" WHERE "sourceRecordId" = 'EC-1') = 2);
+SELECT pg_temp.fails('stored columns must be a JSON object (an array is refused)', format($f$UPDATE "ImportedAddress" SET "sourceData" = '["a"]' WHERE "id" = %L$f$, :'adr3'), 'ImportedAddress_sourceData');
+SELECT pg_temp.fails('stored columns are capped at 16 KB a row', format($f$UPDATE "ImportedAddress" SET "sourceData" = jsonb_build_object('k', repeat('x', 20000)) WHERE "id" = %L$f$, :'adr3'), 'ImportedAddress_sourceData');
+SELECT pg_temp.fails('an empty record ID is refused', format($f$UPDATE "ImportedAddress" SET "sourceRecordId" = '' WHERE "id" = %L$f$, :'adr3'), 'ImportedAddress_sourceRecordId_length');
+SELECT pg_temp.fails('an unknown source system is refused', format($f$UPDATE "AddressImport" SET "sourceSystem" = 'BOGUS' WHERE "id" = %L$f$, :'imp'), 'AddressImport_sourceSystem');
+SELECT pg_temp.succeeds('a known source system is accepted', format($f$UPDATE "AddressImport" SET "sourceSystem" = 'ECANVASSER' WHERE "id" = %L$f$, :'imp'));
+SELECT pg_temp.ok('deleteAfter defaults to 30 days after the import', (SELECT "deleteAfter" - "createdAt" = INTERVAL '30 days' FROM "AddressImport" WHERE "id" = :'imp'));
+SELECT pg_temp.fails('deleteAfter can not be at or before the import''s own time', format($f$UPDATE "AddressImport" SET "deleteAfter" = "createdAt" WHERE "id" = %L$f$, :'imp'), 'AddressImport_deleteAfter');
 
 -- ===== PollVersion: draft, the one-draft rule, the lock =====
 SELECT pg_temp.succeeds('v1 draft on job 1', format($f$INSERT INTO "PollVersion"("id","jobId","version","title","conductedBy","disclosure","createdById") VALUES (%L,%L,1,'t','Acme Research','We are conducting research.',%L)$f$, :'v1', :'j1', :'p'));
@@ -86,18 +104,24 @@ SELECT pg_temp.fails('lock refused: a SCALE_5 question that still has options', 
 SELECT pg_temp.succeeds('...and back to CHOICE', format($f$UPDATE "PollQuestion" SET "kind"='CHOICE' WHERE "id" = %L$f$, :'qv3'));
 SELECT pg_temp.succeeds('lock v3 (a usable shape)', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v3'));
 
--- ===== Doors: W2's stop outcomes (stub) name a stop by (walkbook, number), never by a key to the stop =====
-INSERT INTO "StopOutcome"("id","shiftId","walkbookId","stopNumber","outcome") VALUES
-  (:'so1', :'s1', :'wb', 1, 'TALKED'), (:'so1b', :'s1', :'wb', 1, 'TALKED'),
-  (:'so2', :'s2', NULL, NULL, 'TALKED'), (:'so3', :'s1', :'wb', 2, 'TALKED'), (:'so4', :'s1', :'wb', 2, 'TALKED');
+-- ===== Doors: W2's real StopOutcome rows (append-only; the newest row for a stop is its state) =====
+INSERT INTO "StopOutcome"("id","stopId","engagementId","shiftId","outcome","recordedById") VALUES
+  (:'so1',  :'ws1', :'e1', :'s1', 'DONE', :'p'), (:'so1b', :'ws1', :'e1', :'s1', 'DONE', :'p'), (:'so1c', :'ws1', :'e1', :'s1', 'DONE', :'p'),
+  (:'so2',  :'ws3', :'e2', :'s2', 'DONE', :'p'),
+  (:'so3',  :'ws2', :'e1', :'s1', 'DONE', :'p'), (:'so4',  :'ws2', :'e1', :'s1', 'DONE', :'p'),
+  (:'so_nh', :'ws2', :'e1', :'s1', 'NOT_HOME', :'p'), (:'so_cb', :'ws2', :'e1', :'s1', 'COME_BACK', :'p');
 
 -- ===== PollResponse =====
 SELECT pg_temp.succeeds('R1: a response on the locked version, for a door on the same job', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (%L,%L,%L,'COMPLETE',true,%L)$f$, :'r1', :'v1', :'so1', :'p'));
 SELECT pg_temp.fails('a response on a DRAFT version is refused', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L)$f$, :'v2', :'so2', :'p'), 'is not locked');
 SELECT pg_temp.fails('a response for a door on ANOTHER job is refused (cross-job)', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L)$f$, :'v1', :'so2', :'p'), 'different jobs');
 SELECT pg_temp.fails('a response without the disclosure read is refused', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',false,%L)$f$, :'v1', :'so3', :'p'), 'PollResponse_disclosure');
-SELECT pg_temp.fails('a second poll for the same door outcome is refused', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'PARTIAL',true,%L)$f$, :'v1', :'so1', :'p'), 'PollResponse_stopOutcomeId_key');
+SELECT pg_temp.fails('a second poll for the same door outcome is refused', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L)$f$, :'v1', :'so1', :'p'), 'PollResponse_stopOutcomeId_key');
 SELECT pg_temp.fails('a re-sent door (same id) is saved once', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (%L,%L,%L,'COMPLETE',true,%L)$f$, :'r1', :'v1', :'so3', :'p'), 'PollResponse_pkey');
+
+SELECT pg_temp.fails('a COMPLETE poll on a NOT_HOME outcome is refused', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L)$f$, :'v1', :'so_nh', :'p'), 'needs a DONE');
+SELECT pg_temp.fails('a PARTIAL poll on a DONE outcome is refused', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (gen_random_uuid(),%L,%L,'PARTIAL',true,%L)$f$, :'v1', :'so1c', :'p'), 'COME_BACK or REFUSED');
+SELECT pg_temp.succeeds('a PARTIAL poll on a COME_BACK outcome is accepted (R6)', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (%L,%L,%L,'PARTIAL',true,%L)$f$, :'r6', :'v1', :'so_cb', :'p'));
 
 -- ===== PollAnswer =====
 SELECT pg_temp.succeeds('A1: a choice answer', format($f$INSERT INTO "PollAnswer"("id","responseId","versionId","questionId","optionId") VALUES (%L,%L,%L,%L,%L)$f$, :'a1', :'r1', :'v1', :'q1', :'o1'));
@@ -123,22 +147,23 @@ SELECT pg_temp.fails('TRUNCATE of answers is refused', $f$TRUNCATE "PollAnswer"$
 -- ===== Corrections: a new response that supersedes one earlier response =====
 SELECT pg_temp.succeeds('R2 corrects R1 (re-recorded against the door''s corrected outcome row)', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (%L,%L,%L,'COMPLETE',true,%L,%L)$f$, :'r2', :'v1', :'so1b', :'p', :'r1'));
 SELECT pg_temp.succeeds('A3: R2''s answer', format($f$INSERT INTO "PollAnswer"("id","responseId","versionId","questionId","optionId") VALUES (%L,%L,%L,%L,%L)$f$, :'a3', :'r2', :'v1', :'q1', :'o2'));
-SELECT pg_temp.fails('R1 can be superseded only once', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v1', :'so3', :'p', :'r1'), 'PollResponse_supersedesId_key|PollResponse_supersedesId_versionId_key');
+SELECT pg_temp.fails('R1 can be superseded only once', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v1', :'so1c', :'p', :'r1'), 'PollResponse_supersedesId_key|PollResponse_supersedesId_versionId_key');
 SELECT pg_temp.fails('a response can not supersede itself', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (%L,%L,%L,'COMPLETE',true,%L,%L)$f$, :'r5', :'v1', :'so4', :'p', :'r5'), 'PollResponse_not_self');
-SELECT pg_temp.fails('a correction can not move a response to another version', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v3', :'so3', :'p', :'r2'), 'PollResponse_supersedes_fkey');
+SELECT pg_temp.fails('a correction can not move a response to another version', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v3', :'so1c', :'p', :'r2'), 'PollResponse_supersedes_fkey');
+SELECT pg_temp.fails('a correction must be on the same stop as the response it supersedes', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v1', :'so3', :'p', :'r2'), 'same stop');
 -- results rule: count only responses nothing supersedes
 SELECT pg_temp.ok('results count only current responses: R1 is superseded, so its answers are left out',
   (SELECT count(*) FROM "PollAnswer" a WHERE a."versionId"=:'v1' AND a."questionId"=:'q1' AND NOT EXISTS (SELECT 1 FROM "PollResponse" s WHERE s."supersedesId" = a."responseId")) = 1
   AND (SELECT a."optionId" FROM "PollAnswer" a WHERE a."versionId"=:'v1' AND a."questionId"=:'q1' AND NOT EXISTS (SELECT 1 FROM "PollResponse" s WHERE s."supersedesId" = a."responseId")) = :'o2');
 
--- ===== The 30-day purge: stops and addresses go, the append-only rows stay =====
-SELECT pg_temp.succeeds('purge: delete the book''s stops and the import''s addresses with poll rows present', format($f$
-  DELETE FROM "WalkbookStop" WHERE "walkbookId" = %L;
-  DELETE FROM "ImportedAddress" WHERE "importId" = %L;
-$f$, :'wb', :'imp'));
-SELECT pg_temp.ok('purge left every response and answer in place', (SELECT count(*) FROM "PollResponse") = 2 AND (SELECT count(*) FROM "PollAnswer") = 3);
-SELECT pg_temp.ok('purge left the stop outcomes naming their stop by number', (SELECT count(*) FROM "StopOutcome" WHERE "walkbookId" = :'wb' AND "stopNumber" IS NOT NULL) = 4);
-SELECT pg_temp.ok('after the purge no address row is left for the import', (SELECT count(*) FROM "ImportedAddress" WHERE "importId" = :'imp') = 0);
+-- ===== The 30-day purge: the import's addresses (with every stored column and record ID) go; stops, outcomes and poll rows stay =====
+CREATE TEMP TABLE before AS SELECT (SELECT count(*) FROM "PollResponse") AS r, (SELECT count(*) FROM "PollAnswer") AS a, (SELECT count(*) FROM "StopOutcome") AS o, (SELECT count(*) FROM "WalkbookStop") AS s, (SELECT count(*) FROM "Walkbook") AS w;
+SELECT pg_temp.succeeds('purge: delete the import''s addresses, with stop outcomes and poll rows present', format($f$DELETE FROM "ImportedAddress" WHERE "importId" = %L$f$, :'imp'));
+SELECT pg_temp.ok('purge left every response, answer, outcome, stop and book in place', (SELECT r = (SELECT count(*) FROM "PollResponse") AND a = (SELECT count(*) FROM "PollAnswer") AND o = (SELECT count(*) FROM "StopOutcome") AND s = (SELECT count(*) FROM "WalkbookStop") AND w = (SELECT count(*) FROM "Walkbook") FROM before));
+SELECT pg_temp.ok('purge: the stops now have no address', (SELECT count(*) FROM "WalkbookStop" WHERE "walkbookId" IN (:'wb', :'wb2')) = 3 AND (SELECT count(*) FROM "WalkbookStop" WHERE "walkbookId" IN (:'wb', :'wb2') AND "addressId" IS NOT NULL) = 0);
+SELECT pg_temp.ok('purge: no address, record ID or stored column is left for the import', (SELECT count(*) FROM "ImportedAddress" WHERE "importId" = :'imp') = 0);
+SELECT pg_temp.ok('purge: another import''s addresses are untouched', (SELECT count(*) FROM "ImportedAddress" WHERE "importId" = :'imp2' AND "sourceRecordId" = 'EC-1' AND "sourceData" IS NOT NULL) = 1);
+SELECT pg_temp.succeeds('the import can then be marked purged (it is not append-only)', format($f$UPDATE "AddressImport" SET "purgedAt" = now() WHERE "id" = %L$f$, :'imp'));
 
 -- ===== Server-only =====
 SELECT pg_temp.ok('RLS is on for all five poll tables', (SELECT count(*) FROM pg_class c WHERE c.relname IN ('PollVersion','PollQuestion','PollOption','PollResponse','PollAnswer') AND c.relrowsecurity) = 5);

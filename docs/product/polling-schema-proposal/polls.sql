@@ -1,5 +1,5 @@
 -- PROPOSAL, NOT APPLIED. Turfcut door-to-door polling. Would run after
--- w1-walkbooks.sql and W2's stop-outcome SQL, BEFORE deploying the code.
+-- w1-walkbooks.sql (with w1-amendments.sql folded in) and w2-stop-outcomes.sql, BEFORE deploying the code.
 -- Safe to run again. (Would also be folded into supabase-manual-setup.sql.)
 --
 --   1. PollVersion: one version of the poll on a job. Editable while DRAFT;
@@ -13,10 +13,8 @@
 --      text in v1: an append-only row can never be deleted, so text that may
 --      hold a respondent's name could not be purged.
 --
--- A response points at W2's stop outcome, which names its stop by
--- (walkbookId, stopNumber), never by a key to WalkbookStop or ImportedAddress,
--- so the retention purge can delete a book's stops and addresses without
--- touching any append-only row.
+-- A response points at W2's StopOutcome (the door's outcome, engagement, shift and stop). The 30-day purge deletes only
+-- ImportedAddress rows (see w1-amendments.sql), so no poll row, outcome or stop is ever touched by it.
 --
 -- All of it is server-only: RLS on, no policies, no grants.
 
@@ -147,7 +145,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   ALTER TABLE "public"."PollResponse" ADD CONSTRAINT "PollResponse_versionId_fkey" FOREIGN KEY ("versionId") REFERENCES "public"."PollVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
--- W2's table; the name is a placeholder until W2 is designed.
+-- W2's table (w2-stop-outcomes.sql).
 DO $$ BEGIN
   ALTER TABLE "public"."PollResponse" ADD CONSTRAINT "PollResponse_stopOutcomeId_fkey" FOREIGN KEY ("stopOutcomeId") REFERENCES "public"."StopOutcome"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -247,22 +245,37 @@ REVOKE ALL ON FUNCTION "turfcut_private"."poll_option_lock"() FROM PUBLIC, anon,
 CREATE OR REPLACE TRIGGER "PollOption_lock" BEFORE INSERT OR UPDATE OR DELETE ON "public"."PollOption"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."poll_option_lock"();
 
--- An answer can only go on a locked version, and only for a door on the same job as the poll.
--- (Reads W2's stop outcome for its shift: adapt the join to W2's real columns.)
+-- A poll response can only go on a locked version, for a door on the same job as the poll (W2's stop outcome names the
+-- engagement), and only for an outcome a poll can have: COMPLETE needs DONE; PARTIAL needs COME_BACK or REFUSED. A correction
+-- must be on the same stop as the response it supersedes (W2: the newest outcome row for a stop is its state now).
 CREATE OR REPLACE FUNCTION "turfcut_private"."poll_response_scope"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
-DECLARE s "public"."PollVersionStatus"; poll_job uuid; door_job uuid;
+DECLARE s "public"."PollVersionStatus"; poll_job uuid; door_job uuid; door_outcome "public"."StopOutcomeKind"; door_stop uuid; old_stop uuid;
 BEGIN
   SELECT "status", "jobId" INTO s, poll_job FROM "public"."PollVersion" WHERE "id" = NEW."versionId";
   IF s IS DISTINCT FROM 'LOCKED' THEN
     RAISE EXCEPTION 'PollResponse: version % is not locked', NEW."versionId" USING ERRCODE = 'check_violation';
   END IF;
-  SELECT e."jobId" INTO door_job
+  SELECT e."jobId", so."outcome", so."stopId" INTO door_job, door_outcome, door_stop
     FROM "public"."StopOutcome" so
-    JOIN "public"."Shift" sh ON sh."id" = so."shiftId"
-    JOIN "public"."Engagement" e ON e."id" = sh."engagementId"
+    JOIN "public"."Engagement" e ON e."id" = so."engagementId"
    WHERE so."id" = NEW."stopOutcomeId";
   IF door_job IS DISTINCT FROM poll_job THEN
     RAISE EXCEPTION 'PollResponse: the door and the poll version are on different jobs' USING ERRCODE = 'check_violation';
+  END IF;
+  IF NEW."completion" = 'COMPLETE' AND door_outcome <> 'DONE' THEN
+    RAISE EXCEPTION 'PollResponse: a COMPLETE poll needs a DONE stop outcome' USING ERRCODE = 'check_violation';
+  END IF;
+  IF NEW."completion" = 'PARTIAL' AND door_outcome NOT IN ('COME_BACK', 'REFUSED') THEN
+    RAISE EXCEPTION 'PollResponse: a PARTIAL poll needs a COME_BACK or REFUSED stop outcome' USING ERRCODE = 'check_violation';
+  END IF;
+  IF NEW."supersedesId" IS NOT NULL THEN
+    SELECT so."stopId" INTO old_stop
+      FROM "public"."PollResponse" r
+      JOIN "public"."StopOutcome" so ON so."id" = r."stopOutcomeId"
+     WHERE r."id" = NEW."supersedesId";
+    IF old_stop IS NOT NULL AND old_stop IS DISTINCT FROM door_stop THEN
+      RAISE EXCEPTION 'PollResponse: a correction must be on the same stop as the response it supersedes' USING ERRCODE = 'check_violation';
+    END IF;
   END IF;
   RETURN NEW;
 END $$;

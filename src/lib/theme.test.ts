@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { THEME_CHOICES, THEME_INIT_SCRIPT, currentTheme, leaveSunlight, setTheme, storedTheme, themeClasses } from "./theme";
+import { STRIP_COLORS, THEME_CHOICES, THEME_INIT_SCRIPT, currentTheme, leaveSunlight, setTheme, storedTheme, themeClasses } from "./theme";
 
 describe("themes (P1.5 adds Sunlight)", () => {
   it("offers four choices, Sunlight among them", () => {
@@ -36,6 +36,51 @@ describe("themes (P1.5 adds Sunlight)", () => {
       // Nothing saved, or something unknown: follow the phone, like storedTheme() says.
       for (const v of [null, "glow"]) expect(prepaint(v, phoneLight)).toEqual(phoneLight ? [] : ["dark"]);
     }
+  });
+
+  /** The theme-color tags the pre-paint script leaves: the server's two (light, dark), plus any it adds, in head order. */
+  function stripTags(stored: string | null, phoneLight: boolean): Array<{ content: string; media?: string }> {
+    type Tag = { name?: string; content: string; media?: string };
+    const head: Tag[] = [
+      { name: "theme-color", content: STRIP_COLORS.light, media: "(prefers-color-scheme: light)" },
+      { name: "theme-color", content: STRIP_COLORS.dark, media: "(prefers-color-scheme: dark)" },
+    ];
+    const classList = { add: () => {}, toggle: () => {} };
+    new Function("document", "localStorage", "window", THEME_INIT_SCRIPT)(
+      {
+        documentElement: { classList, dataset: {} },
+        head: { firstChild: head[0], insertBefore: (n: Tag, before: Tag) => head.splice(head.indexOf(before), 0, n) },
+        querySelectorAll: () => head.filter((t) => t.name === "theme-color"),
+        createElement: () => ({ content: "" }),
+      },
+      { getItem: (k: string) => (k === "turfcut-theme" ? stored : null) },
+      { matchMedia: () => ({ matches: phoneLight }) },
+    );
+    return head.map(({ content, media }) => ({ content, media }));
+  }
+  it("puts the chosen theme's strip colour first in theme-color before the page loads, whatever the phone's setting", () => {
+    for (const phoneLight of [true, false]) {
+      for (const [stored, want] of [["dark", STRIP_COLORS.dark], ["sun", STRIP_COLORS.sun], ["light", STRIP_COLORS.light]] as const) {
+        const tags = stripTags(stored, phoneLight);
+        // A tag with no media, first in the head, so it is the one a phone reads; the server's tags carry the same colour.
+        expect(tags[0]).toEqual({ content: want, media: undefined });
+        expect(tags.map((t) => t.content)).toEqual([want, want, want]);
+      }
+      // Match my phone: the phone's own colour.
+      expect(stripTags(null, phoneLight)[0].content).toBe(phoneLight ? STRIP_COLORS.light : STRIP_COLORS.dark);
+    }
+  });
+  it("still applies the theme when the head can't be touched", () => {
+    const classes = new Set<string>();
+    const classList = { add: (c: string) => classes.add(c), toggle: (c: string, on: boolean) => (on ? classes.add(c) : classes.delete(c)) };
+    expect(() =>
+      new Function("document", "localStorage", "window", THEME_INIT_SCRIPT)(
+        { documentElement: { classList, dataset: {} } },
+        { getItem: () => "dark" },
+        { matchMedia: () => ({ matches: true }) },
+      ),
+    ).not.toThrow();
+    expect([...classes]).toEqual(["dark"]);
   });
 });
 

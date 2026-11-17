@@ -129,15 +129,30 @@ export const TEXT_SIZES = [
 export type TextSize = (typeof TEXT_SIZES)[number]["value"];
 
 /**
+ * The colour of each theme's page top (--page-top in globals.css; Sunlight's is its --bg), for the strip a
+ * phone draws behind the clock and battery. The pre-paint script puts the chosen theme's colour in theme-color.
+ */
+export const STRIP_COLORS = { light: "#d6c9ea", dark: "#3c1f66", sun: "#fbf7f0" } as const;
+
+/**
  * Runs before first paint: the saved theme wins ("sun" is Sunlight, built on
  * light), otherwise follow the OS preference (dark if unavailable); the
  * saved text size is applied as
  * <html data-text>, which scales every rem-based size; the saved "Less
  * motion" choice as <html data-motion> (P1.1), so nothing animates on the
  * first page either.
+ *
+ * It also sets theme-color to the chosen theme's strip colour. The server's tags follow the phone's light or
+ * dark setting, not the app's theme, and an iPhone reads the tag once, as the page loads: a light phone with
+ * the app in dark or Sunlight kept the light strip over the page (Caden's iPhone, Nov 17). A tag first in the
+ * head wins over any later one; every tag already there is set too. StatusStripColor keeps them right after.
  */
-export const THEME_INIT_SCRIPT = `(function(){var d=true;try{var t=localStorage.getItem(${JSON.stringify(
+export const THEME_INIT_SCRIPT = `(function(){var d=true,u=false;try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY
-)});if(t==="sun")document.documentElement.classList.add("sun");d=t==="dark"||(t!=="light"&&t!=="sun"&&!window.matchMedia("(prefers-color-scheme: light)").matches);var s=localStorage.getItem(${JSON.stringify(
+)});u=t==="sun";if(u)document.documentElement.classList.add("sun");d=t==="dark"||(t!=="light"&&t!=="sun"&&!window.matchMedia("(prefers-color-scheme: light)").matches);var s=localStorage.getItem(${JSON.stringify(
   TEXT_SIZE_KEY
-)});if(s==="lg"||s==="xl")document.documentElement.dataset.text=s;${MOTION_INIT_FRAGMENT}}catch(e){}document.documentElement.classList.toggle("dark",d);})();`;
+)});if(s==="lg"||s==="xl")document.documentElement.dataset.text=s;${MOTION_INIT_FRAGMENT}}catch(e){}document.documentElement.classList.toggle("dark",d);try{var c=u?${JSON.stringify(
+  STRIP_COLORS.sun
+)}:d?${JSON.stringify(STRIP_COLORS.dark)}:${JSON.stringify(
+  STRIP_COLORS.light
+)},m=document.querySelectorAll('meta[name="theme-color"]'),h=document.head,n=document.createElement("meta");for(var i=0;i<m.length;i++)m[i].content=c;n.name="theme-color";n.content=c;h.insertBefore(n,h.firstChild);}catch(e){}})();`;

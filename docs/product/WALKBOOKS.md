@@ -59,14 +59,36 @@ light card and the night card, so a new colour has to pass.
 - Offline taps are not built. A replayed tap is ordered by when the server
   receives it; offline support needs a client timestamp (see the W2 review).
 
+## The console (W3)
+
+`/jobs/[jobId]/walkbooks/console`, for people with access to the field area.
+Read-only: it never changes a stop. A job-level table of every stop (50 a
+page) with filters by outcome, walkbook and who holds the book (including
+"nobody"), a map of the filtered stops, and an inspector that opens any stop's
+whole history, newest first. The outcome chips count the whole job; filters
+narrow the table and map only.
+
+- **Workers table**: "holds now" (books handed to them) and "recorded" (stops
+  whose newest outcome they recorded) are shown apart, because a book carries
+  its state to its next holder: a hand-on moves the book, never the credit.
+  There is no total, percentage or ranking of people (rule 5).
+- **Export** (`.../console/export`): the filtered stops as CSV, for full
+  access to the field area only. Addresses, outcomes, the three closed fields,
+  the time and the holder's name; no ids or notes. Cells that look like a
+  formula are neutralised (same guard as the finance export). Capped at
+  20,000 rows (a bigger job is exported book by book), ten an hour per
+  organization, and every attempt, refusals included, is an audit event with
+  the filters and row count but never the contents.
+
 ## Where things are
 
 | | |
 |---|---|
 | Import, cut, hand-over | `src/lib/walkbooks-data.ts`, `src/app/jobs/[jobId]/walkbooks/` |
 | Recording and progress | `src/lib/stop-outcomes-data.ts`, `src/app/walkbooks/` |
+| Console | `src/lib/stop-console.ts`, `src/lib/stop-console-data.ts`, `src/app/jobs/[jobId]/walkbooks/console/`, `src/components/stops/ConsoleParts.tsx` |
 | Screens | `src/components/stops/`, `src/components/staff/Walkbook*.tsx`, `src/components/WalkbookStops.tsx` |
-| Acceptance checks | `tests/acceptance/w1-walkbooks.ts`, `w2-stop-outcomes.ts` (`run.sh w1 w2`) |
+| Acceptance checks | `tests/acceptance/w1-walkbooks.ts`, `w2-stop-outcomes.ts`, `w3-console.ts` (`run.sh w1 w2 w3`) |
 
 ## Known limits
 

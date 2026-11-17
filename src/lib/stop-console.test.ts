@@ -8,6 +8,7 @@ describe("parseConsoleQuery", () => {
     const q = parseConsoleQuery({ outcome: "COME_BACK", book: ID.toUpperCase(), worker: [ID, "x"], stop: ID, page: "3" });
     expect(q).toEqual({ outcome: "COME_BACK", bookId: ID, holderId: ID, stopId: ID, page: 3 });
     expect(parseConsoleQuery({ outcome: "todo" }).outcome).toBe("todo");
+    expect(parseConsoleQuery({ worker: "none" }).holderId).toBe("none");
   });
   it("ignores anything it doesn't know instead of passing it on", () => {
     const q = parseConsoleQuery({ outcome: "SUPPORTER", book: "1; drop table", worker: "nope", stop: "", page: "-2" });

@@ -51,6 +51,8 @@ export const LIMITS = {
   like: { max: 120, windowMs: 60 * 60_000 },
   /** Job-builder draft autosaves per organization per minute (P0 3: a step change or 15 s of quiet, never a keystroke). */
   autosave: { max: 30, windowMs: 60_000 },
+  /** Walkbook exports per organization per hour (W3): each one is up to 20,000 addresses. */
+  "walkbook-export": { max: 10, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

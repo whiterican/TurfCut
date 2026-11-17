@@ -48,6 +48,11 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
             <ChevronLeft aria-hidden className="size-4 shrink-0" />
             Job
           </Link>
+          {books.length > 0 && (
+            <Link href={`/jobs/${job.id}/walkbooks/console`} className="btn-secondary btn-sm">
+              Console
+            </Link>
+          )}
         </Masthead>
       }
     >

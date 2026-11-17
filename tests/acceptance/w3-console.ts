@@ -82,8 +82,8 @@ const META = { fileName: "big.csv", recordSource: "Own list", purpose: "Canvassi
   const filteredPins = (await loadConsole(ORG, job.id, q({ outcome: "todo" })))!;
   check("pins follow the filter: two pinned stops have an outcome (book 1 and book 2 stop 1), so To do has 10", filteredPins.pins.length === 10, filteredPins.pins.length);
   const w0 = all.workers.find((w) => w.name === "Alex Rivera")!, w1 = all.workers.find((w) => w.name === "Jordan Blake")!;
-  check("the worker table: Alex holds 1 book of 60, 4 settled (3 Done + 1 Don't knock; Come back is open), 8 signatures (5+3... stop 1 corrected to 5, stop 2 is 3, stop 3 is 1 = 9)", w0.books === 1 && w0.stops === 60 && w0.settled === 4 && w0.signatures === 9, w0);
-  check("…and Jordan holds 1 book, 1 settled, no signatures", w1.books === 1 && w1.settled === 1 && w1.signatures === 0, w1);
+  check("the worker table: Alex holds 1 book (60 stops) and recorded 4 settled stops (3 Done + 1 Don't knock; Come back is still open) with 9 signatures (5 + 3 + 1: the corrected 5 counts, not the first 2)", w0.books === 1 && w0.stops === 60 && w0.recordedSettled === 4 && w0.recordedSignatures === 9, w0);
+  check("…and Jordan holds 1 book and recorded 1 settled stop, no signatures", w1.books === 1 && w1.recordedSettled === 1 && w1.recordedSignatures === 0, w1);
 
   // --- The inspector ---
   const hist = (await loadStopHistory(ORG, s1[0].id))!;
@@ -102,6 +102,18 @@ const META = { fileName: "big.csv", recordSource: "Own list", purpose: "Canvassi
     check("…with outcomes, signatures and who held it", csv.includes('"Done","","","5"') && csv.includes('"Come back"') && csv.includes('"Alex Rivera"'), csv.split("\n").slice(0, 3));
     check("…and a formula-shaped unit is neutralised, not stored as a formula", csv.includes(`"'=HYPERLINK(1)"`) || !csv.includes("HYPERLINK"), csv.split("\n").find((l) => l.includes("HYPERLINK")));
   }
+
+  // --- A hand-on moves the book, never the credit ---
+  await assignWalkbook(owner, b1, e1.ok ? e1.engagementId : "");
+  const after = (await loadConsole(ORG, job.id, q()))!;
+  const a0 = after.workers.find((w) => w.name === "Alex Rivera")!, a1 = after.workers.find((w) => w.name === "Jordan Blake")!;
+  check("after Alex's book is handed to Jordan: Alex holds nothing but keeps the 4 settled stops and 9 signatures he recorded", a0.books === 0 && a0.stops === 0 && a0.recordedSettled === 4 && a0.recordedSignatures === 9, a0);
+  check("…and Jordan holds both books (120 stops) but has recorded only his own 1", a1.books === 2 && a1.stops === 120 && a1.recordedSettled === 1 && a1.recordedSignatures === 0, a1);
+  await assignWalkbook(owner, b2, "");
+  const none = (await loadConsole(ORG, job.id, q({ worker: "none" })))!;
+  check("after a take-back, 'held by nobody' lists exactly that book's 60 stops", none.total === 60 && none.stops.every((s) => s.bookId === b2 && s.holderEngagementId === null), none.total);
+  const inspectJob = await loadStopHistory(ORG, s1[0].id, job.id);
+  check("the inspector is scoped to the job: the same stop under another job id is not found", !!inspectJob && (await loadStopHistory(ORG, s1[0].id, randomUUID())) === null);
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

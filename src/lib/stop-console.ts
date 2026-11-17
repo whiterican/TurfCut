@@ -18,7 +18,7 @@ export interface ConsoleQuery {
   /** One outcome, or "todo" for stops with none yet. */
   outcome: OutcomeFilter | null;
   bookId: string | null;
-  /** The engagement of the worker holding the book now. */
+  /** The engagement of the worker holding the book now, or "none" for books held by nobody. */
   holderId: string | null;
   /** A stop whose history the inspector shows. */
   stopId: string | null;
@@ -38,7 +38,7 @@ export function parseConsoleQuery(sp: Record<string, string | string[] | undefin
   return {
     outcome: o === "todo" ? "todo" : isOutcomeKind(o) ? o : null,
     bookId: uuid(sp.book),
-    holderId: uuid(sp.worker),
+    holderId: one(sp.worker) === "none" ? "none" : uuid(sp.worker),
     stopId: uuid(sp.stop),
     page,
   };

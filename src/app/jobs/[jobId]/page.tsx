@@ -188,8 +188,9 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   // One read of the worker's own preferences decides the panel and the foot alike.
   const pref = effectivePreference(await loadLatestPreference(session.workerId!));
   // Hiring paused (organization approval on hold, rules failing the gate): the server refuses joining and accepting,
-  // so the page doesn't offer them (hiringPausedReasons, as the feed).
-  const paused = job.status === "PUBLISHED" ? hiringPausedReasons(job.org, job.jurisdiction, new Date()) : [];
+  // so the page doesn't offer them (hiringPausedReasons, as the feed). Not only on a published job: the server checks
+  // an offer or invitation on a job the organization has paused for editing too (CLOSED has its own text).
+  const paused = job.status !== "CLOSED" ? hiringPausedReasons(job.org, job.jurisdiction, new Date()) : [];
   // The join action as the page's foot, exactly where the panel shows it: no place on the job yet, a way to join, and not hidden by the worker's own preferences.
   const joinFoot = !engagement && canJoin(modes) && !paused.length && ownExclusions(pref, job).length === 0 ? (
     <div className="job-cta-bar">

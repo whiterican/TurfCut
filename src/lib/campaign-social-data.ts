@@ -476,14 +476,15 @@ export async function listPublicCampaigns(opts: { cursor?: string | null; q?: un
            lp."lastPostAt",
            GREATEST(lp."lastPostAt", c."publishedAt") AS "activeAt",
            -- listHiringJobs' rule: this campaign's own organization's open jobs, not paused (hiringOpenWhere in SQL;
-           -- the organization's approval is o."approved" below).
+           -- the organization's approval is o."approved" below). The columns hold UTC without a zone, as Prisma's
+           -- own filters read them, so the times are compared in UTC whatever the session's time zone.
            (SELECT count(*) FROM "public"."Job" j
               JOIN "public"."JurisdictionProfile" jp ON jp."id" = j."jurisdictionId"
              WHERE j."campaignProfileId" = c."id" AND j."orgId" = c."orgId" AND j."status" = 'PUBLISHED'
-               AND (j."endsAt" IS NULL OR j."endsAt" > ${openEnd}::timestamp)
+               AND (j."endsAt" IS NULL OR j."endsAt" > (${openEnd} AT TIME ZONE 'UTC'))
                AND jp."approved" AND jp."isCurrent"
-               AND (jp."effectiveFrom" IS NULL OR jp."effectiveFrom" <= ${now}::timestamp)
-               AND (jp."approvalExpiresAt" IS NULL OR jp."approvalExpiresAt" > ${now}::timestamp)
+               AND (jp."effectiveFrom" IS NULL OR jp."effectiveFrom" <= (${now} AT TIME ZONE 'UTC'))
+               AND (jp."approvalExpiresAt" IS NULL OR jp."approvalExpiresAt" > (${now} AT TIME ZONE 'UTC'))
                AND jsonb_typeof(jp."rules" -> 'compensationAllowed') = 'array') AS "hiring"
       FROM "public"."CampaignProfile" c
       JOIN "public"."Organization" o ON o."id" = c."orgId"

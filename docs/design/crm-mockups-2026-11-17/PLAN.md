@@ -11,7 +11,7 @@ Order, as Caden asked: **(1) the hiring-pipeline CRM**, then **(2) the field-lea
 | Frame | What it shows |
 |---|---|
 | H1 `h1-people-list` | Organization-wide People list with an inspector: who they are, stage, last contact, follow-up. |
-| H2 `h2-person-record` | One person: follow-up, private team notes, stage history, and what she shares with you. |
+| H2 `h2-person-record` | One person: follow-up, private team notes (only if Q5 changes), stage history, and what she shares with you. |
 | H3 `h3-follow-ups` | A queue of who needs a reply or decision, earliest first. |
 | F1 `f1-worker-today` | Worker's "Today's stops" with the six outcomes and Saved / Sent / Recorded state per stop. |
 | F2 `f2-walkbook-import` | Manager uploads a CSV, reviews it, assigns stops to confirmed workers. |

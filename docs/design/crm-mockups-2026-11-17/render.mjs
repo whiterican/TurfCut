@@ -6,7 +6,8 @@ import path from 'node:path';
 const { chromium } = pkg;
 const here = path.dirname(new URL(import.meta.url).pathname);
 const base = process.argv[2] ?? 'http://localhost:3475';
-if (!/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(base)) { console.error('Refusing: test logins are for a local app only.'); process.exit(1); }
+let host = ''; try { host = new URL(base).hostname; } catch {}
+if (!['localhost', '127.0.0.1'].includes(host)) { console.error('Refusing: test logins are for a local app only.'); process.exit(1); }
 const css = fs.readFileSync(path.join(here, 'proposed.css'), 'utf8');
 const frames = [
   ['h1-people-list', 'owner@fp.test', '/hiring'],

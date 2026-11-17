@@ -32,13 +32,13 @@ export async function recordStopOutcome(
   clientIdRaw: unknown,
   raw: Record<string, unknown>,
   now = new Date()
-): Promise<{ ok: true; walkbookId: string; repeated: boolean } | Fail> {
+): Promise<{ ok: true; walkbookId: string; jobId: string; repeated: boolean } | Fail> {
   const stopId = lower(stopIdRaw);
   const clientId = lower(clientIdRaw);
   if (!UUID_RE.test(stopId)) return { ok: false, reason: "Stop not found." };
   if (!UUID_RE.test(clientId)) return { ok: false, reason: "Something went wrong with that tap. Try again." };
   return db().$transaction(async (tx) => {
-    const stop = await tx.walkbookStop.findUnique({ where: { id: stopId }, select: { id: true, walkbookId: true, walkbook: { select: { job: { select: { type: true } } } } } });
+    const stop = await tx.walkbookStop.findUnique({ where: { id: stopId }, select: { id: true, walkbookId: true, walkbook: { select: { jobId: true, job: { select: { type: true } } } } } });
     if (!stop) return { ok: false as const, reason: "Stop not found." };
     await lock(tx, `walkbook:${stop.walkbookId}`);
     // Who holds the book now: its newest assignment, and only if that is one of this worker's hired engagements.
@@ -50,7 +50,7 @@ export async function recordStopOutcome(
     if (!engagement) return { ok: false as const, reason: "Stop not found." };
 
     const existing = await tx.stopOutcome.findUnique({ where: { id: clientId }, select: { stopId: true, engagementId: true } });
-    if (existing) return existing.stopId === stop.id && existing.engagementId === engagement.id ? { ok: true as const, walkbookId: stop.walkbookId, repeated: true } : { ok: false as const, reason: "Something went wrong with that tap. Try again." };
+    if (existing) return existing.stopId === stop.id && existing.engagementId === engagement.id ? { ok: true as const, walkbookId: stop.walkbookId, jobId: stop.walkbook.jobId, repeated: true } : { ok: false as const, reason: "Something went wrong with that tap. Try again." };
 
     const v = validateOutcome(stop.walkbook.job.type, raw);
     if (!v.ok) return { ok: false as const, reason: v.reason, errors: v.errors };
@@ -77,7 +77,7 @@ export async function recordStopOutcome(
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false as const, reason: "Something went wrong with that tap. Try again." };
       throw e;
     }
-    return { ok: true as const, walkbookId: stop.walkbookId, repeated: false };
+    return { ok: true as const, walkbookId: stop.walkbookId, jobId: stop.walkbook.jobId, repeated: false };
   });
 }
 

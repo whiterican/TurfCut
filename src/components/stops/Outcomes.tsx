@@ -24,7 +24,7 @@ export function OutcomeChip({ kind, className = "" }: { kind: OutcomeKind | null
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold text-fg ${className}`}
       style={{ borderColor: o.color, background: `color-mix(in srgb, ${o.color} 16%, transparent)` }}
     >
-      <span className="grid size-4 place-items-center rounded-full text-white" style={{ background: o.color }}>
+      <span className="grid size-4 place-items-center rounded-full" style={{ background: o.color, color: o.ink }}>
         <OutcomeGlyph kind={kind} className="size-3" />
       </span>
       {o.label}
@@ -42,7 +42,7 @@ export function OutcomeLegend({ className = "" }: { className?: string }) {
       </li>
       {OUTCOMES.map((o) => (
         <li key={o.kind} className="flex items-center gap-1.5 text-xs text-fg">
-          <span className="grid size-4 place-items-center rounded-full text-white" style={{ background: o.color }}>
+          <span className="grid size-4 place-items-center rounded-full" style={{ background: o.color, color: o.ink }}>
             <OutcomeGlyph kind={o.kind} className="size-3" />
           </span>
           {o.label}

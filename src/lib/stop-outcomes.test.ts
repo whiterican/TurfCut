@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { answerWords, fieldsFor, latestByStop, OUTCOME_KINDS, OUTCOMES, outcomeLook, progressOf, settledPercent, UNVISITED, validateOutcome } from "@/lib/stop-outcomes";
+import { UNVISITED_COLOR, UNVISITED_INK, answerWords, fieldsFor, latestByStop, OUTCOME_KINDS, OUTCOMES, outcomeLook, progressOf, settledPercent, UNVISITED, validateOutcome } from "@/lib/stop-outcomes";
 
 describe("the color code", () => {
   it("has a word, a hint, a glyph and a colour for every outcome, and no two share a colour", () => {
@@ -8,6 +8,27 @@ describe("the color code", () => {
     expect(new Set(OUTCOMES.map((o) => o.color)).size).toBe(OUTCOMES.length);
     expect(new Set(OUTCOMES.map((o) => o.glyph)).size).toBe(OUTCOMES.length);
     expect(outcomeLook("DO_NOT_KNOCK").label).toBe("Don't knock");
+  });
+});
+
+const lum = (hex: string) => {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+const ratio = (a: string, b: string) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+
+describe("colour contrast (WCAG)", () => {
+  const LIGHT_CARD = "#ffffff";
+  const NIGHT_CARD = "#231538";
+  const all = [...OUTCOMES.map((o) => ({ name: o.kind, color: o.color, ink: o.ink })), { name: "UNVISITED", color: UNVISITED_COLOR, ink: UNVISITED_INK }];
+  it("text and glyphs on every fill hold 4.5:1", () => {
+    for (const o of all) expect(ratio(o.color, o.ink), o.name).toBeGreaterThanOrEqual(4.5);
+  });
+  it("every fill holds 3:1 against the light card and the night card (stripes, discs, pins)", () => {
+    for (const o of all) {
+      expect(ratio(o.color, LIGHT_CARD), `${o.name} on light`).toBeGreaterThanOrEqual(3);
+      expect(ratio(o.color, NIGHT_CARD), `${o.name} on night`).toBeGreaterThanOrEqual(3);
+    }
   });
 });
 

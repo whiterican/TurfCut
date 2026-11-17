@@ -18,23 +18,31 @@ export interface OutcomeLook {
   label: string;
   /** One line under the label on the picker. */
   hint: string;
-  /** Mid-tone accents that read on the light page and on the night one; the label and glyph carry the meaning. */
+  /**
+   * The outcome's fill. Chosen so it holds 3:1 against both the light card
+   * (white) and the night card (#231538), and so `ink` on it holds 4.5:1
+   * (stop-outcomes.test.ts checks every pair). The label and glyph still
+   * carry the meaning.
+   */
   color: string;
+  /** Text and glyph on the fill: dark on the light fills, white on the dark ones. */
+  ink: string;
   /** lucide-react icon the component draws. */
   glyph: "check" | "rotate" | "door" | "ban" | "x" | "truck";
 }
 
 export const OUTCOMES: readonly OutcomeLook[] = [
-  { kind: "DONE", label: "Done", hint: "Reached the door", color: "#2e9e5b", glyph: "check" },
-  { kind: "COME_BACK", label: "Come back", hint: "Try again later", color: "#e0a100", glyph: "rotate" },
-  { kind: "NOT_HOME", label: "Not home", hint: "No answer", color: "#3b82d6", glyph: "door" },
-  { kind: "DO_NOT_KNOCK", label: "Don't knock", hint: "Skip this door", color: "#d6362d", glyph: "ban" },
-  { kind: "REFUSED", label: "Refused", hint: "Declined to talk", color: "#8a8f98", glyph: "x" },
-  { kind: "MOVED_VACANT", label: "Moved / vacant", hint: "Nobody lives here", color: "#a8734a", glyph: "truck" },
+  { kind: "DONE", label: "Done", hint: "Reached the door", color: "#2fa15d", ink: "#14101f", glyph: "check" },
+  { kind: "COME_BACK", label: "Come back", hint: "Try again later", color: "#b98500", ink: "#14101f", glyph: "rotate" },
+  { kind: "NOT_HOME", label: "Not home", hint: "No answer", color: "#5290db", ink: "#14101f", glyph: "door" },
+  { kind: "DO_NOT_KNOCK", label: "Don't knock", hint: "Skip this door", color: "#c52f26", ink: "#ffffff", glyph: "ban" },
+  { kind: "REFUSED", label: "Refused", hint: "Declined to talk", color: "#898e97", ink: "#14101f", glyph: "x" },
+  { kind: "MOVED_VACANT", label: "Moved / vacant", hint: "Nobody lives here", color: "#8b5f3d", ink: "#ffffff", glyph: "truck" },
 ];
 export const outcomeLook = (k: OutcomeKind): OutcomeLook => OUTCOMES.find((o) => o.kind === k)!;
-/** A stop with no outcome yet. */
-export const UNVISITED_COLOR = "#5a3a8a";
+/** A stop with no outcome yet; white type on it. Holds 3:1 on both cards like the others. */
+export const UNVISITED_COLOR = "#7d56b8";
+export const UNVISITED_INK = "#ffffff";
 export const isOutcomeKind = (v: unknown): v is OutcomeKind => typeof v === "string" && (OUTCOME_KINDS as readonly string[]).includes(v);
 
 // ---------------------------------------------------------------------------

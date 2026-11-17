@@ -1,6 +1,6 @@
 import { Navigation } from "lucide-react";
 import { OutcomeChip } from "@/components/stops/Outcomes";
-import { answerWords, outcomeLook, UNVISITED_COLOR, type StopState } from "@/lib/stop-outcomes";
+import { answerWords, outcomeLook, UNVISITED_COLOR, UNVISITED_INK, type StopState } from "@/lib/stop-outcomes";
 
 export interface StopView {
   id: string;
@@ -22,13 +22,15 @@ export const directionsTo = (s: StopView) => `https://maps.apple.com/?q=${encode
 
 /** The stop's colour: its outcome's, or the book's own purple while it is still to do. */
 export const stopColor = (s: StopView) => (s.result.outcome ? outcomeLook(s.result.outcome).color : UNVISITED_COLOR);
+/** The text on that colour, 4.5:1 or better (stop-outcomes.test.ts). */
+export const stopInk = (s: StopView) => (s.result.outcome ? outcomeLook(s.result.outcome).ink : UNVISITED_INK);
 
 /** The number badge, address, outcome chip and what was recorded: one stop's face, the same on every screen. */
 export function StopFace({ stop }: { stop: StopView }) {
   const words = answerWords(stop.result);
   return (
     <>
-      <span className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold tabular-nums text-white" style={{ background: stopColor(stop) }} aria-hidden>
+      <span className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold tabular-nums" style={{ background: stopColor(stop), color: stopInk(stop) }} aria-hidden>
         {stop.stopNumber}
       </span>
       <span className="min-w-0 flex-1 space-y-1">

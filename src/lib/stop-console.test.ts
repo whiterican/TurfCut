@@ -39,10 +39,24 @@ describe("exportCsv", () => {
     expect(lines[1]).toBe('"1","2","12 Elm St","","Denver","CO","80202","To do","","","","",""');
     expect(lines[2]).toBe('"1","3","12 Elm St","","Denver","CO","80202","Done","yes","no","4","2026-11-17 08:05:09","Alex Rivera"');
   });
+  it("adds a column per poll question, with the answer in words, and an empty cell where there is none", () => {
+    const cols = [{ id: "q1", prompt: "Measure 3?" }, { id: "q2", prompt: "Top issue?" }];
+    const csv = exportCsv([{ ...base, outcome: "DONE", poll: { q1: "Support", q2: "Declined" } }, { ...base, stopNumber: 3 }], cols);
+    const lines = csv.trimEnd().split("\r\n");
+    expect(lines[0].endsWith('"Poll 1: Measure 3?","Poll 2: Top issue?"')).toBe(true);
+    expect(lines[1].endsWith('"Support","Declined"')).toBe(true);
+    expect(lines[2].endsWith('"",""')).toBe(true);
+    // Without a poll the file is exactly what it was.
+    expect(exportCsv([base]).split("\r\n")[0].endsWith('"Held by"')).toBe(true);
+  });
   it("never lets a value be read as a formula, and doubles quotes", () => {
     const csv = exportCsv([{ ...base, line1: '=HYPERLINK("http://x")', unit: "@SUM(A1)", holder: '+1 "Bob"' }]);
     expect(csv).toContain(`"'=HYPERLINK(""http://x"")"`);
     expect(csv).toContain(`"'@SUM(A1)"`);
     expect(csv).toContain(`"'+1 ""Bob"""`);
+    // The header starts with the word Poll, so a prompt can't make it a formula; an answer is guarded like any cell.
+    const poll = exportCsv([{ ...base, poll: { q: "=1+1" } }], [{ id: "q", prompt: "@x" }]);
+    expect(poll).toContain('"Poll 1: @x"');
+    expect(poll).toContain(`"'=1+1"`);
   });
 });

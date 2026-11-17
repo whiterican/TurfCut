@@ -78,6 +78,14 @@ export interface ExportRow {
   signatures: number | null;
   recordedAt: Date | null;
   holder: string | null;
+  /** The poll answers on this stop, by question id, in words ("Support", "Declined"). Only when the exporter may read poll answers. */
+  poll?: Record<string, string>;
+}
+
+/** The current poll questions an export adds a column for, in order. */
+export interface PollColumn {
+  id: string;
+  prompt: string;
 }
 
 const yn = (v: boolean | null) => (v === null ? "" : v ? "yes" : "no");
@@ -85,11 +93,11 @@ const yn = (v: boolean | null) => (v === null ? "" : v ? "yes" : "no");
 export const EXPORT_HEADER = ["Walkbook", "Stop", "Address", "Unit", "City", "State", "ZIP", "Outcome", "Talked with someone", "Left literature", "Signatures", "Recorded at (UTC)", "Held by"];
 
 /** One CSV line per stop. Every cell goes through the finance export's guard, so a value shaped like a formula is never read as one. */
-export function exportCsv(rows: readonly ExportRow[]): string {
-  const lines = [EXPORT_HEADER.map(csvCell).join(",")];
+export function exportCsv(rows: readonly ExportRow[], pollColumns: readonly PollColumn[] = []): string {
+  const lines = [[...EXPORT_HEADER, ...pollColumns.map((q, i) => `Poll ${i + 1}: ${q.prompt}`)].map(csvCell).join(",")];
   for (const r of rows) {
     lines.push(
-      [r.bookNumber, r.stopNumber, r.line1, r.unit, r.city, r.state, r.zip, r.outcome ? outcomeLook(r.outcome).label : "To do", yn(r.talkedTo), yn(r.leftLiterature), r.signatures, r.recordedAt ? r.recordedAt.toISOString().slice(0, 19).replace("T", " ") : "", r.holder]
+      [r.bookNumber, r.stopNumber, r.line1, r.unit, r.city, r.state, r.zip, r.outcome ? outcomeLook(r.outcome).label : "To do", yn(r.talkedTo), yn(r.leftLiterature), r.signatures, r.recordedAt ? r.recordedAt.toISOString().slice(0, 19).replace("T", " ") : "", r.holder, ...pollColumns.map((q) => r.poll?.[q.id] ?? "")]
         .map(csvCell)
         .join(",")
     );

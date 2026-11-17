@@ -48,7 +48,7 @@ export default async function MyWalkbooksPage() {
                     </div>
                   )}
                   <div className="lg:order-1">
-                    <WalkbookStops stops={b.stops} record={{ jobType: b.job.type }} />
+                    <WalkbookStops stops={b.stops} record={{ jobType: b.job.type, poll: b.poll }} />
                   </div>
                 </div>
               </section>

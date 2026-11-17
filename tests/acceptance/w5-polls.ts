@@ -107,7 +107,8 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("…and Q2 has Transit 1", res.current[1].total === 1 && res.current[1].choices.find((c) => c.label === "Transit")!.n === 1, res.current[1]);
   check("another organization sees no results, history or staff edit", (await loadPollResults(OTHER_ORG, job.id)) === null && (await loadStopPollHistory(OTHER_ORG, s1.id, job.id)) === null && !(await staffRecordPollAnswers({ profileId: OWNER, orgId: OTHER_ORG }, s1.id, form({ [Q1.id]: ch(Q1, "Support") })).then((r) => r.ok)));
   check("the history is scoped to the job: the same stop under another job id is not found", (await loadStopPollHistory(ORG, s1.id, petition.id)) === null);
-  check("the newest answers of the job, for the export, are the stop's current ones", (await loadNewestJobAnswers(job.id)).get(`${s1.id}|${Q1.id}`)?.choiceId === ch(Q1, "Undecided"));
+  check("the newest answers of the job, for the export, are the stop's current ones", (await loadNewestJobAnswers(ORG, job.id, [s1.id])).get(`${s1.id}|${Q1.id}`)?.choiceId === ch(Q1, "Undecided"));
+  check("…and that lookup is scoped: another organization, a bad job id or no stops gets nothing", (await loadNewestJobAnswers(OTHER_ORG, job.id, [s1.id])).size === 0 && (await loadNewestJobAnswers(ORG, "nope", [s1.id])).size === 0 && (await loadNewestJobAnswers(ORG, job.id, [])).size === 0);
 
   // --- Changing a question supersedes it ---
   const changed = await changePollQuestion(owner, Q1.id, { prompt: "Do you support Measure 3 (revised)?", choices: "Yes\nNo\nUnsure" });
@@ -119,10 +120,18 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("answers given to the old question stay with it", (await p.pollAnswer.count({ where: { questionId: Q1.id } })) === 4 && (await loadPollResults(ORG, job.id))!.earlier.length === 2);
   check("a changed question keeps its position, so the order doesn't move", after.current.map((q) => q.position).join(",") === "1,2");
   check("the worker's form now carries the new questions only", (await loadCurrentPolls([job.id])).get(job.id)!.every((q) => !Q1.id.includes(q.id)) && (await loadCurrentPolls([job.id])).get(job.id)![0].prompt.includes("revised"));
-  const oldQ = await recordPollAnswers(actor(0), s1.id, randomUUID(), form({ [Q1.id]: ch(Q1, "Support") }));
-  check("an answer to a question that has been superseded is refused (it isn't on the form any more)", !oldQ.ok, oldQ);
   const newQ = after.current[0];
+  const q2Now = after.current[1];
+  const rowsBefore = await p.pollAnswer.count({ where: { stopId: s1.id } });
+  const oldQ = await recordPollAnswers(actor(0), s1.id, randomUUID(), form({ [Q1.id]: ch(Q1, "Support"), [newQ.id]: newQ.choices[1].id }));
+  check("a stale form (it answers a question that has since changed) is refused whole, with 'reload': the valid answer on it is not half-saved", !oldQ.ok && /changed/.test(oldQ.reason) && (await p.pollAnswer.count({ where: { stopId: s1.id } })) === rowsBefore, oldQ);
   check("an answer to the new question records", (await recordPollAnswers(actor(0), s1.id, randomUUID(), form({ [newQ.id]: newQ.choices[0].id }))).ok);
+  // A retry after a partial save: this tap saved one row (the other answer was unchanged), then the stop changed, then the retry arrives.
+  const tapId = randomUUID();
+  const partial = await recordPollAnswers(actor(0), s1.id, tapId, form({ [newQ.id]: newQ.choices[0].id, [q2Now.id]: q2Now.choices[0].id }));
+  await recordPollAnswers(actor(0), s1.id, randomUUID(), form({ [q2Now.id]: q2Now.choices[1].id }));
+  const retry = await recordPollAnswers(actor(0), s1.id, tapId, form({ [newQ.id]: newQ.choices[0].id, [q2Now.id]: q2Now.choices[0].id }));
+  check("a retry of a tap that saved only some of its rows is a replay, not an error", partial.ok && partial.saved === 1 && retry.ok && retry.repeated === true, [partial, retry]);
   let blank = false;
   try { await p.$executeRawUnsafe(`UPDATE "PollQuestion" SET prompt = 'x' WHERE id = '${Q1.id}'`); } catch { blank = true; }
   check("the database refuses to edit a question in place", blank);
@@ -146,8 +155,20 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("after the book is taken back its old holder can't record or edit", !afterTakeBack.ok && afterTakeBack.gone === true, afterTakeBack);
   await assignWalkbook(owner, book, e1.ok ? e1.engagementId : "");
   check("the next holder reads none of the first worker's answers", ((await loadWorkerPollAnswers(W[1], [s1.id, s2.id])).size) === 0);
+  const notTheirs = await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
+  check("a new holder can't poll a door they never recorded as Done: a hand-on carries the state, not the visit", !notTheirs.ok && /Done/.test(notTheirs.reason), notTheirs);
+  await recordStopOutcome(actor(1), s2.id, randomUUID(), { outcome: "DONE" });
   const theirs = await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
-  check("…and can record their own, which then read back to them", theirs.ok && (await loadWorkerPollAnswers(W[1], [s2.id])).get(s2.id)?.length === 1, theirs);
+  check("…once they record it Done themselves they can, and it reads back to them", theirs.ok && (await loadWorkerPollAnswers(W[1], [s2.id])).get(s2.id)?.length === 1, theirs);
+  await recordStopOutcome(actor(1), s1.id, randomUUID(), { outcome: "DONE" });
+  const guess = await recordPollAnswers(actor(1), s1.id, randomUUID(), form({ [newQ.id]: newQ.choices[0].id }));
+  const blind = await recordPollAnswers(actor(1), s1.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
+  const answerNow = (await loadNewestJobAnswers(ORG, job.id, [s1.id])).get(`${s1.id}|${newQ.id}`)?.choiceId;
+  check("a worker can't overwrite, or probe by guessing, an answer someone else recorded: both refused alike, the answer unchanged", !guess.ok && !blind.ok && guess.reason === blind.reason && answerNow === newQ.choices[0].id, [guess, blind, answerNow]);
+  const viaStaff = await staffRecordPollAnswers(owner, s1.id, form({ [newQ.id]: newQ.choices[1].id }));
+  check("staff change it, and that is a row of its own", viaStaff.ok && viaStaff.saved === 1);
+  await p.engagement.update({ where: { id: e1.ok ? e1.engagementId : "" }, data: { status: "CANCELLED" } });
+  check("a worker no longer hired reads nothing back, and can't record", (await loadWorkerPollAnswers(W[1], [s1.id, s2.id])).size === 0 && !(await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[0].id }))).ok);
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

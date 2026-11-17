@@ -13,6 +13,8 @@ export interface StopView {
   lat: number | null;
   lng: number | null;
   result: StopState;
+  /** The worker's own poll answers at this stop (a worker's view only). */
+  poll?: Array<{ questionId: string; choiceId: string | null; declined: boolean }>;
 }
 
 export const streetOf = (s: StopView) => `${s.line1}${s.unit ? `, ${s.unit}` : ""}`;
@@ -26,7 +28,7 @@ export const stopColor = (s: StopView) => (s.result.outcome ? outcomeLook(s.resu
 export const stopInk = (s: StopView) => (s.result.outcome ? outcomeLook(s.result.outcome).ink : UNVISITED_INK);
 
 /** The number badge, address, outcome chip and what was recorded: one stop's face, the same on every screen. */
-export function StopFace({ stop }: { stop: StopView }) {
+export function StopFace({ stop, extra }: { stop: StopView; extra?: string | null }) {
   const words = answerWords(stop.result);
   return (
     <>
@@ -39,7 +41,7 @@ export function StopFace({ stop }: { stop: StopView }) {
         <span className="block truncate text-sm text-muted">{placeOf(stop)}</span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <OutcomeChip kind={stop.result.outcome} />
-          {words.length > 0 && <span className="text-xs text-muted">{words.join(" · ")}</span>}
+          {(words.length > 0 || extra) && <span className="text-xs text-muted">{[...words, extra].filter(Boolean).join(" · ")}</span>}
         </span>
       </span>
     </>

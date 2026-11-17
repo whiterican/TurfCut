@@ -7,8 +7,10 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
-import { CONSOLE_MAP_PINS, CONSOLE_PAGE_SIZE, EXPORT_MAX_ROWS, type ConsoleQuery, type ExportRow } from "@/lib/stop-console";
+import { CONSOLE_MAP_PINS, CONSOLE_PAGE_SIZE, EXPORT_MAX_ROWS, type ConsoleQuery, type ExportRow, type PollColumn } from "@/lib/stop-console";
 import { UNVISITED, type OutcomeKind, type StopState } from "@/lib/stop-outcomes";
+import { loadCurrentPolls, loadNewestJobAnswers } from "@/lib/poll-data";
+import { answerWord } from "@/lib/poll";
 
 const HIRED = ["ACTIVE", "CLAIMED"] as const;
 const HISTORY_SHOWN = 50;
@@ -226,7 +228,7 @@ export async function loadStopHistory(orgId: string, stopId: string, jobId?: str
 }
 
 /** The rows an export writes: the filtered stops of a job, in book order, up to EXPORT_MAX_ROWS (a bigger job is refused, not cut short). */
-export async function loadExportRows(orgId: string, jobId: string, q: Pick<ConsoleQuery, "outcome" | "bookId" | "holderId">): Promise<{ ok: true; rows: ExportRow[] } | { ok: false; reason: string }> {
+export async function loadExportRows(orgId: string, jobId: string, q: Pick<ConsoleQuery, "outcome" | "bookId" | "holderId">, withPoll = false): Promise<{ ok: true; rows: ExportRow[]; pollColumns: PollColumn[] } | { ok: false; reason: string }> {
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   const job = await db().job.findFirst({ where: { id: jobId, orgId }, select: { id: true } });
   if (!job) return { ok: false, reason: "Job not found." };
@@ -237,9 +239,14 @@ export async function loadExportRows(orgId: string, jobId: string, q: Pick<Conso
   const raw = await db().$queryRaw<Raw[]>`${SELECT} ${base} ${filter} ORDER BY w."number", s."stopNumber"`;
   const stops = await withAnswers(raw);
   const names = await holderNames(stops.map((s) => s.holderEngagementId).filter((x): x is string => !!x));
+  // Poll answers go out only when the caller may read them (full access to the field area) and the job has a poll.
+  const questions = withPoll ? ((await loadCurrentPolls([job.id])).get(job.id) ?? []) : [];
+  const answers = questions.length ? await loadNewestJobAnswers(orgId, job.id, stops.map((s) => s.id)) : new Map();
   return {
     ok: true,
+    pollColumns: questions.map((x) => ({ id: x.id, prompt: x.prompt })),
     rows: stops.map((s) => ({
+      poll: questions.length ? Object.fromEntries(questions.map((x) => { const a = answers.get(`${s.id}|${x.id}`); return [x.id, a ? answerWord(x, a) : ""]; })) : undefined,
       bookNumber: s.bookNumber,
       stopNumber: s.stopNumber,
       line1: s.line1,

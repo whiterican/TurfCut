@@ -37,9 +37,14 @@ describe("readAnswers", () => {
     expect(readAnswers({ [`q_${Q1.id}`]: Q2.choices[0].id }, [Q1, Q2]).ok).toBe(false);
     expect(readAnswers({}, [Q1, Q2])).toMatchObject({ ok: false });
   });
-  it("ignores anything on the form that isn't a poll question, so it is never stored", () => {
-    const v = readAnswers({ [`q_${Q1.id}`]: Q1.choices[0].id, "q_not-a-question": "x", note: "said she supports X" }, [Q1]);
+  it("ignores other fields on the form, so a note is never stored", () => {
+    const v = readAnswers({ [`q_${Q1.id}`]: Q1.choices[0].id, note: "said she supports X", stopId: "s", clientId: "c" }, [Q1]);
     expect(v).toEqual({ ok: true, value: [{ questionId: Q1.id, choiceId: Q1.choices[0].id }] });
+  });
+  it("refuses a whole form that answers a question no longer on the poll, instead of saving part of it", () => {
+    const stale = readAnswers({ [`q_${Q1.id}`]: Q1.choices[0].id, [`q_${Q2.id}`]: Q2.choices[0].id }, [Q1]);
+    expect(stale).toMatchObject({ ok: false });
+    expect(!stale.ok && stale.reason).toMatch(/changed/);
   });
 });
 

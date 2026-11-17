@@ -3,6 +3,7 @@ import { DirectionsLink, StopFace, stopColor, streetOf, type StopView } from "@/
 import { RecordableStop } from "@/components/stops/RecordableStop";
 import { outcomeLook } from "@/lib/stop-outcomes";
 import type { JobType } from "@/lib/jobs";
+import type { PollQuestionView } from "@/lib/poll";
 
 export type { StopView };
 
@@ -13,12 +14,12 @@ export type { StopView };
  * separate piece (WalkbookMap) so a page can lay them side by side on a wide
  * screen.
  */
-export function WalkbookStops({ stops, record }: { stops: StopView[]; record?: { jobType: JobType } }) {
+export function WalkbookStops({ stops, record }: { stops: StopView[]; record?: { jobType: JobType; poll?: PollQuestionView[] } }) {
   return (
     <ol className="list-card divide-y divide-border">
       {stops.map((s) =>
         record ? (
-          <RecordableStop key={s.id} stop={s} jobType={record.jobType} />
+          <RecordableStop key={s.id} stop={s} jobType={record.jobType} poll={record.poll} />
         ) : (
           <li key={s.id} className="relative">
             <span aria-hidden className="absolute inset-y-0 left-0 w-1" style={{ background: stopColor(s) }} />

@@ -31,10 +31,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ jobId: s
   const job = jobId.toLowerCase();
   const q = parseConsoleQuery(Object.fromEntries(new URL(req.url).searchParams));
   const asked = { outcome: q.outcome, bookId: q.bookId, holderId: q.holderId };
-  const audit = async (result: string, rows = 0) => {
+  const audit = async (result: string, rows = 0, pollQuestions = 0) => {
     if (!s.orgId) return;
     if (result.startsWith("refused") && !(await allow("walkbook-export-denied", s.userId))) return;
-    await db().auditEvent.create({ data: { actorId: s.userId, action: "walkbook.exported", entityType: "Job", entityId: UUID_RE.test(job) ? job : "invalid", metadata: { result, rows, ...asked } } });
+    await db().auditEvent.create({ data: { actorId: s.userId, action: "walkbook.exported", entityType: "Job", entityId: UUID_RE.test(job) ? job : "invalid", metadata: { result, rows, pollQuestions, ...asked } } });
   };
 
   if (!s.orgId || !canUse(s, "field")) {
@@ -56,13 +56,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ jobId: s
     if (verdict === "unavailable") return new NextResponse("Exports are unavailable right now. Try again in a moment.", { status: 503, headers: { "Retry-After": "30" } });
     return new NextResponse("Too many exports. Try again later.", { status: 429, headers: { "Retry-After": String(await retryAfter("walkbook-export", s.orgId)) } });
   }
-  const r = await loadExportRows(s.orgId, job, q);
+  // The export route already requires full access to the field area, which is who may read poll answers.
+  const r = await loadExportRows(s.orgId, job, q, true);
   if (!r.ok) {
     await audit(`refused: ${r.reason}`);
     return new NextResponse(r.reason, { status: r.reason === "Job not found." ? 404 : 400 });
   }
-  await audit("exported", r.rows.length);
-  return new NextResponse(exportCsv(r.rows), {
+  await audit("exported", r.rows.length, r.pollColumns.length);
+  return new NextResponse(exportCsv(r.rows, r.pollColumns), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="turfcut-walkbooks-${new Date().toISOString().slice(0, 10)}.csv"`,

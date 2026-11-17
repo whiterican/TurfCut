@@ -6,6 +6,8 @@ import { canUse } from "@/lib/access";
 import { UUID_RE } from "@/lib/jobs";
 import { CONSOLE_PAGE_SIZE, consoleHref, parseConsoleQuery } from "@/lib/stop-console";
 import { loadConsole, loadStopHistory } from "@/lib/stop-console-data";
+import { auditPollRead, loadPollResults, loadPollSetup, loadStopPollHistory } from "@/lib/poll-data";
+import { PollResults, StopPollPanel } from "@/components/stops/PollConsole";
 import { WorkspacePage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
 import { OutcomeLegend } from "@/components/stops/Outcomes";
@@ -28,6 +30,15 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
   const data = await loadConsole(session.orgId, jobId, q);
   if (!data) notFound();
   const history = q.stopId ? await loadStopHistory(session.orgId, q.stopId, data.job.id) : null;
+  // Poll answers are for full access to the field area only (the same people who may export them); reading them leaves an audit row.
+  const canPoll = canUse(session, "field");
+  const poll = canPoll ? await loadPollSetup(session.orgId, data.job.id) : null;
+  const hasPoll = !!poll && (poll.current.length > 0 || poll.earlier.length > 0);
+  const results = hasPoll ? await loadPollResults(session.orgId, data.job.id) : null;
+  const stopPoll = hasPoll && history && q.stopId ? await loadStopPollHistory(session.orgId, q.stopId, data.job.id) : null;
+  const reader = { profileId: session.userId, orgId: session.orgId };
+  if (results) await auditPollRead(reader, data.job.id, "results");
+  if (stopPoll && q.stopId) await auditPollRead(reader, data.job.id, "stop_history", q.stopId);
   const base = `/jobs/${data.job.id}/walkbooks/console`;
   const canExport = canUse(session, "field");
   // The export link has no `download` attribute: a refusal (too many rows, too many exports) is plain text the person should read, and Content-Disposition already downloads a success.
@@ -96,10 +107,19 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
       </section>
 
       {history && <StopInspector stop={history} closeHref={consoleHref(base, q, { stop: null })} />}
+      {stopPoll && q.stopId && <StopPollPanel stopId={q.stopId} data={stopPoll} />}
       {q.stopId && !history && (
         <p role="status" className="alert-info">
           That stop isn&apos;t on this job.
         </p>
+      )}
+
+      {results && (
+        <section className="section">
+          <h2 className="section-title">Poll results</h2>
+          <p className="text-muted-sm">What residents answered at doors marked Done, counting each stop&apos;s newest answer once. Counts are per question; nothing here is ranked or scored.</p>
+          <PollResults current={results.current} earlier={results.earlier} />
+        </section>
       )}
 
       <section className="section">

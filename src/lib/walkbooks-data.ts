@@ -18,6 +18,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
+import { loadCurrentPolls, loadWorkerPollAnswers } from "@/lib/poll-data";
 import { UNVISITED, type StopState } from "@/lib/stop-outcomes";
 import { cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
 
@@ -331,5 +332,12 @@ export async function loadWorkerWalkbooks(workerId: string, jobId?: string) {
   });
   // A book carries its state with it: what the last holder recorded is what the next one sees.
   const states = await loadStopStates(books.flatMap((b) => b.stops.map((s) => s.id)));
-  return books.map((b) => ({ ...b, stops: b.stops.map((s): { id: string; stopNumber: number; result: StopState } & (typeof b.stops)[number]["address"] => ({ id: s.id, stopNumber: s.stopNumber, ...s.address, result: states.get(s.id) ?? UNVISITED })) }));
+  // The job's poll, and what this worker themselves recorded at each stop (never anyone else's rows).
+  const polls = await loadCurrentPolls(books.map((b) => b.job.id));
+  const answers = polls.size ? await loadWorkerPollAnswers(workerId, books.flatMap((b) => b.stops.map((s) => s.id))) : new Map<string, never[]>();
+  return books.map((b) => ({
+    ...b,
+    poll: polls.get(b.job.id) ?? [],
+    stops: b.stops.map((s): { id: string; stopNumber: number; result: StopState; poll: Array<{ questionId: string; choiceId: string | null; declined: boolean }> } & (typeof b.stops)[number]["address"] => ({ id: s.id, stopNumber: s.stopNumber, ...s.address, result: states.get(s.id) ?? UNVISITED, poll: answers.get(s.id) ?? [] })),
+  }));
 }

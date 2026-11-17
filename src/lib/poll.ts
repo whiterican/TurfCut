@@ -78,9 +78,14 @@ export interface AnswerInput {
  * The answers on a form: one field per question, `q_<questionId>`, holding a
  * choice id or "declined"; an empty or missing field means that question was
  * not answered and is skipped. Only questions and choices on the poll are
- * read: anything else on the form is ignored, never stored.
+ * read: any other field on the form is ignored, never stored. A `q_` field
+ * for a question that isn't on the poll (it changed since the form opened)
+ * refuses the whole form.
  */
 export function readAnswers(raw: Record<string, unknown>, questions: readonly PollQuestionView[]): { ok: true; value: AnswerInput[] } | { ok: false; reason: string } {
+  // A form built from questions that have since changed: refused whole, never partly saved, so nobody believes an answer was recorded that wasn't.
+  const known = new Set(questions.map((q) => `q_${q.id}`));
+  if (Object.keys(raw).some((k) => k.startsWith("q_") && !known.has(k))) return { ok: false, reason: "The poll changed while you had it open. Reload to see the current questions." };
   const out: AnswerInput[] = [];
   for (const q of questions) {
     const v = clean(raw[`q_${q.id}`]).toLowerCase();

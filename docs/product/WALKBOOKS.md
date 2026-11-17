@@ -7,12 +7,13 @@ door. W1 and W2 are built and reviewed; Caden approved W1 on Nov 17 2026.
 
 ## Run the SQL before deploying
 
-In this order, on the live Supabase project (both are safe to run again, and
-both are already folded into `prisma/supabase-manual-setup.sql` for fresh
+In this order, on the live Supabase project (each is safe to run again, and
+all are already folded into `prisma/supabase-manual-setup.sql` for fresh
 databases):
 
 1. `prisma/w1-walkbooks.sql`
 2. `prisma/w2-stop-outcomes.sql`
+3. `prisma/w5-polls.sql`
 
 Neither has been applied to production by an agent.
 
@@ -54,8 +55,8 @@ light card and the night card, so a new colour has to pass.
 - Door canvassing (including literature drops): `talked_to` on a Done;
   `left_literature` on a Done or a Not home.
 - Petition circulation: `signatures` (0 to 50) on a Done.
-- **Polling is not built.** It records residents' answers, which needs its own
-  decision on who can read them and for how long. It stays planned until then.
+- **Polling** is a tool on canvass jobs (W5, below), not a job type. Door-to-door
+  polling as a job category stays planned.
 - Offline taps are not built. A replayed tap is ordered by when the server
   receives it; offline support needs a client timestamp (see the W2 review).
 
@@ -80,6 +81,40 @@ narrow the table and map only.
   organization, and every attempt, refusals included, is an audit event with
   the filters and row count but never the contents.
 
+## Polling at the door (W5)
+
+Caden's decisions (Nov 17 2026): answers can be read and edited after
+recording; staff with full access to the field area and the recording worker
+can read them; org-defined choice questions only, no free text; kept until
+the organization deletes the job's data. Schema approved.
+
+- **Questions** (`PollQuestion`, `PollChoice`): set up by job editors on a
+  canvass job, up to 10, each with 2 to 8 fixed choices. Append-only: changing
+  a question adds a new one that supersedes it; the old wording and its answers
+  stay as "earlier wording". "Declined" is built in.
+- **Answers** (`PollAnswer`): a choice or "declined", per stop and question,
+  recorded on a stop whose newest outcome is Done. **An edit is a new row**
+  (rule 3): the newest row is the answer now; every earlier answer, who gave it
+  and when, stays. There is no text column, so no note about a person can be
+  stored; the database also refuses a choice of another question.
+- **Who reads and edits:**
+  - Staff with *full* access to the field area read, edit, see per-question
+    results and export answers. Reading them (a stop's history, the results) and
+    exporting leaves an audit row, never the contents. Recruiters, finance and
+    view-only roles never see them.
+  - A worker reads and edits only answers *their own engagement recorded*, on a
+    book they hold, for a door they recorded as Done themselves. An answer
+    someone else recorded is refused alike whether they guess or overwrite: staff
+    change it. After a take-back or hand-on the old holder loses access.
+- **Results** are counts per question in the poll's own order. Nothing is
+  combined across questions, split by worker, ranked or scored (rules 4 and 5).
+- **Export**: one column per current question ("Poll 1: ..."), answers in words,
+  no worker names, full field access only.
+- **Not enforced by the database** (the app does): that an answer's stop and its
+  question belong to the same job. A composite key would need approval.
+- Retention is "until the organization deletes the job's data": there is no
+  automatic purge, and append-only means removal would need its own decision.
+
 ## Where things are
 
 | | |
@@ -87,8 +122,9 @@ narrow the table and map only.
 | Import, cut, hand-over | `src/lib/walkbooks-data.ts`, `src/app/jobs/[jobId]/walkbooks/` |
 | Recording and progress | `src/lib/stop-outcomes-data.ts`, `src/app/walkbooks/` |
 | Console | `src/lib/stop-console.ts`, `src/lib/stop-console-data.ts`, `src/app/jobs/[jobId]/walkbooks/console/`, `src/components/stops/ConsoleParts.tsx` |
+| Polling | `src/lib/poll.ts`, `src/lib/poll-data.ts`, `src/components/staff/PollSetup.tsx`, `src/components/stops/{PollFields,WorkerPollForm,StaffPollForm,PollConsole}.tsx`, `prisma/w5-polls.sql` |
 | Screens | `src/components/stops/`, `src/components/staff/Walkbook*.tsx`, `src/components/WalkbookStops.tsx` |
-| Acceptance checks | `tests/acceptance/w1-walkbooks.ts`, `w2-stop-outcomes.ts`, `w3-console.ts` (`run.sh w1 w2 w3`) |
+| Acceptance checks | `tests/acceptance/w1-walkbooks.ts`, `w2-stop-outcomes.ts`, `w3-console.ts`, `w5-polls.ts` (`run.sh w1 w2 w3 w5`) |
 
 ## Known limits
 

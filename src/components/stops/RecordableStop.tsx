@@ -4,22 +4,15 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Minus, Plus } from "lucide-react";
 import { recordOutcomeAction, type OutcomeState } from "@/app/walkbooks/actions";
+import { newId } from "@/lib/client-id";
+import type { PollQuestionView } from "@/lib/poll";
+import { WorkerPollForm } from "@/components/stops/WorkerPollForm";
 import { fieldsFor, OUTCOMES, type FieldSpec, type OutcomeKind } from "@/lib/stop-outcomes";
 import type { JobType } from "@/lib/jobs";
 import { DirectionsLink, StopFace, stopColor, type StopView } from "@/components/stops/StopLine";
 import { OutcomeGlyph } from "@/components/stops/Outcomes";
 
 const initial: OutcomeState = { ok: false, message: "", errors: {} };
-
-/** A v4 id for the tap. randomUUID needs a secure context and Safari 15.4; getRandomValues works everywhere this app does. */
-function newId(): string {
-  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
-  const b = crypto.getRandomValues(new Uint8Array(16));
-  b[6] = (b[6] & 0x0f) | 0x40;
-  b[8] = (b[8] & 0x3f) | 0x80;
-  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
-}
 
 /**
  * One stop on the worker's own walkbook: tap it to record what happened. The
@@ -28,7 +21,7 @@ function newId(): string {
  * records them. The device makes an id when the panel opens, so a double tap
  * or a retried request saves once.
  */
-export function RecordableStop({ stop, jobType }: { stop: StopView; jobType: JobType }) {
+export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; jobType: JobType; poll?: PollQuestionView[] }) {
   const [state, action, pending] = useActionState(recordOutcomeAction, initial);
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
@@ -44,7 +37,8 @@ export function RecordableStop({ stop, jobType }: { stop: StopView; jobType: Job
   if (seen !== state) {
     setSeen(state);
     setShowState(true);
-    if (state.ok) setOpen(false);
+    // After saving a Done at a job with a poll, the panel stays open: the poll is next.
+    if (state.ok) setOpen(poll.length > 0 && chosen === "DONE");
     // A refused tap that isn't about a field gets a fresh id, so the retry isn't refused the same way.
     else if (!state.gone && Object.keys(state.errors).length === 0) setClientId(newId());
   }
@@ -82,12 +76,13 @@ export function RecordableStop({ stop, jobType }: { stop: StopView; jobType: Job
       <span role="status" className="sr-only">{showState && state.ok ? `Stop ${stop.stopNumber} saved.` : ""}</span>
       <div className="flex min-h-16 items-center gap-1 py-2 pl-3 pr-2">
         <button ref={toggleRef} type="button" onClick={toggle} aria-expanded={open} aria-controls={panelId} className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-inner)] py-0.5 text-left focus-visible:outline-2">
-          <StopFace stop={stop} />
+          <StopFace stop={stop} extra={poll.length > 0 && stop.result.outcome === "DONE" ? `Poll ${(stop.poll ?? []).filter((a) => poll.some((q) => q.id === a.questionId)).length} of ${poll.length}` : null} />
           <ChevronDown aria-hidden className={`size-5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         <DirectionsLink stop={stop} />
       </div>
       {open && (
+        <>
         <form ref={panelRef} id={panelId} action={action} onKeyDown={(e) => e.key === "Escape" && close()} className="space-y-4 border-t border-border bg-surface-2/50 px-3 pb-4 pt-3">
           <input type="hidden" name="stopId" value={stop.id} />
           <input type="hidden" name="clientId" value={clientId} />
@@ -167,6 +162,10 @@ export function RecordableStop({ stop, jobType }: { stop: StopView; jobType: Job
             </div>
           )}
         </form>
+        {/* The poll is asked at a Done door that is saved as one (the outcome is the poll's anchor). */}
+        {poll.length > 0 && stop.result.outcome === "DONE" && <WorkerPollForm key={stop.id} stopId={stop.id} questions={poll} answers={stop.poll ?? []} />}
+        {poll.length > 0 && stop.result.outcome !== "DONE" && <p className="border-t border-border px-3 py-2.5 text-sm text-muted">This job has a poll. Save this door as Done to ask it.</p>}
+        </>
       )}
     </li>
   );

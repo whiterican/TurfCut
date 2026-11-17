@@ -133,7 +133,7 @@ export async function loadPollSetup(orgId: string, jobIdRaw: string): Promise<Po
   });
   return {
     jobId: job.id,
-    current: all.filter((q) => !q.supersededBy).map(({ supersededBy: _s, ...q }) => q),
+    current: all.filter((q) => !q.supersededBy).map((q) => ({ id: q.id, position: q.position, prompt: q.prompt, choices: q.choices })),
     earlier: all.filter((q) => q.supersededBy).map(({ supersededBy, ...q }) => ({ ...q, replacedBy: supersededBy!.id })),
   };
 }
@@ -173,8 +173,9 @@ async function record(who: Who, stopIdRaw: unknown, clientIdRaw: unknown, raw: R
       const questions = await currentQuestions(tx, stop.walkbook.jobId);
       if (!questions.length) return { ok: false as const, reason: "This job has no poll." };
       // The poll is asked at a door that was reached.
-      const outcome = await tx.stopOutcome.findFirst({ where: { stopId: stop.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { outcome: true } });
-      if (outcome?.outcome !== "DONE") return { ok: false as const, reason: "Record this door as Done before its poll." };
+      // For a worker, a Done they recorded themselves: a hand-on carries a stop's state to the next holder, but not the visit.
+      const outcome = await tx.stopOutcome.findFirst({ where: { stopId: stop.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { outcome: true, engagementId: true } });
+      if (outcome?.outcome !== "DONE" || (who.kind === "WORKER" && outcome.engagementId !== engagementId)) return { ok: false as const, reason: "Record this door as Done before its poll." };
       const read = readAnswers(raw, questions);
       if (!read.ok) return { ok: false as const, reason: read.reason };
 
@@ -183,10 +184,15 @@ async function record(who: Who, stopIdRaw: unknown, clientIdRaw: unknown, raw: R
       if (who.kind === "WORKER") {
         const existing = await tx.pollAnswer.findMany({ where: { id: { in: ids } }, select: { id: true, stopId: true, engagementId: true } });
         if (existing.some((r) => r.stopId !== stop.id || r.engagementId !== engagementId)) return { ok: false as const, reason: "Something went wrong with that tap. Try again." };
-        if (existing.length === ids.length) return { ok: true as const, jobId: stop.walkbook.jobId, saved: 0, repeated: true };
+        // Any row of this tap already there means it was saved (unchanged answers add none, so a retry may find only some).
+        if (existing.length > 0) return { ok: true as const, jobId: stop.walkbook.jobId, saved: 0, repeated: true };
       }
       // Only what changed is a new row: saving an unchanged form adds nothing to the history.
-      const newest = newestAnswers(await tx.pollAnswer.findMany({ where: { stopId: stop.id, questionId: { in: read.value.map((a) => a.questionId) } }, select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true } }));
+      const newest = newestAnswers(await tx.pollAnswer.findMany({ where: { stopId: stop.id, questionId: { in: read.value.map((a) => a.questionId) } }, select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true, engagementId: true } }));
+      // A worker reads back only their own rows, so they change only those: an answer someone else recorded isn't theirs to overwrite blind or to probe. Staff change it.
+      if (who.kind === "WORKER" && read.value.some((a) => { const cur = newest.get(`${stop.id}|${a.questionId}`); return cur && cur.engagementId !== engagementId; })) {
+        return { ok: false as const, reason: "An answer here was recorded by someone else. Ask a supervisor to change it." };
+      }
       let saved = 0;
       for (const a of read.value) {
         const cur = newest.get(`${stop.id}|${a.questionId}`);
@@ -230,7 +236,7 @@ export interface WorkerAnswer {
 export async function loadWorkerPollAnswers(workerId: string, stopIds: string[]): Promise<Map<string, WorkerAnswer[]>> {
   if (!stopIds.length) return new Map();
   const rows = await db().pollAnswer.findMany({
-    where: { stopId: { in: stopIds }, engagement: { workerId } },
+    where: { stopId: { in: stopIds }, engagement: { workerId, status: { in: [...HIRED] }, worker: { closedAt: null } } },
     select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true },
   });
   const out = new Map<string, WorkerAnswer[]>();
@@ -289,12 +295,26 @@ export async function loadPollResults(orgId: string, jobIdRaw: string): Promise<
 }
 
 /** The newest answer of each stop and question across a job, for the export. Keyed "stopId|questionId". */
-export async function loadNewestJobAnswers(jobId: string): Promise<Map<string, { questionId: string; choiceId: string | null; declined: boolean }>> {
+export async function loadNewestJobAnswers(orgId: string, jobIdRaw: string, stopIds: string[]): Promise<Map<string, { questionId: string; choiceId: string | null; declined: boolean }>> {
+  const jobId = lower(jobIdRaw);
+  // Scoped to the organization's own job and to the stops asked for (the export's rows), never a whole job on a bare id.
+  if (!UUID_RE.test(jobId) || !stopIds.length || !(await db().job.findFirst({ where: { id: jobId, orgId }, select: { id: true } }))) return new Map();
   const rows = await db().$queryRaw<Array<{ stopId: string; questionId: string; choiceId: string | null; declined: boolean }>>`
     SELECT DISTINCT ON (a."stopId", a."questionId") a."stopId", a."questionId", a."choiceId", a."declined"
     FROM "public"."PollAnswer" a
     JOIN "public"."WalkbookStop" s ON s."id" = a."stopId"
     JOIN "public"."Walkbook" w ON w."id" = s."walkbookId" AND w."jobId" = ${jobId}::uuid
+    WHERE a."stopId" = ANY(${stopIds}::uuid[])
     ORDER BY a."stopId", a."questionId", a."createdAt" DESC, a."id" DESC`;
   return new Map(rows.map((r) => [`${r.stopId}|${r.questionId}`, r]));
+}
+
+/**
+ * Records that staff read poll answers (a stop's history, or the job's
+ * results): who, which job, and what kind of read; never the answers. Poll
+ * answers are the most sensitive thing the app holds about residents, so a
+ * read leaves a trace like an export does.
+ */
+export async function auditPollRead(actor: Staff, jobId: string, kind: "stop_history" | "results", stopId?: string): Promise<void> {
+  await db().auditEvent.create({ data: { actorId: actor.profileId, action: "poll.answers_read", entityType: "Job", entityId: jobId, metadata: { kind, ...(stopId ? { stopId } : {}) } } });
 }

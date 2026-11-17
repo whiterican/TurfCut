@@ -13,6 +13,8 @@ import { OutcomeLegend, ProgressBar } from "@/components/stops/Outcomes";
 import { WalkbookImport } from "@/components/staff/WalkbookImport";
 import { WalkbookCut } from "@/components/staff/WalkbookCut";
 import { assignWalkbookAction } from "./actions";
+import { loadPollSetup } from "@/lib/poll-data";
+import { PollSetup } from "@/components/staff/PollSetup";
 
 /**
  * A job's walkbooks (W1): bring an authorized file, cut its addresses into
@@ -30,6 +32,8 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
   if (!data) notFound();
   const canEdit = canUse(session, "field");
   const { job, books, imports, hired } = data;
+  // A canvass job's poll: anyone who sees the field sees the questions; job editors change them.
+  const poll = job.type === "CANVASS" ? await loadPollSetup(session.orgId, job.id) : null;
   const pages = Math.max(1, Math.ceil(books.length / PAGE_SIZE));
   const page = Math.min(pages, Math.max(1, /^\d{1,6}$/.test(pageRaw ?? "") ? Number(pageRaw) : 1));
   const shown = books.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -163,6 +167,16 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
         )}
         {canEdit && books.length > 0 && hired.length === 0 && <p className="text-hint">Hire someone on this job first: only hired workers can hold its walkbooks.</p>}
       </section>
+
+      {poll && (
+        <section className="section">
+          <h2 className="section-title">Poll</h2>
+          <p className="text-muted-sm">
+            Questions workers can ask at a door they mark as Done. Each has fixed answer choices (no free text), and a resident can decline. Answers can be changed afterwards; the earlier answer stays in the history. Only people with full access to the field area read them.
+          </p>
+          <PollSetup jobId={job.id} current={poll.current} earlier={poll.earlier} canEdit={canUse(session, "jobsEdit")} />
+        </section>
+      )}
 
       {canEdit && imports.length > 0 && (
         <section className="section">

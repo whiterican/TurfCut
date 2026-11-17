@@ -8,7 +8,7 @@ import { ReadingPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
 import { LocalTime } from "@/components/LocalTime";
 import { PrintButton } from "@/components/PrintButton";
-import { WalkbookStops } from "@/components/WalkbookStops";
+import { hasMapPoints, WalkbookMap, WalkbookStops } from "@/components/WalkbookStops";
 
 /** One walkbook for staff: its stops in walking order, where the addresses came from, and who has held it. */
 export default async function WalkbookPage({ params }: { params: Promise<{ jobId: string; walkbookId: string }> }) {
@@ -35,7 +35,16 @@ export default async function WalkbookPage({ params }: { params: Promise<{ jobId
         <h2 className="section-title">
           {wb.stops.length} {wb.stops.length === 1 ? "stop" : "stops"}
         </h2>
-        <WalkbookStops stops={wb.stops} />
+        <div className={hasMapPoints(wb.stops) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start" : "max-w-2xl"}>
+          {hasMapPoints(wb.stops) && (
+            <div className="lg:sticky lg:top-4 lg:order-2">
+              <WalkbookMap stops={wb.stops} className="h-64 lg:h-[28rem]" />
+            </div>
+          )}
+          <div className="lg:order-1">
+            <WalkbookStops stops={wb.stops} />
+          </div>
+        </div>
       </section>
 
       <section className="section no-print">

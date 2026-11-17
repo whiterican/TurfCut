@@ -3,7 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerWalkbooks } from "@/lib/walkbooks-data";
 import { ReadingPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
-import { WalkbookStops } from "@/components/WalkbookStops";
+import { hasMapPoints, WalkbookMap, WalkbookStops } from "@/components/WalkbookStops";
 
 /**
  * The walkbooks a worker holds now (W1), on jobs they're hired on: numbered
@@ -23,16 +23,28 @@ export default async function MyWalkbooksPage() {
         </div>
       ) : (
         books.map((b) => (
-          <section key={b.id} id={`book-${b.id}`} className="section">
-            <p className="eyebrow">
-              <Link href={`/jobs/${b.job.id}`} className="underline-offset-2 hover:underline">
-                {b.job.title}
-              </Link>
-            </p>
-            <h2 className="section-title">
-              {b.name} · {b.stops.length} {b.stops.length === 1 ? "stop" : "stops"}
-            </h2>
-            <WalkbookStops stops={b.stops} />
+          <section key={b.id} id={`book-${b.id}`} className="section scroll-mt-20">
+            <div className="space-y-0.5">
+              <p className="eyebrow">
+                <Link href={`/jobs/${b.job.id}`} className="underline-offset-2 hover:underline">
+                  {b.job.title}
+                </Link>
+              </p>
+              <h2 className="section-title">{b.name}</h2>
+              <p className="text-muted-sm">
+                {b.stops.length} {b.stops.length === 1 ? "stop" : "stops"}, in the order to walk them
+              </p>
+            </div>
+            <div className={hasMapPoints(b.stops) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start" : "max-w-2xl"}>
+              {hasMapPoints(b.stops) && (
+                <div className="lg:sticky lg:top-4 lg:order-2">
+                  <WalkbookMap stops={b.stops} className="h-56 lg:h-96" />
+                </div>
+              )}
+              <div className="lg:order-1">
+                <WalkbookStops stops={b.stops} />
+              </div>
+            </div>
           </section>
         ))
       )}

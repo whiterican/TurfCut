@@ -18,14 +18,22 @@ import { assignWalkbookAction } from "./actions";
  * numbered walkbooks, hand each to a worker hired on the job. Anyone who can
  * see the field sees this page; those who run it make the changes.
  */
-export default async function JobWalkbooksPage({ params }: { params: Promise<{ jobId: string }> }) {
+const PAGE_SIZE = 25;
+
+export default async function JobWalkbooksPage({ params, searchParams }: { params: Promise<{ jobId: string }>; searchParams: Promise<{ page?: string }> }) {
   const { jobId } = await params;
+  const { page: pageRaw } = await searchParams;
   if (!UUID_RE.test(jobId)) notFound();
   const session = await requireArea("field", "read");
   const data = await loadJobWalkbooks(session.orgId, jobId);
   if (!data) notFound();
   const canEdit = canUse(session, "field");
   const { job, books, imports, hired } = data;
+  const pages = Math.max(1, Math.ceil(books.length / PAGE_SIZE));
+  const page = Math.min(pages, Math.max(1, /^\d{1,6}$/.test(pageRaw ?? "") ? Number(pageRaw) : 1));
+  const shown = books.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const stopTotal = books.reduce((n, b) => n + b.stops, 0);
+  const handedOut = books.filter((b) => b.holder?.stillHired).length;
   const importLabel = (i: (typeof imports)[number]) => `${i.fileName} (${i.recordSource})`;
 
   return (
@@ -42,6 +50,20 @@ export default async function JobWalkbooksPage({ params }: { params: Promise<{ j
     >
       <section className="section">
         <h2 className="section-title">Walkbooks on this job</h2>
+        {books.length > 0 && (
+          <dl className="grid grid-cols-3 gap-2 text-center">
+            {[
+              ["Walkbooks", books.length],
+              ["Stops", stopTotal],
+              ["Handed out", `${handedOut} of ${books.length}`],
+            ].map(([label, value]) => (
+              <div key={label} className="card !p-3">
+                <dd className="text-xl font-bold tabular-nums text-fg sm:text-2xl">{typeof value === "number" ? value.toLocaleString("en-US") : value}</dd>
+                <dt className="text-xs text-muted sm:text-sm">{label}</dt>
+              </div>
+            ))}
+          </dl>
+        )}
         {books.length === 0 ? (
           <div className="empty-state">
             <p className="empty-state-title">No walkbooks yet</p>
@@ -49,24 +71,29 @@ export default async function JobWalkbooksPage({ params }: { params: Promise<{ j
           </div>
         ) : (
           <ul className="space-y-3">
-            {books.map((b) => {
+            {shown.map((b) => {
               const others = hired.filter((h) => h.engagementId !== b.holder?.engagementId);
               return (
                 <li key={b.id} className="card space-y-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
-                      <Link href={`/jobs/${job.id}/walkbooks/${b.id}`} className="font-bold text-fg underline-offset-2 hover:underline">
+                  <div className="flex items-start gap-3">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-2 text-base font-bold tabular-nums text-fg ring-1 ring-border" aria-hidden>
+                      {b.number}
+                    </span>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <Link href={`/jobs/${job.id}/walkbooks/${b.id}`} className="block font-bold text-fg underline-offset-2 hover:underline">
                         {b.name}
                       </Link>
                       <p className="text-muted-sm">
-                        {b.stops} {b.stops === 1 ? "stop" : "stops"} ·{" "}
+                        {b.stops} {b.stops === 1 ? "stop" : "stops"}
+                      </p>
+                      <p className={`text-sm font-semibold ${b.holder ? (b.holder.stillHired ? "text-success-msg" : "text-danger-msg") : "text-muted"}`}>
                         {b.holder ? (
                           <>
-                            with {b.holder.name}
-                            {!b.holder.stillHired && " (no longer hired: take it back or hand it on)"}
+                            With {b.holder.name}
+                            {!b.holder.stillHired && " · no longer hired: take it back or hand it on"}
                           </>
                         ) : (
-                          "not handed out"
+                          "Not handed out"
                         )}
                       </p>
                     </div>
@@ -115,6 +142,13 @@ export default async function JobWalkbooksPage({ params }: { params: Promise<{ j
               );
             })}
           </ul>
+        )}
+        {pages > 1 && (
+          <nav aria-label="Walkbook pages" className="flex items-center justify-between gap-3">
+            {page > 1 ? <Link href={`/jobs/${job.id}/walkbooks?page=${page - 1}`} className="btn-secondary btn-sm">Earlier books</Link> : <span />}
+            <span className="text-muted-sm">Books {(page - 1) * PAGE_SIZE + 1}–{Math.min(books.length, page * PAGE_SIZE)} of {books.length.toLocaleString("en-US")}</span>
+            {page < pages ? <Link href={`/jobs/${job.id}/walkbooks?page=${page + 1}`} className="btn-secondary btn-sm">Later books</Link> : <span />}
+          </nav>
         )}
         {canEdit && books.length > 0 && hired.length === 0 && <p className="text-hint">Hire someone on this job first: only hired workers can hold its walkbooks.</p>}
       </section>

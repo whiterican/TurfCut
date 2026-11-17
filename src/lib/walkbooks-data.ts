@@ -85,16 +85,18 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
 // ---------------------------------------------------------------------------
 
 /**
- * Address `a` is not on one of the job's walkbooks: neither itself nor the
- * same door (first line and unit ignoring case, and ZIP) from another file.
- * The one definition of a repeat; the cut and the page's counts both use it.
+ * Address `a` is not on one of the job's walkbooks as a door: the same first
+ * line and unit (ignoring case) and ZIP, from this file or another. An
+ * address's own stop always matches itself, so no separate id test. Plain
+ * equalities only: an OR here stops Postgres hashing the comparison (38 s at
+ * 10,000 stops). The one definition of a repeat; the cut and the counts use it.
  */
 const notOnJob = (jobId: string) => Prisma.sql`NOT EXISTS (
   SELECT 1 FROM "public"."WalkbookStop" s
   JOIN "public"."Walkbook" w ON w."id" = s."walkbookId"
   JOIN "public"."ImportedAddress" b ON b."id" = s."addressId"
   WHERE w."jobId" = ${jobId}::uuid
-    AND (b."id" = a."id" OR (b."zip" = a."zip" AND upper(b."line1") = upper(a."line1") AND upper(coalesce(b."unit", '')) = upper(coalesce(a."unit", '')))))`;
+    AND b."zip" = a."zip" AND upper(b."line1") = upper(a."line1") AND upper(coalesce(b."unit", '')) = upper(coalesce(a."unit", '')))`;
 
 /**
  * Cuts an import's addresses into numbered walkbooks on a job, in walking

@@ -28,7 +28,7 @@ SELECT gen_random_uuid() AS j2, gen_random_uuid() AS e2, gen_random_uuid() AS s2
        gen_random_uuid() AS a1, gen_random_uuid() AS a2, gen_random_uuid() AS a3, gen_random_uuid() AS a4, gen_random_uuid() AS a5,
        gen_random_uuid() AS o3b, gen_random_uuid() AS ov3a, gen_random_uuid() AS ov3b,
        gen_random_uuid() AS imp2, gen_random_uuid() AS adr3, gen_random_uuid() AS adr4, gen_random_uuid() AS adr5, gen_random_uuid() AS wb2, gen_random_uuid() AS ws3,
-       gen_random_uuid() AS so1c, gen_random_uuid() AS so_nh, gen_random_uuid() AS so_cb, gen_random_uuid() AS so_x, gen_random_uuid() AS r6, gen_random_uuid() AS r7 \gset
+       gen_random_uuid() AS so1c, gen_random_uuid() AS so_nh, gen_random_uuid() AS so_cb, gen_random_uuid() AS so_x, gen_random_uuid() AS so_cb2, gen_random_uuid() AS r6, gen_random_uuid() AS r7, gen_random_uuid() AS r8, gen_random_uuid() AS r9 \gset
 SELECT (SELECT "id" FROM "Job" ORDER BY "createdAt" LIMIT 1) AS j1,
        (SELECT "orgId" FROM "Job" ORDER BY "createdAt" LIMIT 1) AS org,
        (SELECT "id" FROM "Profile" ORDER BY "createdAt" LIMIT 1) AS p,
@@ -105,13 +105,15 @@ SELECT pg_temp.succeeds('...and back to CHOICE', format($f$UPDATE "PollQuestion"
 SELECT pg_temp.succeeds('lock v3 (a usable shape)', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v3'));
 
 -- ===== Doors: W2's real StopOutcome rows (append-only; the newest row for a stop is its state) =====
-INSERT INTO "StopOutcome"("id","stopId","engagementId","shiftId","outcome","recordedById") VALUES
-  (:'so1',  :'ws1', :'e1', :'s1', 'DONE', :'p'), (:'so1b', :'ws1', :'e1', :'s1', 'DONE', :'p'), (:'so1c', :'ws1', :'e1', :'s1', 'DONE', :'p'),
-  (:'so2',  :'ws3', :'e2', :'s2', 'DONE', :'p'),
-  (:'so3',  :'ws2', :'e1', :'s1', 'DONE', :'p'), (:'so4',  :'ws2', :'e1', :'s1', 'DONE', :'p'),
-  (:'so_nh', :'ws2', :'e1', :'s1', 'NOT_HOME', :'p'), (:'so_cb', :'ws2', :'e1', :'s1', 'COME_BACK', :'p'),
+INSERT INTO "StopOutcome"("id","stopId","engagementId","shiftId","outcome","recordedById","createdAt") VALUES
+  (:'so1',  :'ws1', :'e1', :'s1', 'DONE', :'p', now()), (:'so1b', :'ws1', :'e1', :'s1', 'DONE', :'p', now()), (:'so1c', :'ws1', :'e1', :'s1', 'DONE', :'p', now()),
+  (:'so2',  :'ws3', :'e2', :'s2', 'DONE', :'p', now()),
+  -- stop 2's history, oldest first: so4 (DONE), so_cb (COME_BACK), so3 (DONE), so_nh (NOT_HOME), so_cb2 (a later COME_BACK row)
+  (:'so4',  :'ws2', :'e1', :'s1', 'DONE', :'p', now() - INTERVAL '5 hours'), (:'so_cb', :'ws2', :'e1', :'s1', 'COME_BACK', :'p', now() - INTERVAL '4 hours'),
+  (:'so3',  :'ws2', :'e1', :'s1', 'DONE', :'p', now() - INTERVAL '3 hours'), (:'so_nh', :'ws2', :'e1', :'s1', 'NOT_HOME', :'p', now() - INTERVAL '2 hours'),
+  (:'so_cb2', :'ws2', :'e1', :'s1', 'COME_BACK', :'p', now() - INTERVAL '1 hour'),
   -- W2's SQL doesn't tie an outcome's engagement to its stop's walkbook: this one is a job-2 stop recorded under a job-1 engagement.
-  (:'so_x', :'ws3', :'e1', :'s1', 'DONE', :'p');
+  (:'so_x', :'ws3', :'e1', :'s1', 'DONE', :'p', now());
 
 -- ===== PollResponse =====
 SELECT pg_temp.succeeds('R1: a response on the locked version, for a door on the same job', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (%L,%L,%L,'COMPLETE',true,%L)$f$, :'r1', :'v1', :'so1', :'p'));
@@ -160,14 +162,17 @@ SELECT pg_temp.ok('results count only current responses: R1 is superseded, so it
   AND (SELECT a."optionId" FROM "PollAnswer" a WHERE a."versionId"=:'v1' AND a."questionId"=:'q1' AND NOT EXISTS (SELECT 1 FROM "PollResponse" s WHERE s."supersedesId" = a."responseId")) = :'o2');
 
 -- A stop can be visited twice (a PARTIAL at COME_BACK, then a COMPLETE at DONE): both are kept, and results use the newest
--- response per stop that nothing supersedes. The database doesn't force one response per stop; that is this rule's job.
+-- response per stop that nothing supersedes, a COMPLETE one before a PARTIAL one, then by the stop outcome's time (W2's own "newest"),
+-- not by when the response row was inserted. The database doesn't force one response per stop; that is this rule's job.
 SELECT pg_temp.succeeds('R7: a COMPLETE poll on the same stop as R6 (a second visit)', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (%L,%L,%L,'COMPLETE',true,%L)$f$, :'r7', :'v1', :'so3', :'p'));
+SELECT pg_temp.succeeds('R8: a later row corrects the older PARTIAL visit (R6) on the same stop', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (%L,%L,%L,'PARTIAL',true,%L,%L)$f$, :'r8', :'v1', :'so_cb2', :'p', :'r6'));
+SELECT pg_temp.succeeds('R9: a COMPLETE poll for the OLDEST visit (so4) reaches the server last', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId") VALUES (%L,%L,%L,'COMPLETE',true,%L)$f$, :'r9', :'v1', :'so4', :'p'));
 WITH cur AS (
   SELECT DISTINCT ON (so."stopId") so."stopId" AS stop, r."id" AS rid
     FROM "PollResponse" r JOIN "StopOutcome" so ON so."id" = r."stopOutcomeId"
    WHERE r."versionId" = :'v1' AND NOT EXISTS (SELECT 1 FROM "PollResponse" s WHERE s."supersedesId" = r."id")
-   ORDER BY so."stopId", r."createdAt" DESC, r."id" DESC)
-SELECT pg_temp.ok('results: one current response per stop, the newest nothing supersedes (stop 1 -> R2, stop 2 -> R7)',
+   ORDER BY so."stopId", (r."completion" = 'COMPLETE') DESC, so."createdAt" DESC, r."createdAt" DESC, r."id" DESC)
+SELECT pg_temp.ok('results: one current response per stop (stop 1 -> R2; stop 2 -> R7: COMPLETE beats the newer corrected PARTIAL R8, and the newest visit beats R9, which arrived last for the oldest visit)',
   (SELECT rid FROM cur WHERE stop = :'ws1') = :'r2' AND (SELECT rid FROM cur WHERE stop = :'ws2') = :'r7' AND (SELECT count(*) FROM cur) = 2);
 
 -- ===== The 30-day purge: the import's addresses (with every stored column and record ID) go; stops, outcomes and poll rows stay =====

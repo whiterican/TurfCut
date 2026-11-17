@@ -23,7 +23,7 @@ first schema comment on #202** (a review found two defects in it; see "Fixed in 
 | `polls.prisma` | The same models. Validated with `prisma validate` against W1's and W2's real models (branch `claude/eager-albattani-v4wkxr`, head `648e7ea4`; the two SQL files are unchanged since `0f6b348f`). |
 | `w1-amendments.sql` | **Changes W1 would need**, written as ALTERs only so they can be tested on W1's real SQL. W1's SQL isn't applied yet, so the W1 session would fold them into `w1-walkbooks.sql`. See below. |
 | `purge-conflict.sql` | A negative control: proves W1 + W2 **as written** can't run the 30-day purge. |
-| `test.sql` | 83 checks. |
+| `test.sql` | 85 checks. |
 | `race.sh` | A two-session check that a lock can't slip past an edit in flight. |
 | `run.sh` | Builds a throwaway database and runs everything. Refuses a non-local server unless `ALLOW_REMOTE=1`. |
 
@@ -68,7 +68,7 @@ PGURL=postgresql://postgres@localhost:5432 docs/product/polling-schema-proposal/
 Once W1/W2 contain the purge fix, `run.sh` prints "purge control: NOT reproduced"; delete `purge-conflict.sql` then.
 
 ## What was verified, and what wasn't
-Verified on Postgres 16.15 against W1's and W2's real SQL: the amendments and the poll SQL each apply twice cleanly; all 83
+Verified on Postgres 16.15 against W1's and W2's real SQL: the amendments and the poll SQL each apply twice cleanly; all 85
 checks pass on a clean rebuild; the race check passes (an edit that arrives while a lock is in flight waits, then is refused
 and writes nothing). I also broke things on purpose and confirmed the right checks go red: without the purge fix, the three
 purge checks fail; without the outcome and same-stop rules, six poll checks fail; with the job check loosened to the
@@ -91,9 +91,15 @@ outcome's engagement and through its stop's walkbook, because W2's SQL doesn't t
 want different rules; each is one branch of that trigger and one pair of checks.
 
 **One current response per stop is a results rule, not a database rule.** A stop can be visited twice (a PARTIAL poll at a
-`COME_BACK`, then a COMPLETE at `DONE`), so two responses on one stop are allowed. Results use the newest response per stop
-that nothing supersedes (tested). A poll attaches to the outcome row it is given, not only the stop's newest one, because a
-poll recorded offline can legitimately reach the server after a later outcome was added.
+`COME_BACK`, then a COMPLETE at `DONE`), so two responses on one stop are allowed. Results use, per stop, the response that
+nothing supersedes, **a COMPLETE one before a PARTIAL one, then the one on the newest stop outcome** (W2's own meaning of
+"newest"), not the one inserted last. Tested on three cases: a correction of an older PARTIAL visit doesn't beat a newer
+COMPLETE; a poll that reaches the server late for the oldest visit doesn't beat a newer visit; a superseded response is never
+current. A poll attaches to the outcome row it is given, not only the stop's newest one.
+
+**A limit that is W2's, not this proposal's:** `StopOutcome.createdAt` is the server's insert time, and W2 stores no device time.
+So an outcome recorded offline that reaches the server late looks newest to W2's own "newest row is the state" rule, and to the
+results rule here. If that matters, W2 needs a device-time column.
 
 ## If this becomes the polling acceptance suite
 `test.sql` is written to be turned into `tests/acceptance/<name>.ts` in the style of `w1-walkbooks.ts` once the schema is

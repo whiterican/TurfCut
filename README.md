@@ -503,9 +503,12 @@ Showing **Pay now** live needs four things. Two staff who can approve pay
 `seed:demo-accounts` refuses a live key.
 
 1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
-   the test secret key, and set `TURFCUT_DEMO=1` (or `true` or `yes`). With that flag the app
-   itself refuses a live secret key (`sk_live_` or `rk_live_`) and
-   live-mode webhook events. A Vercel preview or development deploy
+   the test secret key, and set `TURFCUT_DEMO=1` (or `true`, `yes` or
+   `on`; `0`, `false`, `no` or `off` is off). Any other value counts as on
+   for the Stripe guard, so a typo refuses live keys and the server log says
+   why payouts are off; the demo seed wants a clear on and refuses a typo.
+   With that flag the app itself refuses a live secret key (`sk_live_` or
+   `rk_live_`) and live-mode webhook events. A Vercel preview or development deploy
    (`VERCEL_ENV` set and not `production`) also refuses a live secret key;
    local and CI (unset `VERCEL_ENV`) and production are unchanged unless
    the flag is set. Regardless of those flags, the pay path refuses a
@@ -1591,8 +1594,10 @@ roles, one slice at a time.
   organization Turfcut no longer approves, leaves the workers' feed.
   Applying, claiming, inviting, sending an offer and accepting one are
   refused with the reason ("Hiring is paused on this job: …"), not only
-  scheduling. Review, decline and withdraw still work. People already
-  hired keep their place, and scheduling them follows its own freeze.
+  scheduling. The check runs again under the worker and job locks, so an
+  approval withdrawn or rules lapsing meanwhile stops any hire that
+  hasn't reached that check yet. Review, decline and withdraw still work.
+  People already hired keep their place, and scheduling them follows its own freeze.
   Everything opens again once the reason clears.
 - **A rule change is a new version.** "Propose a new version" prefills the
   form from the current rules: pay methods (ticking per-unit records

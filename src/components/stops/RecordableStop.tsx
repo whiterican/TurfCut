@@ -50,7 +50,8 @@ export function RecordableStop({ stop, jobType }: { stop: StopView; jobType: Job
   }
   // Keyboard and screen-reader users: into the panel when it opens, back to the stop when it closes.
   useEffect(() => {
-    if (open) panelRef.current?.querySelector<HTMLInputElement>("input[type=radio]:checked, input[type=radio]")?.focus();
+    // The chosen tile if there is one (a reopen keeps the last outcome), else the first.
+    if (open) (panelRef.current?.querySelector<HTMLInputElement>("input[type=radio]:checked") ?? panelRef.current?.querySelector<HTMLInputElement>("input[type=radio]"))?.focus();
   }, [open]);
   useEffect(() => {
     if (state.ok) toggleRef.current?.focus();
@@ -87,7 +88,7 @@ export function RecordableStop({ stop, jobType }: { stop: StopView; jobType: Job
         <DirectionsLink stop={stop} />
       </div>
       {open && (
-        <form ref={panelRef} id={panelId} action={action} className="space-y-4 border-t border-border bg-surface-2/50 px-3 pb-4 pt-3">
+        <form ref={panelRef} id={panelId} action={action} onKeyDown={(e) => e.key === "Escape" && close()} className="space-y-4 border-t border-border bg-surface-2/50 px-3 pb-4 pt-3">
           <input type="hidden" name="stopId" value={stop.id} />
           <input type="hidden" name="clientId" value={clientId} />
           <fieldset className="space-y-2">

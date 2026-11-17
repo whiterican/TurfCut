@@ -19,7 +19,7 @@ export async function recordOutcomeAction(_prev: OutcomeState, fd: FormData): Pr
   const raw = formToObject(fd);
   const r = await recordStopOutcome({ workerId, profileId: userId }, raw.stopId, raw.clientId, raw);
   if (!r.ok) {
-    if (r.reason === "Stop not found.") return { ok: false, gone: true, message: "This walkbook may have been handed on or taken back. Refresh to see what you hold now.", errors: {} };
+    if (r.gone) return { ok: false, gone: true, message: "This walkbook may have been handed on or taken back. Refresh to see what you hold now.", errors: {} };
     return { ok: false, message: r.reason, errors: r.errors ?? {} };
   }
   revalidatePath("/walkbooks");

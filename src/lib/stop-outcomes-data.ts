@@ -14,7 +14,7 @@ import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { latestByStop, progressFromRecorded, validateOutcome, type OutcomeKind, type Progress, type StopState } from "@/lib/stop-outcomes";
 
-type Fail = { ok: false; reason: string; errors?: Record<string, string> };
+type Fail = { ok: false; reason: string; errors?: Record<string, string>; /** The stop isn't this worker's to record on (unknown, handed on, taken back): nothing to retry. */ gone?: true };
 export type WorkerActor = { workerId: string; profileId: string };
 
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
@@ -39,7 +39,7 @@ export async function recordStopOutcome(
   if (!UUID_RE.test(clientId)) return { ok: false, reason: "Something went wrong with that tap. Try again." };
   return db().$transaction(async (tx) => {
     const stop = await tx.walkbookStop.findUnique({ where: { id: stopId }, select: { id: true, walkbookId: true, walkbook: { select: { jobId: true, job: { select: { type: true } } } } } });
-    if (!stop) return { ok: false as const, reason: "Stop not found." };
+    if (!stop) return { ok: false as const, reason: "Stop not found.", gone: true as const };
     await lock(tx, `walkbook:${stop.walkbookId}`);
     // Who holds the book now: its newest assignment, and only if that is one of this worker's hired engagements.
     const held = await tx.walkbookAssignment.findFirst({ where: { walkbookId: stop.walkbookId }, orderBy: { createdAt: "desc" }, select: { engagementId: true } });
@@ -47,7 +47,7 @@ export async function recordStopOutcome(
       ? await tx.engagement.findFirst({ where: { id: held.engagementId, workerId: actor.workerId, status: { in: [...HIRED] }, worker: { closedAt: null } }, select: { id: true } })
       : null;
     // Not theirs (or not found): the same answer, so nobody learns which stops exist.
-    if (!engagement) return { ok: false as const, reason: "Stop not found." };
+    if (!engagement) return { ok: false as const, reason: "Stop not found.", gone: true as const };
 
     const existing = await tx.stopOutcome.findUnique({ where: { id: clientId }, select: { stopId: true, engagementId: true } });
     if (existing) return existing.stopId === stop.id && existing.engagementId === engagement.id ? { ok: true as const, walkbookId: stop.walkbookId, jobId: stop.walkbook.jobId, repeated: true } : { ok: false as const, reason: "Something went wrong with that tap. Try again." };

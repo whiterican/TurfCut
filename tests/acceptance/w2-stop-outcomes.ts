@@ -127,7 +127,7 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("the worker's book carries each stop's state", mine[0]?.stops[0].result.outcome === "COME_BACK" && mine[0].stops[1].result.outcome === "NOT_HOME", mine[0]?.stops.map((s) => s.result.outcome));
   await assignWalkbook(owner, cbook, "");
   const afterTakeBack = await recordStopOutcome(actor(0), c1.id, randomUUID(), { outcome: "DONE" });
-  check("once the book is taken back its old holder can't record on it", !afterTakeBack.ok && /not found/.test(afterTakeBack.reason), afterTakeBack);
+  check("once the book is taken back its old holder can't record on it, and is told it is gone (not to retry)", !afterTakeBack.ok && /not found/.test(afterTakeBack.reason) && afterTakeBack.gone === true, afterTakeBack);
   await assignWalkbook(owner, cbook, e1);
   const next = await loadWorkerWalkbooks(W[1], canvass.id);
   check("the next holder sees the book's state: Come back stops are still open for them", next[0]?.stops[0].result.outcome === "COME_BACK");

@@ -37,10 +37,21 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                         <LocalTime iso={r.startsAt.toISOString()} mode="time" /> – <LocalTime iso={r.endsAt.toISOString()} mode="time" from={r.startsAt.toISOString()} />
                         {r.state.packetsOut.length > 0 && ` · ${r.state.packetsOut.length} out`}
                         {r.state.packetsHeld.length > 0 && ` · ${r.state.packetsHeld.length} kept`}
-                        {r.state.signatures > 0 && ` · ${r.state.signatures} sig.`}
                       </span>
                     </span>
-                    <StatusBadge status={label} />
+                    {/* The worker's signatures this shift, where a supervisor's eye goes first. It follows their +1 taps: the
+                        live summary's version includes each shift's count, and a change refreshes the page (about 10 s). */}
+                    {/* Last and a fixed width, so the counts stand in one column whatever the badge says. */}
+                    <span className="ml-auto flex shrink-0 items-center gap-3">
+                      <StatusBadge status={label} />
+                      {/* In a group that collects signatures every row has the figure, 0 included, so the column holds. */}
+                      {g.signatures > 0 && (
+                        <span className="min-w-[5.5rem] text-right leading-tight">
+                          <span className="block text-base font-semibold tabular-nums text-fg">{r.state.signatures}</span>
+                          <span className="block text-xs text-muted">{r.state.signatures === 1 ? "signature" : "signatures"}</span>
+                        </span>
+                      )}
+                    </span>
                   </Link>
                 </li>
               );

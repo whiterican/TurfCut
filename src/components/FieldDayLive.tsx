@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, RefreshCw, Smartphone, UserCheck } from "lucide-react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, Plus, RefreshCw, Smartphone, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
@@ -56,6 +56,30 @@ function withPending(base: ShiftFacts, pending: Pending[], offset: number, carri
   return f;
 }
 
+/** The tally's pending send, per shift (a timer, not render state). */
+const tallySends = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** One of each counted unit, for "+1 signature". */
+const ONE = { signatures: "signature", doors: "door", contacts: "contact" } as const;
+
+/**
+ * The entries waiting to be sent, as lines: a run of counts of the same unit is one line ("+12 signatures",
+ * from the first one's time), so a tally kept with no signal doesn't push the +1 button down the page a line per tap.
+ */
+export function waitingLines(waiting: Pick<Pending, "clientId" | "action" | "at">[]): Array<{ key: string; what: string; at: number }> {
+  const lines: Array<{ key: string; what: string; at: number; unit?: string; count?: number }> = [];
+  for (const p of waiting) {
+    const a = p.action as Action;
+    const last = lines[lines.length - 1];
+    if (a.kind === "log" && last?.unit === a.unit && last.count !== undefined) {
+      last.count += a.count;
+      last.what = describe({ ...a, count: last.count });
+    } else if (a.kind === "log") lines.push({ key: p.clientId, what: describe(a), at: p.at, unit: a.unit, count: a.count });
+    else lines.push({ key: p.clientId, what: describe(a), at: p.at });
+  }
+  return lines.map(({ key, what, at }) => ({ key, what, at }));
+}
+
 function describe(a: Action): string {
   switch (a.kind) {
     case "check_in":
@@ -67,7 +91,7 @@ function describe(a: Action): string {
     case "check_out":
       return "Check-out";
     case "log":
-      return `+${a.count} ${a.unit}`;
+      return `+${a.count} ${a.count === 1 ? ONE[a.unit] : a.unit}`;
     case "return_packet":
       return `Packet ${a.packetId} returned`;
     case "hold_packet":
@@ -221,7 +245,21 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     };
   }, [sync]);
 
-  function record(action: Action): boolean {
+  // The tally sends after a short pause in the tapping, not on every tap: one send for a burst, well inside
+  // the sync route's limit (60 a minute), and one refresh of the page instead of one per signature.
+  // Leaving the page with a burst still waiting sends it now (flush needs no component), so the board doesn't lag.
+  useEffect(
+    () => () => {
+      const waiting = tallySends.get(shift.shiftId);
+      if (waiting === undefined) return;
+      clearTimeout(waiting);
+      tallySends.delete(shift.shiftId);
+      void flush(shift.userId, shift.shiftId);
+    },
+    [shift.shiftId, shift.userId],
+  );
+
+  function record(action: Action, o: { what?: string; batched?: boolean } = {}): boolean {
     // Judged on the server's clock (as of the last sync), like the server will.
     const out = workerAction(facts, action, serverClock());
     if (!out.ok) {
@@ -232,8 +270,14 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     // A tick now; the firmer success buzz waits until a check-in is recorded.
     haptic("tap");
     const checkIn = action.kind === "check_in";
-    setNote({ kind: "entry", id: item.clientId, what: checkIn ? `Check-in at ${when(item.at + clockOffset())}` : describe(action), checkIn });
-    void sync();
+    setNote({ kind: "entry", id: item.clientId, what: o.what ?? (checkIn ? `Check-in at ${when(item.at + clockOffset())}` : describe(action)), checkIn });
+    if (o.batched) {
+      clearTimeout(tallySends.get(shift.shiftId));
+      tallySends.set(shift.shiftId, setTimeout(() => {
+        tallySends.delete(shift.shiftId);
+        void sync();
+      }, 1500));
+    } else void sync();
     return true;
   }
 
@@ -324,9 +368,9 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       {mounted && problem && waiting.length > 0 && <p className="text-hint">{problem}</p>}
       {mounted && waiting.length > 0 && (
         <ul className="space-y-0.5 text-xs text-muted">
-          {waiting.map((p) => (
-            <li key={p.clientId}>
-              {describe(p.action)} · {when(p.at + offset)} · {memoryOnly ? "only on this page" : "not sent yet"}
+          {waitingLines(waiting).map((l) => (
+            <li key={l.key}>
+              {l.what} · {when(l.at + offset)} · {memoryOnly ? "only on this page" : "not sent yet"}
             </li>
           ))}
         </ul>
@@ -377,13 +421,32 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       ) : (
         <div className="space-y-5">
           {petition ? (
-            <form onSubmit={submit((fd) => ({ kind: "log", unit: "signatures", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">
-              <label className="w-32 space-y-1.5">
-                <span className="label">Signatures</span>
-                <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required placeholder="5" />
-              </label>
-              <button className="btn-primary"><PenLine aria-hidden className="btn-icon" />Add signatures</button>
-            </form>
+            <>
+              {/* The tally (Caden, Nov 17): one tap per signature, counted on this phone first, so it works without signal.
+                  Each tap is its own entry in the shift's record; a tap too many is corrected by the supervisor, like any count. */}
+              <div className="signature-tally">
+                <p className="min-w-0">
+                  <span className="label block">Signatures this shift</span>
+                  <span className="signature-tally-figure">{st.signatures}</span>
+                </p>
+                {/* The message names the running count ("Signature 18"), so each tap reads differently and is announced. */}
+                <button
+                  type="button"
+                  className="btn-primary signature-tally-plus"
+                  onClick={() => record({ kind: "log", unit: "signatures", count: 1 }, { what: `Signature ${st.signatures + 1}`, batched: true })}
+                  aria-label="+1 signature"
+                >
+                  <Plus aria-hidden className="size-7" />1
+                </button>
+              </div>
+              <form onSubmit={submit((fd) => ({ kind: "log", unit: "signatures", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">
+                <label className="w-32 space-y-1.5">
+                  <span className="label">Several at once</span>
+                  <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required placeholder="5" />
+                </label>
+                <button className="btn-secondary"><PenLine aria-hidden className="btn-icon" />Add signatures</button>
+              </form>
+            </>
           ) : (
             <>
               <form onSubmit={submit((fd) => ({ kind: "log", unit: "doors", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">

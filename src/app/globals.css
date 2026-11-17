@@ -2233,6 +2233,17 @@ body {
   .stat-tile-figure {
     @apply whitespace-nowrap;
   }
+  /* A petition shift's tally (FieldDayLive): the count, and one big button to add a signature. The button is
+     a thumb's target, larger than the 44px minimum, so it can be hit while holding a clipboard. */
+  .signature-tally {
+    @apply flex items-center justify-between gap-4;
+  }
+  .signature-tally-figure {
+    @apply block t-figure whitespace-nowrap tabular-nums text-fg;
+  }
+  .signature-tally-plus {
+    @apply min-h-16 min-w-28 shrink-0 gap-1 text-2xl;
+  }
   .stat-tile-label,
   .summary-item > .eyebrow {
     @apply mt-1 text-base font-medium text-fg;
@@ -4315,6 +4326,10 @@ html:has(.more-sheet[open])::view-transition {
   }
   .sun .btn-sm {
     min-height: 2.75rem;
+  }
+  /* The tally's +1 stays a thumb's target here too: the 48px rule above is unlayered and would beat its 64px. */
+  .sun .signature-tally-plus {
+    min-height: 4rem;
   }
   /* Choice rows' hairlines too: in Sunlight no line is thinner than 2px. */
   .sun :is(.choice-list, .choice-rows) > :not(:last-child) {

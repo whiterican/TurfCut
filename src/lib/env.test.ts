@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getStripeSecretKey, hasStripeConfig, hasSupabaseConfig, liveStripeKeyProblem, stripeSecretKeyMode, stripeWebhookLivemodeProblem, turfcutDemoOn, turfcutDemoSetting } from "./env";
+import { getStripeSecretKey, hasStripeConfig, hasSupabaseConfig, liveStripeKeyProblem, stripeSecretKeyMode, stripeWebhookLivemodeProblem, turfcutDemoGuardsLive, turfcutDemoOn, turfcutDemoSetting } from "./env";
 
 describe("env helpers", () => {
   it("reports missing Supabase config without throwing", () => {
@@ -100,8 +100,12 @@ describe("live Stripe keys in demo and non-production deploys", () => {
     for (const v of ["1", "true", "TRUE", "yes", "Yes", " yes ", "on", "ON"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("on");
     for (const v of [undefined, "", "  ", "0", "false", "FALSE", "no", " No ", "off", "Off"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("off");
     for (const v of ["ture", "2", "enabled"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("unrecognized");
-    for (const v of ["ture", "2", "enabled"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(true);
-    for (const v of ["0", "false", "no", "off"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(false);
+    // Two readings, opposite on a typo. Strict (the seed allows something only in a demo database): a typo is not on.
+    for (const v of ["1", "true", "yes", "on"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(true);
+    for (const v of ["ture", "2", "enabled", "0", "false", "no", "off", undefined, ""]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(false);
+    // Guarding live Stripe: a typo applies the guard; only a clear off or unset lifts it.
+    for (const v of ["1", "on", "ture", "2", "enabled"]) expect(turfcutDemoGuardsLive({ TURFCUT_DEMO: v })).toBe(true);
+    for (const v of ["0", "false", "no", "off", undefined, ""]) expect(turfcutDemoGuardsLive({ TURFCUT_DEMO: v })).toBe(false);
     expect(liveStripeKeyProblem(live, { TURFCUT_DEMO: "true" })).toMatch(/TURFCUT_DEMO is set/);
     // An unrecognized value refuses the live key with a message that names the setting, never its value.
     const p = liveStripeKeyProblem(live, { TURFCUT_DEMO: "ture" });

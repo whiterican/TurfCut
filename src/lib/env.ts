@@ -260,8 +260,19 @@ export function turfcutDemoSetting(env: NodeJS.Dict<string> = process.env): "on"
   return "unrecognized";
 }
 
-/** Demo mode is on: TURFCUT_DEMO is on, or set to a value it doesn't recognize (fail closed). */
+/**
+ * Demo mode is clearly on: 1, true, yes or on. A value it doesn't recognize is NOT on. This is the strict reading,
+ * for code that allows something only in a demo database (the seed's placeholder profile): a typo must refuse.
+ */
 export function turfcutDemoOn(env: NodeJS.Dict<string> = process.env): boolean {
+  return turfcutDemoSetting(env) === "on";
+}
+
+/**
+ * The live-Stripe guards apply: demo mode is on, or set to a value it doesn't recognize. The opposite, safe
+ * direction from turfcutDemoOn: here a typo must refuse live keys, not allow them.
+ */
+export function turfcutDemoGuardsLive(env: NodeJS.Dict<string> = process.env): boolean {
   return turfcutDemoSetting(env) !== "off";
 }
 
@@ -281,7 +292,7 @@ const nonProductionVercel = (env: NodeJS.Dict<string>) => !!env.VERCEL_ENV && en
  */
 export function liveStripeKeyProblem(key: string | undefined, env: NodeJS.Dict<string> = process.env): string | null {
   if (stripeSecretKeyMode(key) !== "live") return null;
-  if (turfcutDemoOn(env)) {
+  if (turfcutDemoGuardsLive(env)) {
     return `${demoReason(env)}, but STRIPE_SECRET_KEY is a live key (sk_live_ or rk_live_). Demo deploys must use a test key.`;
   }
   if (nonProductionVercel(env)) {
@@ -293,7 +304,7 @@ export function liveStripeKeyProblem(key: string | undefined, env: NodeJS.Dict<s
 /** Live-mode Stripe webhook events: refused in demo mode, and on non-production Vercel deploys. */
 export function stripeWebhookLivemodeProblem(livemode: boolean, env: NodeJS.Dict<string> = process.env): string | null {
   if (!livemode) return null;
-  if (turfcutDemoOn(env)) {
+  if (turfcutDemoGuardsLive(env)) {
     return `${demoReason(env)}, but this Stripe event is from live mode. Demo deploys only accept test-mode events.`;
   }
   if (nonProductionVercel(env)) {

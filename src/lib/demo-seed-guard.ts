@@ -101,7 +101,7 @@ export function demoDatabaseGuard(env: DemoSeedEnv): { ok: true; ref: string } |
     demoOn = false;
   }
   if (!demoOn) {
-    return { ok: false, reason: "TURFCUT_DEMO is not on (1, true or yes): a placeholder statewide profile is only created in a dedicated demo database." };
+    return { ok: false, reason: "TURFCUT_DEMO is not on (1, true, yes or on): a placeholder statewide profile is only created in a dedicated demo database." };
   }
   // A live project's ref anywhere in DATABASE_URL is refused, as the demo logins do (src/lib/demo-accounts.ts).
   const lowered = (env.DATABASE_URL ?? "").toLowerCase();

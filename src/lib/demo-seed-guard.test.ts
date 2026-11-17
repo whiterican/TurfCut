@@ -170,6 +170,10 @@ describe("where seed:demo may write (hard stop before any write)", () => {
     expect(refusal({ ...matching, TURFCUT_DEMO_PROJECT_REF: "efgh5678" })).toMatch(/doesn't match/);
     expect(refusal({ ...matching, TURFCUT_DEMO_PROJECT_REF: "abcd" })).not.toMatch(/abcd1234/);
     expect(refusal({ ...matching, NEXT_PUBLIC_SUPABASE_URL: undefined })).toMatch(/NEXT_PUBLIC_SUPABASE_URL/);
+    // Guarded, but with a trailing-dot host: the ref can't be read, so it stays refused.
+    for (const DATABASE_URL of hosted.slice(3)) {
+      expect(refusal({ ...matching, DATABASE_URL })).toMatch(/hosted Supabase database, and this run isn't guarded/);
+    }
   });
 
   it("lets a guarded hosted demo project through", () => {

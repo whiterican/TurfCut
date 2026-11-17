@@ -96,8 +96,8 @@ export function projectRefOf(url: string | undefined): string | null {
 /**
  * Live Turfcut Supabase projects. The demo-accounts script always refuses
  * these, even when TURFCUT_DEMO_PROJECT_REF matches. This is the only
- * project in the TurfCut org ("caden1@me.com's Project"), and the GitHub
- * "Supabase Preview" check links to its dashboard.
+ * project in the TurfCut org, and the GitHub "Supabase Preview" check links
+ * to its dashboard.
  */
 export const LIVE_SUPABASE_PROJECT_REFS: readonly string[] = ["txzxtvsfzxfhgfiurufq"];
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getStripeSecretKey, hasStripeConfig, hasSupabaseConfig, liveStripeKeyProblem, stripeSecretKeyMode, stripeWebhookLivemodeProblem, turfcutDemoOn } from "./env";
+import { getStripeSecretKey, hasStripeConfig, hasSupabaseConfig, liveStripeKeyProblem, stripeSecretKeyMode, stripeWebhookLivemodeProblem, turfcutDemoOn, turfcutDemoSetting } from "./env";
 
 describe("env helpers", () => {
   it("reports missing Supabase config without throwing", () => {
@@ -96,12 +96,20 @@ describe("live Stripe keys in demo and non-production deploys", () => {
     expect(stripeWebhookLivemodeProblem(true, {})).toBeNull();
   });
 
-  it("TURFCUT_DEMO accepts 1, true and yes in any case, and fails loudly on anything else", () => {
-    for (const v of ["1", "true", "TRUE", "yes", "Yes", " yes "]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(true);
-    for (const v of [undefined, "", "  "]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(false);
-    for (const v of ["0", "on", "false", "ture", "2"]) expect(() => turfcutDemoOn({ TURFCUT_DEMO: v })).toThrow(/TURFCUT_DEMO must be 1, true or yes/);
+  it("TURFCUT_DEMO: 1/true/yes is on, 0/false/no/unset is off, anything else fails closed without throwing", () => {
+    for (const v of ["1", "true", "TRUE", "yes", "Yes", " yes "]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("on");
+    for (const v of [undefined, "", "  ", "0", "false", "FALSE", "no", " No "]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("off");
+    for (const v of ["on", "ture", "2", "off"]) expect(turfcutDemoSetting({ TURFCUT_DEMO: v })).toBe("unrecognized");
+    for (const v of ["on", "ture", "2", "off"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(true);
+    for (const v of ["0", "false", "no"]) expect(turfcutDemoOn({ TURFCUT_DEMO: v })).toBe(false);
     expect(liveStripeKeyProblem(live, { TURFCUT_DEMO: "true" })).toMatch(/TURFCUT_DEMO is set/);
-    expect(() => liveStripeKeyProblem(live, { TURFCUT_DEMO: "on" })).toThrow(/TURFCUT_DEMO must be/);
+    // An unrecognized value refuses the live key with a message that names the setting, never its value.
+    const p = liveStripeKeyProblem(live, { TURFCUT_DEMO: "ture" });
+    expect(p).toMatch(/TURFCUT_DEMO has an unrecognized value/);
+    expect(p).not.toMatch(/ture/);
+    expect(stripeWebhookLivemodeProblem(true, { TURFCUT_DEMO: "ture" })).toMatch(/unrecognized value/);
+    // Explicitly off on production leaves the live key alone (it used to throw).
+    for (const v of ["0", "false", "no"]) expect(liveStripeKeyProblem(live, { TURFCUT_DEMO: v, VERCEL_ENV: "production" })).toBeNull();
   });
 
   it("hasStripeConfig is false when the live-key guard applies, so the Pay buttons hide; unchanged otherwise", () => {

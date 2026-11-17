@@ -53,6 +53,8 @@ export const LIMITS = {
   autosave: { max: 30, windowMs: 60_000 },
   /** Walkbook exports per organization per hour (W3): each one is up to 20,000 addresses. */
   "walkbook-export": { max: 10, windowMs: 60 * 60_000 },
+  /** Refused export attempts that are written to the audit log, per person per hour (W3: a signed-in user can't fill the log by hammering a URL). */
+  "walkbook-export-denied": { max: 20, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

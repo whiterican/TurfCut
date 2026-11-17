@@ -30,6 +30,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
   const history = q.stopId ? await loadStopHistory(session.orgId, q.stopId, data.job.id) : null;
   const base = `/jobs/${data.job.id}/walkbooks/console`;
   const canExport = canUse(session, "field");
+  // The export link has no `download` attribute: a refusal (too many rows, too many exports) is plain text the person should read, and Content-Disposition already downloads a success.
   const exportHref = `${base}/export${consoleHref("", { ...q, stopId: null, page: 1 }, {})}`;
   const filtered = !!(q.outcome || q.bookId || q.holderId);
   // The pins are state-coloured stops with the console's own shape; the map reads the stop view.
@@ -44,7 +45,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
             Walkbooks
           </Link>
           {canExport && (
-            <a href={exportHref} className="btn-secondary btn-sm" download>
+            <a href={exportHref} className="btn-secondary btn-sm">
               <Download aria-hidden className="size-4" />
               Export {filtered ? "these" : "all"} as CSV
             </a>
@@ -95,6 +96,11 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
       </section>
 
       {history && <StopInspector stop={history} closeHref={consoleHref(base, q, { stop: null })} />}
+      {q.stopId && !history && (
+        <p role="status" className="alert-info">
+          That stop isn&apos;t on this job.
+        </p>
+      )}
 
       <section className="section">
         <h2 className="section-title">

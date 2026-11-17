@@ -232,7 +232,7 @@ function readZip(raw: string): string | null {
  * database (CLAUDE.md rule 4).
  */
 const UNIT_WORDS = "apt|apartment|unit|ste|suite|bldg|building|fl|floor|rm|room|lot|spc|space|trlr|ph|penthouse|bsmt|basement|dept|no|num|number";
-const UNIT_SHAPE = new RegExp(`^(?:(?:${UNIT_WORDS})\\.?\\s*#?\\s*[0-9a-z]{1,6}(?:-[0-9a-z]{1,6})?|#\\s*[0-9a-z]{1,6}(?:-[0-9a-z]{1,6})?|\\d{1,6}[a-z]?|[a-z]\\d{0,4}|\\d{1,3}(?:st|nd|rd|th)\\s+(?:fl|floor)|(?:upper|lower|rear|front|side|uppr|lowr|frnt))$`, "i");
+const UNIT_SHAPE = new RegExp(`^(?:(?:${UNIT_WORDS})\\.?\\s*#?\\s*(?:\\d[0-9a-z]{0,5}|[a-z]\\d{0,4})(?:-[0-9a-z]{1,6})?|#\\s*[0-9a-z]{1,6}(?:-[0-9a-z]{1,6})?|\\d{1,6}[a-z]?|[a-z]\\d{0,4}|\\d{1,3}(?:st|nd|rd|th)\\s+(?:fl|floor)|(?:upper|lower|rear|front|side|uppr|lowr|frnt))$`, "i");
 export const isUnitShaped = (u: string) => UNIT_SHAPE.test(u);
 
 function readCoord(raw: string, limit: number): number | null {

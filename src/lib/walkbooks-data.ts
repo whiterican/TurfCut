@@ -7,7 +7,13 @@
  * holds it now.
  *
  * Lock order: the job's walkbooks (cutting), then a walkbook (assigning).
+ * Locks are keyed on ids as the database returns them (lower case), never
+ * as they arrived, so "ABC…" and "abc…" can't take two different locks.
+ *
+ * Callers own authorization: `Staff` is trusted as given. The server actions
+ * (src/app/jobs/[jobId]/walkbooks/actions.ts) build it from requireArea("field").
  */
+import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
@@ -20,6 +26,8 @@ export type Staff = { profileId: string; orgId: string };
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 /** Confirmed workers: hired on the job (accepted offer or instant claim). */
 const HIRED = ["ACTIVE", "CLAIMED"] as const;
+/** Walkbook.number's ceiling in the database (Walkbook_number). */
+const MAX_BOOK_NUMBER = 100_000;
 /** Imports listed on a job's walkbook page. */
 const IMPORTS_SHOWN = 50;
 
@@ -38,7 +46,6 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
   const read = readAddressFile(text);
   if (!read.ok) return { ok: false, reason: read.reason, errors: { file: read.reason } };
   const { file } = read;
-  if (!file.rows.length) return { ok: false, reason: "No row in the file has a usable address.", errors: { file: "No row in the file has a usable address." } };
   return db().$transaction(
     async (tx) => {
       const imp = await tx.addressImport.create({
@@ -48,7 +55,8 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
           ...m.value,
           rowCount: file.rowCount,
           keptCount: file.rows.length,
-          droppedColumns: file.dropped.map((d) => d.slice(0, 100)).slice(0, 200),
+          // Already cleaned and capped by mapColumns (names at most 100 characters; at most 200 of them plus a "+N more").
+          droppedColumns: file.dropped,
           createdAt: now,
         },
       });
@@ -80,11 +88,14 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
  * Cuts an import's addresses into numbered walkbooks on a job, in walking
  * order. Addresses already on one of the job's walkbooks are left out, so
  * cutting the same file again only picks up what's left; numbering carries on
- * from the job's last book.
+ * from the job's last book. Any job status: walkbooks are preparation (a
+ * draft can be readied before it publishes, a closed job keeps working for
+ * the people already hired), and only hired workers can be handed one.
  */
 export async function cutWalkbooks(actor: Staff, jobId: string, importId: string, perBookRaw: unknown, now = new Date()): Promise<{ ok: true; books: number; stops: number; jobId: string } | Fail> {
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   if (!UUID_RE.test(importId)) return { ok: false, reason: "Pick a file to cut from." };
+  // The lock is keyed on job.id as read back from the database, not on jobId as it arrived.
   const per = readStopsPerBook(perBookRaw);
   if (!per.ok) return { ok: false, reason: per.reason, errors: { stopsPerBook: per.reason } };
   return db().$transaction(
@@ -93,7 +104,7 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       if (!job) return { ok: false as const, reason: "Job not found." };
       const imp = await tx.addressImport.findFirst({ where: { id: importId, orgId: actor.orgId }, select: { id: true } });
       if (!imp) return { ok: false as const, reason: "Pick a file to cut from." };
-      await lock(tx, `walkbooks:${jobId}`);
+      await lock(tx, `walkbooks:${job.id}`);
       const free = await tx.importedAddress.findMany({
         where: { importId, stops: { none: { walkbook: { jobId } } } },
         select: { id: true, line1: true, unit: true, zip: true },
@@ -101,14 +112,15 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       if (!free.length) return { ok: false as const, reason: "Every address in this file is already on one of this job's walkbooks." };
       const last = await tx.walkbook.aggregate({ where: { jobId }, _max: { number: true } });
       const books = cutBooks(walkOrder(free), per.value, (last._max.number ?? 0) + 1);
-      for (const b of books) {
-        const wb = await tx.walkbook.create({ data: { jobId, importId, number: b.number, name: b.name, createdById: actor.profileId, createdAt: now } });
-        await tx.walkbookStop.createMany({ data: b.stops.map((s, i) => ({ walkbookId: wb.id, addressId: s.id, stopNumber: i + 1 })) });
-      }
+      if (books[books.length - 1].number > MAX_BOOK_NUMBER) return { ok: false as const, reason: "That's more walkbooks than one job can hold. Use more stops per walkbook." };
+      // Two statements however many books: ids are made here so the stops can name their book.
+      const made = books.map((b) => ({ ...b, id: randomUUID() }));
+      await tx.walkbook.createMany({ data: made.map((b) => ({ id: b.id, jobId: job.id, importId: imp.id, number: b.number, name: b.name, createdById: actor.profileId, createdAt: now })) });
+      await tx.walkbookStop.createMany({ data: made.flatMap((b) => b.stops.map((s, i) => ({ walkbookId: b.id, addressId: s.id, stopNumber: i + 1 }))) });
       await tx.auditEvent.create({
-        data: { actorId: actor.profileId, action: "walkbook.cut", entityType: "Job", entityId: jobId, metadata: { importId, books: books.length, stops: free.length, stopsPerBook: per.value, firstNumber: books[0].number }, createdAt: now },
+        data: { actorId: actor.profileId, action: "walkbook.cut", entityType: "Job", entityId: job.id, metadata: { importId, books: books.length, stops: free.length, stopsPerBook: per.value, firstNumber: books[0].number }, createdAt: now },
       });
-      return { ok: true as const, books: books.length, stops: free.length, jobId };
+      return { ok: true as const, books: books.length, stops: free.length, jobId: job.id };
     },
     { timeout: 30_000 }
   );
@@ -122,9 +134,10 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
  * Hands a walkbook to a worker hired on its job, or takes it back
  * (engagementId empty). A new row every time; nothing is overwritten.
  */
-export async function assignWalkbook(actor: Staff, walkbookId: string, engagementIdRaw: string, now = new Date()): Promise<{ ok: true; jobId: string; changed: boolean } | Fail> {
+export async function assignWalkbook(actor: Staff, walkbookIdRaw: string, engagementIdRaw: unknown, now = new Date()): Promise<{ ok: true; jobId: string; changed: boolean } | Fail> {
+  const walkbookId = String(walkbookIdRaw ?? "").trim().toLowerCase();
   if (!UUID_RE.test(walkbookId)) return { ok: false, reason: "Walkbook not found." };
-  const engagementId = engagementIdRaw.trim() || null;
+  const engagementId = String(engagementIdRaw ?? "").trim().toLowerCase() || null;
   if (engagementId && !UUID_RE.test(engagementId)) return { ok: false, reason: "Pick a worker hired on this job." };
   return db().$transaction(async (tx) => {
     await lock(tx, `walkbook:${walkbookId}`);
@@ -164,12 +177,12 @@ export async function assignWalkbook(actor: Staff, walkbookId: string, engagemen
 /** The newest assignment row of each walkbook: who holds it now. */
 async function holders(walkbookIds: string[]) {
   if (!walkbookIds.length) return new Map<string, { engagementId: string | null; at: Date }>();
-  const rows = await db().walkbookAssignment.findMany({
-    where: { walkbookId: { in: walkbookIds } },
-    orderBy: [{ walkbookId: "asc" }, { createdAt: "desc" }],
-    distinct: ["walkbookId"],
-    select: { walkbookId: true, engagementId: true, createdAt: true },
-  });
+  // DISTINCT ON in the database: one row per book, however long its history grows.
+  const rows = await db().$queryRaw<Array<{ walkbookId: string; engagementId: string | null; createdAt: Date }>>`
+    SELECT DISTINCT ON ("walkbookId") "walkbookId", "engagementId", "createdAt"
+    FROM "public"."WalkbookAssignment"
+    WHERE "walkbookId" = ANY(${walkbookIds}::uuid[])
+    ORDER BY "walkbookId", "createdAt" DESC`;
   return new Map(rows.map((r) => [r.walkbookId, { engagementId: r.engagementId, at: r.createdAt }]));
 }
 

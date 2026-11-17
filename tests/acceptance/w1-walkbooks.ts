@@ -104,6 +104,14 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   const seen1 = (await loadWorkerWalkbooks(W[1])).some((b) => b.id === book2);
   check("two hand-offs at once: exactly one worker holds book 2", !!holders2 && seen0 !== seen1, { holders2, seen0, seen1 });
 
+  // The same race with the id in upper case on one side: the lock is keyed on the id as the database has it.
+  await assignWalkbook(owner, book2, "");
+  const mixed = await Promise.all([assignWalkbook(owner, book2.toUpperCase(), e0), assignWalkbook(owner, book2, e1.toUpperCase())]);
+  const rows2 = await p.walkbookAssignment.findMany({ where: { walkbookId: book2 }, orderBy: { createdAt: "asc" } });
+  const times = rows2.map((r) => r.createdAt.getTime());
+  check("…and in mixed case: both go through one lock, each row strictly after the one before", mixed.every((m) => m.ok) && times.every((t, i) => i === 0 || t > times[i - 1]), { mixed, times });
+  check("a hand-off with no worker field at all takes the book back instead of failing", (await assignWalkbook(owner, book2, undefined)).ok);
+
   const moved = await assignWalkbook(owner, book1, e1);
   check("handing book 1 to someone else moves it", moved.ok && !(await loadWorkerWalkbooks(W[0])).some((b) => b.id === book1) && (await loadWorkerWalkbooks(W[1])).some((b) => b.id === book1));
   const back = await assignWalkbook(owner, book1, "");
@@ -126,6 +134,11 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("a cancelled engagement sees no walkbooks", (await loadWorkerWalkbooks(W[0])).length === 0);
   const stale = (await loadJobWalkbooks(ORG, job.id))!.books.find((b) => b.id === book1)!.holder;
   check("staff see the holder is no longer hired", stale?.stillHired === false, stale);
+
+  const imp2 = await importAddresses(owner, META, FILE.replace(/Elm St/g, "Oak St").replace(/Ash Ave/g, "Fir Ave"));
+  const racing = imp2.ok ? await Promise.all([cutWalkbooks(owner, job.id.toUpperCase(), imp2.importId, "1"), cutWalkbooks(owner, job.id, imp2.importId, "1")]) : [];
+  const after = await p.walkbook.findMany({ where: { jobId: job.id }, orderBy: { number: "asc" } });
+  check("two cuts at once (one id in upper case): one cuts, the other finds nothing left; numbers carry on, no gaps", racing.filter((r) => r.ok).length === 1 && after.map((b) => b.number).join(",") === "1,2,3,4,5,6", { racing, n: after.map((b) => b.number) });
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

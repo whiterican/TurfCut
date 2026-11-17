@@ -101,11 +101,11 @@ describe("readAddressFile", () => {
     expect(r.ok && r.file.rows.map((x) => x.zip)).toEqual(["02138", "02138"]);
   });
   it("keeps a second address line only when it is a unit: a name there never lands (rule 4)", () => {
-    const rows = ["Apt 2", "Unit 4B", "#3", "Ste. 100", "2F", "B", "C/O Jane Doe", "Attn: Bob", "Jane Doe"].map((u, i) => `a,b,${i + 1} Oak St,${u},X,IL,62701,,`);
+    const rows = ["Apt 2", "Unit 4B", "#3", "Ste. 100", "2F", "B", "C/O Jane Doe", "Attn: Bob", "Jane Doe", "Apt Smith", "Apt B", "Ste A1"].map((u, i) => `a,b,${i + 1} Oak St,${u},X,IL,62701,,`);
     const r = readAddressFile([head, ...rows].join("\n"));
-    expect(r.ok && r.file.rows.map((x) => x.unit)).toEqual(["Apt 2", "Unit 4B", "#3", "Ste. 100", "2F", "B", null, null, null]);
-    expect(r.ok && r.file.unitsLeftOff).toBe(3);
-    expect(JSON.stringify(r)).not.toMatch(/Jane|Bob/);
+    expect(r.ok && r.file.rows.map((x) => x.unit)).toEqual(["Apt 2", "Unit 4B", "#3", "Ste. 100", "2F", "B", null, null, null, null, "Apt B", "Ste A1"]);
+    expect(r.ok && r.file.unitsLeftOff).toBe(4);
+    expect(JSON.stringify(r)).not.toMatch(/Jane|Bob|Smith/);
   });
   it("records dropped column names clean and capped", () => {
     const r = readAddressFile(`address,city,state,zip,Party\u0000x,${"y".repeat(300)},${Array.from({ length: 250 }, (_, i) => `c${i}`).join(",")}\n1 Oak St,X,IL,62701\n`);

@@ -171,8 +171,13 @@ describe("validateJob", () => {
       compensationMethod: v.compensationMethod, payRateCents: v.payRateCents, headcount: v.headcount,
       hiringMethod: { modes: v.hiringModes }, requirements: v.requirements, campaignDisclosure: v.disclosure,
       supportContacts: v.supportContacts, measureIds: v.measureIds, cancellationNoticeHours: v.cancellationNoticeHours,
+      providesTraining: v.providesTraining,
     };
     expect(validateJob(jobToForm(stored))).toEqual(r);
+    const flagged = validateJob({ ...form, providesTraining: "on" });
+    expect(flagged.ok && flagged.value.providesTraining).toBe(true);
+    if (!flagged.ok) return;
+    expect(validateJob(jobToForm({ ...stored, providesTraining: true }))).toEqual(flagged);
   });
 
   it("parses a complete form", () => {
@@ -184,6 +189,7 @@ describe("validateJob", () => {
       payRateCents: 2550,
       hiringModes: ["application", "invite"],
       requirements: { badge: true, registration: false, training: "Petition basics" },
+      providesTraining: false,
       disclosure: { issues: { housing_affordability: "support" } },
       measureIds: ["I-305", "I-12"],
       cancellationNoticeHours: 12,

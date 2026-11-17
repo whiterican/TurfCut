@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, RefreshCw, Smartphone, UserCheck } from "lucide-react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, Plus, RefreshCw, Smartphone, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
@@ -67,7 +67,7 @@ function describe(a: Action): string {
     case "check_out":
       return "Check-out";
     case "log":
-      return `+${a.count} ${a.unit}`;
+      return `+${a.count} ${a.count === 1 ? a.unit.replace(/s$/, "") : a.unit}`;
     case "return_packet":
       return `Packet ${a.packetId} returned`;
     case "hold_packet":
@@ -377,13 +377,26 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       ) : (
         <div className="space-y-5">
           {petition ? (
-            <form onSubmit={submit((fd) => ({ kind: "log", unit: "signatures", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">
-              <label className="w-32 space-y-1.5">
-                <span className="label">Signatures</span>
-                <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required placeholder="5" />
-              </label>
-              <button className="btn-primary"><PenLine aria-hidden className="btn-icon" />Add signatures</button>
-            </form>
+            <>
+              {/* The tally (Caden, Nov 17): one tap per signature, counted on this phone first, so it works without signal.
+                  Each tap is its own entry in the shift's record; a tap too many is corrected by the supervisor, like any count. */}
+              <div className="signature-tally">
+                <p className="min-w-0">
+                  <span className="label block">Signatures this shift</span>
+                  <span className="signature-tally-figure">{st.signatures}</span>
+                </p>
+                <button type="button" className="btn-primary signature-tally-plus" onClick={() => record({ kind: "log", unit: "signatures", count: 1 })} aria-label="Add one signature">
+                  <Plus aria-hidden className="size-7" />1
+                </button>
+              </div>
+              <form onSubmit={submit((fd) => ({ kind: "log", unit: "signatures", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">
+                <label className="w-32 space-y-1.5">
+                  <span className="label">Several at once</span>
+                  <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required placeholder="5" />
+                </label>
+                <button className="btn-secondary"><PenLine aria-hidden className="btn-icon" />Add signatures</button>
+              </form>
+            </>
           ) : (
             <>
               <form onSubmit={submit((fd) => ({ kind: "log", unit: "doors", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">

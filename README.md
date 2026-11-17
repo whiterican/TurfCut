@@ -487,7 +487,8 @@ Showing **Pay now** live needs four things. Two staff who can approve pay
 `seed:demo-accounts` refuses a live key.
 
 1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
-   the test secret key, and set `TURFCUT_DEMO=1` (or `true` or `yes`). With that flag the app
+   the test secret key, and set `TURFCUT_DEMO=1` (or `true` or `yes`; `0`, `false` or `no` is off, and any
+   other value counts as on, so a typo fails closed). With that flag the app
    itself refuses a live secret key (`sk_live_` or `rk_live_`) and
    live-mode webhook events. A Vercel preview or development deploy
    (`VERCEL_ENV` set and not `production`) also refuses a live secret key;
@@ -1567,7 +1568,9 @@ roles, one slice at a time.
   organization Turfcut no longer approves, leaves the workers' feed.
   Applying, claiming, inviting, sending an offer and accepting one are
   refused with the reason ("Hiring is paused on this job: …"), not only
-  scheduling. Review, decline and withdraw still work. People already
+  scheduling. The check runs again under the worker and job locks, so an
+  approval withdrawn or rules lapsing while a hire is in flight stops it
+  too. Review, decline and withdraw still work. People already
   hired keep their place, and scheduling them follows its own freeze.
   Everything opens again once the reason clears.
 - **A rule change is a new version.** "Propose a new version" prefills the

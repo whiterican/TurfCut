@@ -156,11 +156,14 @@ async function open(
     const [existing, acceptedCount, fresh, wk, offers] = await Promise.all([
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
       tx.engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } }),
-      tx.job.findUniqueOrThrow({ where: { id: jobId }, include: { jurisdiction: { select: { rules: true } } } }),
+      tx.job.findUniqueOrThrow({ where: { id: jobId }, include: { org: { select: { approved: true } }, jurisdiction: true } }),
       tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true, profileId: true } }),
       liveOffers(tx, jobId, null, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
+    // The pause again, under the locks (rule 6): approval withdrawn or rules lapsed since the check above stops this too.
+    const pausedNow = hiringPausedReasons(fresh.org, fresh.jurisdiction, at);
+    if (pausedNow.length) return { ok: false as const, reason: hiringPausedMessage(pausedNow) };
     if (actor.kind === "worker") {
       // Again under the locks, against the job and wallet as they are now: a credential removed (or a requirement
       // or providesTraining change) since the check above can't slip through. Sending an invitation is not checked;
@@ -297,13 +300,18 @@ export async function moveEngagement(
     const [current, acceptedCount, job, wk, reviewed, lastOffer, offers] = await Promise.all([
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
-      tx.job.findUniqueOrThrow({ where: { id: e.jobId }, include: { jurisdiction: { select: { rules: true } } } }),
+      tx.job.findUniqueOrThrow({ where: { id: e.jobId }, include: { org: { select: { approved: true } }, jurisdiction: true } }),
       tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true, profileId: true } }),
       tx.engagementEvent.count({ where: { engagementId, type: "IN_REVIEW" } }),
       tx.engagementEvent.findFirst({ where: { engagementId, type: "OFFERED" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
       liveOffers(tx, e.jobId, engagementId, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
+    if (action === "offer" || action === "accept") {
+      // The pause again, under the locks (rule 6), as in open().
+      const pausedNow = hiringPausedReasons(job.org, job.jurisdiction, at);
+      if (pausedNow.length) return { ok: false as const, reason: hiringPausedMessage(pausedNow) };
+    }
     if (action === "accept" && actor.kind === "worker") {
       // Again under the locks, against the job and wallet as they are now (including providesTraining).
       const missing = await credentialsMissing(tx, job, e.workerId, at);

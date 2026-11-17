@@ -79,6 +79,38 @@ const idOf = (r: { ok: boolean } & ({ engagementId: string } | object)) => ("eng
   const acceptOk = await moveEngagement(cApplied, "accept", worker(C));
   check("…and claiming and accepting go through", claimOk.ok && acceptOk.ok, { claimOk, acceptOk });
 
+  // --- Paused while a hire waits for the lock: checked again under it (rule 6) ---
+  // Holds the worker's lock so the action passes the early check and then waits inside its transaction,
+  // runs `pause` meanwhile (it commits at once, on another connection), then lets the action through.
+  const whileWaiting = async <R,>(w: string, act: () => Promise<R>, pause: () => Promise<unknown>): Promise<R | undefined> => {
+    let out: R | undefined;
+    await p.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${w}`}))`;
+      void act().then((r) => (out = r));
+      let waiting = 0;
+      for (let i = 0; i < 100 && !waiting; i++) {
+        await new Promise((r) => setTimeout(r, 50));
+        const rows = await p.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND wait_event = 'advisory' AND datname = current_database()`;
+        waiting = Number(rows[0].n);
+      }
+      check("(the action is waiting on the worker's lock)", waiting > 0, waiting);
+      await pause();
+    }, { timeout: 15_000 });
+    for (let i = 0; i < 200 && !out; i++) await new Promise((r) => setTimeout(r, 25));
+    return out;
+  };
+  const before2 = await p.engagement.count({ where: { jobId: j2.id } });
+  const racedClaim = await whileWaiting(A, () => claimJob(A, A, j2.id), () => p.organization.update({ where: { id: ORG2 }, data: { approved: false } }));
+  check("approval withdrawn while a claim waits: refused under the lock, nothing written", !!racedClaim && !racedClaim.ok && /Hiring is paused on this job: Turfcut's approval/.test(reasonOf(racedClaim)) && (await p.engagement.count({ where: { jobId: j2.id } })) === before2, racedClaim);
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: true } });
+  const bApplied2 = idOf(await applyToJob(B, B, j2.id));
+  const org2 = { kind: "org" as const, profileId: OWNER2, orgId: ORG2 };
+  await moveEngagement(bApplied2, "review", org2);
+  const racedOffer = await whileWaiting(B, () => moveEngagement(bApplied2, "offer", org2), () => p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: new Date(Date.now() - DAY) } }));
+  const offered2 = await p.engagementEvent.count({ where: { engagementId: bApplied2, type: "OFFERED" } });
+  check("rules lapse while an offer waits: refused under the lock, no offer made", !!racedOffer && !racedOffer.ok && /Hiring is paused on this job: Counsel approval/.test(reasonOf(racedOffer)) && (await statusOf(bApplied2)) === "APPLIED" && offered2 === 0, { racedOffer, offered2 });
+  await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: null } });
+
   await p.$disconnect();
   if (fails) { console.log(`${fails} FAILED`); process.exit(1); }
 })().catch((e) => { console.error(e); process.exit(1); });

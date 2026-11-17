@@ -39,11 +39,13 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                         {r.state.packetsHeld.length > 0 && ` · ${r.state.packetsHeld.length} kept`}
                       </span>
                     </span>
-                    {/* The worker's signatures this shift, where a supervisor's eye goes first; it ticks as they tap +1 (the live summary refreshes the page). */}
+                    {/* The worker's signatures this shift, where a supervisor's eye goes first. It follows their +1 taps: the
+                        live summary's version includes each shift's count, and a change refreshes the page (about 10 s). */}
                     {/* Last and a fixed width, so the counts stand in one column whatever the badge says. */}
                     <span className="ml-auto flex shrink-0 items-center gap-3">
                       <StatusBadge status={label} />
-                      {r.state.signatures > 0 && (
+                      {/* In a group that collects signatures every row has the figure, 0 included, so the column holds. */}
+                      {g.signatures > 0 && (
                         <span className="min-w-[5.5rem] text-right leading-tight">
                           <span className="block text-base font-semibold tabular-nums text-fg">{r.state.signatures}</span>
                           <span className="block text-xs text-muted">{r.state.signatures === 1 ? "signature" : "signatures"}</span>

@@ -4327,6 +4327,10 @@ html:has(.more-sheet[open])::view-transition {
   .sun .btn-sm {
     min-height: 2.75rem;
   }
+  /* The tally's +1 stays a thumb's target here too: the 48px rule above is unlayered and would beat its 64px. */
+  .sun .signature-tally-plus {
+    min-height: 4rem;
+  }
   /* Choice rows' hairlines too: in Sunlight no line is thinner than 2px. */
   .sun :is(.choice-list, .choice-rows) > :not(:last-child) {
     border-bottom-width: 2px;

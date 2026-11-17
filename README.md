@@ -137,6 +137,10 @@ exercise the locks, triggers and data rules, not the RLS policies.
      transaction).
    - Then `prisma/p1-discovery.sql` (P1.6: saved and hidden jobs on the
      feed), before deploying the P1.6 build. Safe to run again.
+   - Then `prisma/c3-provides-training.sql` ("We provide training" on
+     jobs, PR #187), **before** deploying the build that reads
+     `Job.providesTraining`: until it runs, job pages and hiring fail.
+     Safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -353,8 +357,18 @@ append-only and stay. Export that project's `DATABASE_URL` in the shell
 first; tsx doesn't read `.env.local`. Without `--yes` it only says where it
 would write. It makes:
 
-- six organizations with their staff and twelve workers, all named "… (demo)";
-- 27 published Colorado jobs, all titled "… (demo)" and fictional: local
+- six organizations with their staff and twelve workers, all named "… (demo)".
+  Each demo worker holds a self-reported Colorado circulator registration,
+  affidavit status, badge and the "Petition basics" and "Canvass basics"
+  training, since hiring checks credentials;
+- 27 published Colorado jobs across eight cities, all titled "… (demo)" and
+  fictional. Denver jobs are filed under the base seed's Denver profile. On
+  a guarded demo database (`TURFCUT_DEMO=1` and `TURFCUT_DEMO_PROJECT_REF`
+  matching the ref in `NEXT_PUBLIC_SUPABASE_URL` and `DATABASE_URL`), the
+  rest go under a statewide CO profile: the database's current usable one,
+  or one the demo seed adds with a 14-day expiry and a "DEMO ONLY" label
+  (not counsel-approved). Elsewhere those jobs are filed in Denver, and no
+  statewide profile is created. They cover local
   measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,
   Republican, Libertarian, Green, other). The candidates have invented
@@ -431,8 +445,11 @@ live Supabase project (`txzxtvsfzxfhgfiurufq`) is never the demo project:
    (`sk_test_…`) with its test-mode `STRIPE_WEBHOOK_SECRET`, and
    `TURFCUT_DEMO=1`. Its name and URL are up to the owner; this README
    doesn't assume one. Redeploy after setting them.
-5. **Seed it**, from a shell holding only the demo project's values:
-   `npm run seed`, `npm run seed:demo -- --yes`, then the demo logins below.
+5. **Seed it**, from a shell holding only the demo project's values, with
+   `NEXT_PUBLIC_SUPABASE_URL`, `TURFCUT_DEMO_PROJECT_REF=<demo-ref>` and
+   `TURFCUT_DEMO=1` exported **before** seeding (as in the block below), so
+   `seed:demo` runs guarded: `npm run seed`, `npm run seed:demo -- --yes`,
+   then the demo logins below.
 
 ### Demo logins (a dedicated demo project only)
 
@@ -444,11 +461,12 @@ logins there:
 ```bash
 # In the demo project's shell only. Nothing here goes in a committed file.
 export DATABASE_URL=…                 # the demo project's database (same project as the URL below)
+export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
+export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the ref in the URL and in DATABASE_URL: "yes, this is the demo project"
+export TURFCUT_DEMO=1                 # with the two above, seed:demo runs guarded
 npm run seed && npm run seed:demo -- --yes
 npm run seed:demo-accounts -- --plan  # lists every login it would make; writes nothing
-export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=…    # the demo project's secret key
-export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the URL's project ref: "yes, this is the demo project"
 export DEMO_ACCOUNTS_PASSWORD=…       # 12+ characters, shared by every demo login
 npm run seed:demo-accounts -- --yes
 ```
@@ -472,6 +490,11 @@ the seeds didn't make: a profile in the database or a login in Supabase
 Auth that isn't a demo login means real people use it. Re-running it
 leaves existing logins alone; the password is never stored.
 
+The "DEMO ONLY" statewide profile expires in about 14 days. On a guarded
+demo, `npm run seed:demo -- --yes` extends it by 14 days once it has expired
+or has 7 days or fewer left, and leaves the rest of the demo data as it
+is. Run before then, it changes nothing.
+
 ### Pay now in the demo (Stripe test mode only)
 
 Showing **Pay now** live needs four things. Two staff who can approve pay
@@ -480,9 +503,12 @@ Showing **Pay now** live needs four things. Two staff who can approve pay
 `seed:demo-accounts` refuses a live key.
 
 1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
-   the test secret key, and set `TURFCUT_DEMO=1` (or `true` or `yes`). With that flag the app
-   itself refuses a live secret key (`sk_live_` or `rk_live_`) and
-   live-mode webhook events. A Vercel preview or development deploy
+   the test secret key, and set `TURFCUT_DEMO=1` (or `true`, `yes` or
+   `on`; `0`, `false`, `no` or `off` is off). Any other value counts as on
+   for the Stripe guard, so a typo refuses live keys and the server log says
+   why payouts are off; the demo seed wants a clear on and refuses a typo.
+   With that flag the app itself refuses a live secret key (`sk_live_` or
+   `rk_live_`) and live-mode webhook events. A Vercel preview or development deploy
    (`VERCEL_ENV` set and not `production`) also refuses a live secret key;
    local and CI (unset `VERCEL_ENV`) and production are unchanged unless
    the flag is set. Regardless of those flags, the pay path refuses a
@@ -760,7 +786,9 @@ Jobs and hiring, built on the M1 profile.
   affidavit). The feed's "No credentials" filter uses the same list.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
   orgs answer applications with an offer (C3) and workers accept offers and
-  invitations. Headcount is enforced under a lock, so simultaneous claims
+  invitations. Applying, claiming and accepting an invitation or offer
+  check the job's credentials, with "We provide training" waiving only a
+  badge or training (see C3 scope). Headcount is enforced under a lock, so simultaneous claims
   can't overfill a job.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
@@ -1286,6 +1314,34 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 
 ## C3 scope — the hiring hub
 
+- **Credentials before hiring (demo audit, Nov 2026)**: applying to,
+  instantly claiming, and accepting a job (an invitation or an offer) check
+  the worker's credentials on the server (`src/lib/job-credentials.ts`). A
+  job that needs a circulator registration, an affidavit status, a badge
+  or a training course (asked for by the organization, or by the
+  jurisdiction's circulator rules on petition jobs) refuses a worker whose
+  current wallet doesn't hold it, and says which one to add on Profile →
+  Credentials. Self-reported credentials count, expired ones don't, and a
+  registration or affidavit status for another state doesn't. A badge is
+  an "Other" (or training) credential named exactly "Badge", "Circulator
+  badge" or "Paid circulator badge" (any case, extra spaces ignored), so
+  "No badge yet" doesn't count. Training is a "Training completed"
+  credential named for the job's course (same matching); no new
+  credential kind. Every check runs again under the locks, against the
+  job and wallet as they are then, so a credential removed (or a setting
+  changed) meanwhile can't slip through. Sending an invitation isn't
+  checked; accepting it is.
+- **"We provide training" (owner decision, Nov 16 2026)**: an
+  organization can tick this on a job (`Job.providesTraining`, default
+  off; `prisma/c3-provides-training.sql`). When it's on, a missing required
+  training course or badge doesn't block apply, claim or accept on that
+  job. A required circulator registration or affidavit status is always
+  enforced, whatever the setting. When it's off, every required credential
+  is enforced. The job page tells workers when it's on. Turning it off
+  later doesn't touch anyone already hired: the setting only governs new
+  applies, claims and accepts (an offer or invitation still waiting is
+  checked when the worker accepts). Scheduling and check-in aren't
+  re-checked.
 - **Pipeline (C3.1)**: an organization can mark an application *in review*
   (the worker sees "In review"), send an *offer*, or mark it *not selected*
   with a reason code from a fixed list and an optional note the worker
@@ -1524,14 +1580,24 @@ roles, one slice at a time.
   version's page shows the rules as the gate reads them, each open job and
   what freezes it, the other versions of the place, and Turfcut's decisions
   on it.
+- **A city profile covers that city only (demo audit, Nov 2026).** A job
+  in Aurora can't publish under the Denver profile. It's filed under
+  Aurora's own profile or a statewide CO one (no locality), and the publish
+  gate says which to pick. A statewide profile covers every city in its
+  state. Jobs already published keep running, and their rules line says
+  "Aurora, CO · filed under Denver rules v1" instead of passing as Denver.
+  The rules line on job cards and job pages names the job's own city
+  ("Aurora, CO (statewide rules v1)").
 - **Hiring pauses with the rules and the organization's approval (demo
   audit, Nov 2026).** A published job whose rule profile fails the gate
   (expired, unapproved, superseded, not yet effective), or whose
   organization Turfcut no longer approves, leaves the workers' feed.
   Applying, claiming, inviting, sending an offer and accepting one are
   refused with the reason ("Hiring is paused on this job: …"), not only
-  scheduling. Review, decline and withdraw still work. People already
-  hired keep their place, and scheduling them follows its own freeze.
+  scheduling. The check runs again under the worker and job locks, so an
+  approval withdrawn or rules lapsing meanwhile stops any hire that
+  hasn't reached that check yet. Review, decline and withdraw still work.
+  People already hired keep their place, and scheduling them follows its own freeze.
   Everything opens again once the reason clears.
 - **A rule change is a new version.** "Propose a new version" prefills the
   form from the current rules: pay methods (ticking per-unit records

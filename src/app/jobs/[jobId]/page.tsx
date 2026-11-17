@@ -10,7 +10,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jobRulesLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { JobPhoto } from "@/components/JobPhoto";
@@ -118,7 +118,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
     {isOwnOrg ? (
       <Masthead
         className="job-head"
-        eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
+        eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jobRulesLabel(job.geography, job.jurisdiction)}`}
         title={job.title}
         titleClassName="w-fit"
         titleStyle={shareStyle(`job-${job.id}`)}

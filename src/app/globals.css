@@ -2626,9 +2626,9 @@ body {
   .menu-button {
     @apply relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition;
   }
-  /* The pill is glass, and its glass is a layer under the photo and the name (Caden, Nov 15): an iPhone drew the
+  /* The pill's pane is a layer under the photo and the name (Caden, Nov 15): an iPhone drew the
      name soft while it sat inside the blurred pill; above the layer it is drawn as page. z-index 0 holds the layer
-     inside the pill (a stacking context, without making the pill a backdrop root, so the layer still blurs the page). */
+     inside the pill (a stacking context). The pane has no blur at all now (Nov 16): it is solid. */
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
     z-index: 0;
@@ -2642,11 +2642,14 @@ body {
     z-index: -1;
     border: 1px solid var(--glass-border);
     border-radius: inherit;
-    background: var(--glass-sheen), var(--glass-bg-strong);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight);
+    /* Solid and sharp (Caden, Nov 16: "the white pill not blurred"): the plain surface, no blur behind it, no sheen,
+       and a tight shadow instead of the wide soft glow, so its edge is a line and not a haze. */
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgb(28 15 46 / 0.16);
     pointer-events: none;
+  }
+  .dark .menu-button[data-named]::before {
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
   }
   .menu-avatar {
     @apply flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold;
@@ -4745,7 +4748,7 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, none elsewhere) is what is left. A row held
+   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, light glass elsewhere) is what is left. A row held
    in place by keyboard focus keeps its bar. */
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
@@ -4799,6 +4802,21 @@ html:not(.sun) .site-header {
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   background: none;
 }
+/* Then blurred and see-through, the status bar's own size (Caden, Nov 16: "make the status bar blurred and
+   transparent but only as big as it is now"): the clock's strip (Nov 15: it ends just under the time and battery, at the
+   foot of the camera, so it never reaches a name), a light tint of the page's top colour over a modest blur, and a short fade in its last quarter so the edge reads as glass
+   and not a block. At rest the page behind it is the same colour and nothing shows; what scrolls up under the clock
+   softens. Only where the page draws under the clock (an installed iPhone app): elsewhere the safe area is 0 and so
+   is this. A Safari tab's strip is Safari's own and is not touched by this. */
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+    background: color-mix(in srgb, var(--root-top) 30%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 75%, transparent 100%);
+  }
+}
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.
    A list, not "not (a or b or c)": a browser that does not know one of these features (Safari has no
@@ -4820,5 +4838,9 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     background: var(--root-top);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }

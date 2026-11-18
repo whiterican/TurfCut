@@ -210,7 +210,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                 <p className={`text-sm font-semibold ${i.purgedAt ? "text-muted" : "text-fg"}`}>
                   {i.purgedAt ? (
                     <>
-                      The file's data (addresses and every other column) deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain.
+                      The file&apos;s data (addresses and every other column) deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain.
                     </>
                   ) : (
                     <>

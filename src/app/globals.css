@@ -210,7 +210,7 @@
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
   /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
-     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+     pane is that same colour part see-through. While the menu is open the strip behind the clock is this colour dimmed like the page beside the drawer (Nov 17). */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
   --drawer-bg: color-mix(in srgb, var(--drawer-root) 68%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
@@ -389,7 +389,7 @@ html {
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
   /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
-     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+     pane is that same colour part see-through. While the menu is open the strip behind the clock is this colour dimmed like the page beside the drawer (Nov 17). */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
   --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   /* The page is one purple gradient (Caden, Nov 12): strong and opaque at the top of the screen, easing to
@@ -2622,7 +2622,7 @@ body {
   /* The drawer's glass is a layer of its own under the words, not the pane they sit in (Caden, Nov 15: "keep the blur,
      overlay the name on top of it"). An iPhone drew text inside a blurred pane soft; text above one is drawn as
      page. The dialog holds the layer (it does not scroll), the pane holds the words and scrolls over it. No sheen and
-     no lit top edge: the pane meets the status bar's strip, which is one flat colour. Blur only: the usual glass recipe
+     no lit top edge: the pane's top meets the status bar's strip. Blur only: the usual glass recipe
      also saturates what shows through, and the pane's top would no longer be the strip's colour. */
   .more-sheet::before {
     content: "";
@@ -2763,12 +2763,18 @@ body {
   .sun .phone-top::before {
     display: none;
   }
-  /* The backdrop is clear, and still takes the press that closes the drawer. An installed app on an iPhone
+  /* The backdrop adds no colour (it is blurred, below), and still takes the press that closes the drawer. An installed app on an iPhone
      colours the status bar's strip from whatever is fixed across the top of the screen: a dim backdrop made
      that strip a dark band above the drawer (Caden's phone, Nov 11). The page is dimmed by the drawer's own
      shadow (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
     background: transparent;
+    /* Blurred, not dimmed (Caden, Nov 17): the page behind the open menu goes soft. Only a blur: it adds no colour,
+       so the strip above the drawer is still read from the pane and the page, never from the backdrop. Static, not
+       eased in: a second blur animating under the pane's own is one more thing for an iPhone to draw as a solid box
+       (Nov 13). Off in Sunlight, and under reduced transparency and more contrast. */
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
   /* Forced colours drop shadows: the backdrop veils the page there. */
   @media (forced-colors: active) {
@@ -4594,6 +4600,10 @@ html:has(.more-sheet[open])::view-transition {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+  .more-sheet::backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
   /* The pane and a card are the same solid colour here: the row you are on takes the dock's tint instead. */
   html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
     background: var(--dock-capsule);
@@ -4650,15 +4660,17 @@ body:has(.thread-top) {
   --subtle: var(--fg);
   --kicker: var(--fg);
 }
-/* Sunlight is plain (the solid fallback says the same above): the drawer's layer is their solid --drawer-bg, unblurred. */
-.sun .more-sheet::before {
+/* Sunlight is plain (the solid fallback says the same above): the drawer's layer is their solid --drawer-bg, unblurred,
+   and so is the page behind it. */
+.sun .more-sheet::before,
+.sun .more-sheet::backdrop {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 /* An installed app on a phone draws the status bar's strip itself, above the page, where the page
    cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across
-   the top. While the menu drawer is open both take the drawer's colour (and its backdrop is clear), and
-   the drawer's top edge is square, so the drawer reads as running to the top of the screen.
+   the top. While the menu drawer is open the root takes the drawer's colour dimmed like the page beside it (Nov 17; the
+   phone's strip is not under the drawer's shadow), and the drawer's top edge is square.
    Unlayered on purpose: the root's and the body's own backgrounds are unlayered, and a layered rule would lose to them. */
 @media screen {
   /* A page with a header across the top: the strip takes the header's pane, not the bare purple. On a
@@ -4681,9 +4693,16 @@ body:has(.thread-top) {
   }
 }
 @media screen {
+  /* The strip behind the clock is dimmed like the page beside the drawer (Caden, Nov 17: "try the band again"; on Nov 11 it
+     was taken away as a dark band). It is the drawer's colour under the same dim the drawer's shadow lays on the page, so
+     the strip is one with the page next to it. The pane below it stays the drawer's own colour. */
   html:has(.more-sheet[open]) {
-    --root-top: var(--drawer-root);
+    --drawer-strip: color-mix(in srgb, var(--drawer-root) 55%, rgb(24 20 30));
+    --root-top: var(--drawer-strip);
     --root-foot: var(--drawer-root);
+  }
+  html.dark:has(.more-sheet[open]) {
+    --drawer-strip: color-mix(in srgb, var(--drawer-root) 40%, rgb(8 4 14));
   }
   /* No gradient either: it would show through the top of the pane and not in the strip. */
   body:has(.more-sheet[open]) {

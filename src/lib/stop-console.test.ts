@@ -33,7 +33,10 @@ describe("exportCsv", () => {
   const base = { bookNumber: 1, stopNumber: 2, line1: "12 Elm St", unit: null, city: "Denver", state: "CO", zip: "80202", sourceRecordId: null, outcome: null, talkedTo: null, leftLiterature: null, signatures: null, recordedAt: null, holder: null };
   it("writes a header and one line per stop, with To do for a stop with no outcome", () => {
     const csv = exportCsv([base, { ...base, stopNumber: 3, sourceRecordId: "V123", outcome: "DONE", talkedTo: true, leftLiterature: false, signatures: 4, recordedAt: new Date("2026-11-17T08:05:09.123Z"), holder: "Alex Rivera" }]);
-    const lines = csv.trimEnd().split("\r\n");
+    // A byte-order mark first, so a spreadsheet reads the file as UTF-8 and an accented street name stays intact.
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+    expect(csv.indexOf("\uFEFF", 1)).toBe(-1);
+    const lines = csv.slice(1).trimEnd().split("\r\n");
     expect(lines).toHaveLength(3);
     expect(lines[0]).toBe('"Walkbook","Stop","Address","Unit","City","State","ZIP","Source record ID","Outcome","Talked with someone","Left literature","Signatures","Recorded at (UTC)","Held by"');
     expect(lines[1]).toBe('"1","2","12 Elm St","","Denver","CO","80202","","To do","","","","",""');

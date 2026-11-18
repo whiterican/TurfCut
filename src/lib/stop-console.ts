@@ -107,5 +107,6 @@ export function exportCsv(rows: readonly ExportRow[], pollColumns: readonly Poll
         .join(",")
     );
   }
-  return `${lines.join("\r\n")}\r\n`;
+  // The byte-order mark tells spreadsheet apps the file is UTF-8, so a street name with an accent stays intact (the finance export does the same).
+  return `\uFEFF${lines.join("\r\n")}\r\n`;
 }

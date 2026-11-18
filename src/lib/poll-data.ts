@@ -27,6 +27,8 @@ export type Staff = { profileId: string; orgId: string };
 export type WorkerActor = { workerId: string; profileId: string };
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+/** The same key, shared: answers on many books record side by side, but wait while a question is added or changed. */
+const lockShared = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock_shared(hashtext(${key}))`;
 const HIRED = ["ACTIVE", "CLAIMED"] as const;
 const lower = (v: unknown) => String(v ?? "").trim().toLowerCase();
 
@@ -162,6 +164,9 @@ async function record(who: Who, stopIdRaw: unknown, clientIdRaw: unknown, raw: R
       const stop = await tx.walkbookStop.findUnique({ where: { id: stopId }, select: { id: true, walkbookId: true, walkbook: { select: { jobId: true, job: { select: { orgId: true, type: true } } } } } });
       if (!stop) return gone;
       await lock(tx, `walkbook:${stop.walkbookId}`);
+      // A question being changed now finishes first, so an answer is never written against wording just replaced.
+      // Lock order: the walkbook, then the job's poll (shared); adding or changing a question takes only the poll.
+      await lockShared(tx, `poll:${stop.walkbook.jobId}`);
       let engagementId: string | null = null;
       if (who.kind === "WORKER") {
         const held = await tx.walkbookAssignment.findFirst({ where: { walkbookId: stop.walkbookId }, orderBy: { createdAt: "desc" }, select: { engagementId: true } });

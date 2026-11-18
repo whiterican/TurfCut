@@ -176,9 +176,15 @@ export function embedProblem(job: { orgId: string; status: string } | null, orgI
   return null;
 }
 
-/** What an embedded job's card says about applying, from the job as it is now. */
-export function embedState(job: { status: string; endsAt: Date | null }, now: Date): "open" | "paused" | "closed" {
-  if (job.status === "PUBLISHED" && (!job.endsAt || job.endsAt.getTime() >= now.getTime() - 86_400_000)) return "open";
+/**
+ * What an embedded job's card says about applying, from the job as it is now.
+ * `hiringPaused` is the feed's own rule worked out on the server
+ * (hiringPausedReasons: the organization's approval is on hold, or the rules
+ * profile fails the gate): such a job is published but not taking anyone,
+ * so it reads "paused", not "open".
+ */
+export function embedState(job: { status: string; endsAt: Date | null; hiringPaused?: boolean }, now: Date): "open" | "paused" | "closed" {
+  if (job.status === "PUBLISHED" && (!job.endsAt || job.endsAt.getTime() >= now.getTime() - 86_400_000)) return job.hiringPaused ? "paused" : "open";
   return job.status === "PAUSED" ? "paused" : "closed";
 }
 

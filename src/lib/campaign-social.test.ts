@@ -74,6 +74,11 @@ describe("posts", () => {
     expect(embedState({ status: "PUBLISHED", endsAt: new Date("2026-10-01") }, now)).toBe("closed");
     expect(embedState({ status: "PAUSED", endsAt: null }, now)).toBe("paused");
     expect(embedState({ status: "CLOSED", endsAt: null }, now)).toBe("closed");
+    // Published but hiring paused (organization on hold, rules failing the gate): not "open".
+    expect(embedState({ status: "PUBLISHED", endsAt: null, hiringPaused: true }, now)).toBe("paused");
+    expect(embedState({ status: "PUBLISHED", endsAt: null, hiringPaused: false }, now)).toBe("open");
+    expect(embedState({ status: "PUBLISHED", endsAt: new Date("2026-10-01"), hiringPaused: true }, now)).toBe("closed");
+    expect(embedState({ status: "CLOSED", endsAt: null, hiringPaused: true }, now)).toBe("closed");
   });
 });
 

@@ -3,7 +3,8 @@
    reason, not only scheduling. People already hired keep their place, and everything comes back when it's cleared. */
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { listHiringJobs, listPublicCampaigns } from "@/lib/campaign-social-data";
+import { listHiringJobs, listPublicCampaigns, loadPosts, loadPublicPost } from "@/lib/campaign-social-data";
+import { embedState } from "@/lib/campaign-social";
 import { hiringOpenWhere, hiringPausedReasons } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
@@ -100,6 +101,28 @@ const idOf = (r: { ok: boolean } & ({ engagementId: string } | object)) => ("eng
   check("rules lapsed: off the hiring list, and the directory counts 0", lapsedList.hiring.length === 0 && lapsedList.count === 0, lapsedList);
   await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: null } });
   check("cleared: back on the list and in the count", (await listed()).count === 1);
+
+  // A job embedded in a post reads "paused" while hiring is paused, with no organization or rules left on the post.
+  const post = await p.campaignPost.create({ data: { profileId: camp.id, authorId: OWNER2, body: "We are hiring.", jobId: j2.id }, select: { id: true } });
+  const embedded = async () => {
+    const posts = (await loadPosts(camp.id)).posts;
+    const one = posts.find((x) => x.id === post.id)?.job ?? null;
+    const viaPage = (await loadPublicPost("second_field_co", post.id))?.post.job ?? null;
+    return { one, viaPage, state: one ? embedState(one, new Date()) : null, viaPageState: viaPage ? embedState(viaPage, new Date()) : null };
+  };
+  const e0 = await embedded();
+  check("an open job's embed reads open", e0.state === "open" && e0.viaPageState === "open", e0);
+  check("…and carries neither the organization nor the rules", !!e0.one && !("org" in e0.one) && !("jurisdiction" in e0.one), e0.one && Object.keys(e0.one));
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: false } });
+  const e1 = await embedded();
+  // (The post's own page is gone with the campaign while its organization is unapproved, so only the post lists show it.)
+  check("approval withdrawn: the embed reads paused, and the post's own page is hidden with the campaign", e1.state === "paused" && e1.viaPage === null, e1);
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: true } });
+  await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: new Date(Date.now() - DAY) } });
+  const e2 = await embedded();
+  check("rules lapsed: the embed reads paused", e2.state === "paused" && e2.viaPageState === "paused", e2);
+  await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: null } });
+  check("cleared: the embed reads open again", (await embedded()).state === "open");
 
   // hiringOpenWhere (the query) and hiringPausedReasons (the feed and the server) agree, profile state by profile state.
   const original = await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: JUR } });

@@ -1,6 +1,6 @@
 /**
  * File-to-walkbook (W1), the database half. Staff bring an authorized file
- * (addresses only are kept: src/lib/walkbooks.ts), cut its addresses into
+ * (every column is stored for 30 days, never shown to workers: src/lib/walkbooks.ts), cut its addresses into
  * numbered walkbooks on a job, and hand each book to a worker hired on that
  * job. Who holds a book is append-only history (WalkbookAssignment): a new
  * row each time it changes hands or is taken back; the newest row is who

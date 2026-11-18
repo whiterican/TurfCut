@@ -40,6 +40,9 @@ export async function recordPollAction(_prev: OutcomeState, fd: FormData): Promi
   if (!r) return { ok: false, retry: true, message: TRY_AGAIN, errors: {} };
   if (!r.ok) {
     if (r.gone) return { ok: false, gone: true, message: "This walkbook may have been handed on or taken back. Refresh to see what you hold now.", errors: {} };
+    // A refusal means the page is behind (staff changed an answer, or the poll itself changed, while it was open): send the page
+    // as it is now, so that question reads "Recorded by someone else" and the next Save isn't refused the same way.
+    revalidatePath("/walkbooks");
     return { ok: false, message: r.reason, errors: r.errors ?? {} };
   }
   revalidatePath("/walkbooks");

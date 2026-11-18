@@ -148,7 +148,8 @@ the organization deletes the job's data. Schema approved.
     someone else recorded is refused alike whether they guess or overwrite: staff
     change it. After a take-back or hand-on the old holder loses access.
   - The worker's page follows the same rules. At a Done door they inherited
-    with the book it offers no poll until they save the door as Done themselves.
+    with the book it offers no poll, and their phone is sent nothing about that
+    door's poll, until they save the door as Done themselves.
     A question whose answer now is someone else's (an earlier holder's, or a
     staff edit) reads "Recorded by someone else", with nothing to pick and
     without the answer; their own older answer to it is not shown, and they can

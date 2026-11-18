@@ -107,7 +107,8 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("the worker still reads only their own rows: Oppose, not the staff's Undecided", myAfter.find((a) => a.questionId === Q1.id)?.choiceId === ch(Q1, "Oppose"), myAfter);
   // What the worker's own page is served: the staff-changed question is marked as someone else's (never with the answer), their older answer to it is not
   // shown as the answer now, and the question they still own is unchanged, so saving it is not refused because of the other.
-  const locks = await loadWorkerPollLocks(W[0], [s1.id, s2.id]);
+  const e0Id = e0.ok ? e0.engagementId : "";
+  const locks = await loadWorkerPollLocks(new Map([[s1.id, e0Id], [s2.id, e0Id]]));
   check("the worker's page is told which question someone else answered, and nothing about questions they own", locks.has(`${s1.id}|${Q1.id}`) && !locks.has(`${s1.id}|${Q2.id}`) && [...locks].every((k) => k.startsWith(s1.id)), [...locks]);
   const pageStop = (await loadWorkerWalkbooks(W[0])).flatMap((b) => b.stops).find((s) => s.id === s1.id)!;
   check("…their older answer to it is left off the page, the question is listed as locked, and the one they own stays", !pageStop.poll.some((a) => a.questionId === Q1.id) && pageStop.pollLocked.join() === Q1.id && pageStop.poll.some((a) => a.questionId === Q2.id) && pageStop.pollMine === true, pageStop);
@@ -172,6 +173,7 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("the next holder reads none of the first worker's answers", ((await loadWorkerPollAnswers(W[1], [s1.id, s2.id])).size) === 0);
   const inherited = (await loadWorkerWalkbooks(W[1])).flatMap((b) => b.stops).filter((s) => s.id === s1.id || s.id === s2.id);
   check("the next holder's page doesn't offer the poll at a Done door they inherited", inherited.length === 2 && inherited.every((s) => s.result.outcome === "DONE" && s.pollMine === false && s.poll.length === 0), inherited);
+  check("…nor tells their phone which questions someone else answered there, before they have been to the door", inherited.every((s) => s.pollLocked.length === 0) && (await p.pollAnswer.count({ where: { stopId: s1.id, questionId: newQ.id } })) > 0, inherited);
   const notTheirs = await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
   check("a new holder can't poll a door they never recorded as Done: a hand-on carries the state, not the visit", !notTheirs.ok && /Done/.test(notTheirs.reason), notTheirs);
   await recordStopOutcome(actor(1), s2.id, randomUUID(), { outcome: "DONE" });
@@ -183,6 +185,8 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   const blind = await recordPollAnswers(actor(1), s1.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
   const answerNow = (await loadNewestJobAnswers(ORG, job.id, [s1.id])).get(`${s1.id}|${newQ.id}`)?.choiceId;
   check("a worker can't overwrite, or probe by guessing, an answer someone else recorded: both refused alike, the answer unchanged", !guess.ok && !blind.ok && guess.reason === blind.reason && answerNow === newQ.choices[0].id, [guess, blind, answerNow]);
+  const allLocked = (await loadWorkerWalkbooks(W[1])).flatMap((b) => b.stops).find((s) => s.id === s1.id)!;
+  check("…and their page says so: the door is theirs now, that question is someone else's, and no answer is on the page", allLocked.pollMine === true && allLocked.pollLocked.includes(newQ.id) && !allLocked.poll.some((a) => a.questionId === newQ.id) && !JSON.stringify(allLocked).includes(newQ.choices[0].id), allLocked);
   const viaStaff = await staffRecordPollAnswers(owner, s1.id, form({ [newQ.id]: newQ.choices[1].id }));
   check("staff change it, and that is a row of its own", viaStaff.ok && viaStaff.saved === 1);
   await p.engagement.update({ where: { id: e1.ok ? e1.engagementId : "" }, data: { status: "CANCELLED" } });

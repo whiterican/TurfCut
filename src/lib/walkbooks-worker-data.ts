@@ -62,21 +62,23 @@ export async function loadWorkerWalkbooks(workerId: string, jobId?: string) {
   // The poll is the worker's to ask only at a door they recorded as Done themselves, and a question whose answer now
   // is someone else's (an earlier holder's, or staff's) is left out of their form: recording refuses both, so the page
   // must not offer them, nor show the worker's own older answer as if it were the answer now.
-  const [recorders, locks] = polled.length ? await Promise.all([loadStopRecorders(polled), loadWorkerPollLocks(workerId, polled)]) : [new Map<string, string>(), new Set<string>()];
+  const holderByStop = new Map(books.filter((b) => polls.has(b.job.id)).flatMap((b) => b.stops.map((s) => [s.id, heldBy.get(b.id)!] as [string, string])));
+  const [recorders, locks] = polled.length ? await Promise.all([loadStopRecorders(polled), loadWorkerPollLocks(holderByStop)]) : [new Map<string, string>(), new Set<string>()];
   return books.map((b) => ({
     ...b,
     poll: polls.get(b.job.id) ?? [],
     stops: b.stops.map((s) => {
       const result = states.get(s.id) ?? (UNVISITED as StopState);
-      const pollLocked = (polls.get(b.job.id) ?? []).filter((q) => locks.has(`${s.id}|${q.id}`)).map((q) => q.id);
+      const pollMine = result.outcome === "DONE" && recorders.get(s.id) === heldBy.get(b.id);
+      // Nothing about a door's poll goes to the phone until the door is theirs: not their own answers, and not which questions someone else answered.
       return {
         id: s.id,
         stopNumber: s.stopNumber,
         ...flat(s.address),
         result,
-        poll: (answers.get(s.id) ?? ([] as WorkerAnswerView[])).filter((a) => !locks.has(`${s.id}|${a.questionId}`)),
-        pollMine: result.outcome === "DONE" && recorders.get(s.id) === heldBy.get(b.id),
-        pollLocked,
+        poll: pollMine ? (answers.get(s.id) ?? ([] as WorkerAnswerView[])).filter((a) => !locks.has(`${s.id}|${a.questionId}`)) : ([] as WorkerAnswerView[]),
+        pollMine,
+        pollLocked: pollMine ? (polls.get(b.job.id) ?? []).filter((q) => locks.has(`${s.id}|${q.id}`)).map((q) => q.id) : [],
       };
     }),
   }));

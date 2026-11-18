@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { hiringOpenWhere, openJobsEndAfter, UUID_RE } from "@/lib/jobs";
+import { hiringOpenWhere, hiringPausedReasons, openJobsEndAfter, UUID_RE } from "@/lib/jobs";
 import { checkImage, type MediaKind, type MediaStore } from "@/lib/campaign-media";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
 import { decodeCursor, DIRECTORY_PAGE_SIZE, embedProblem, encodeCursor, likePattern, MAX_CAMPAIGNS_PER_ORG, MAX_PINNED, normalizeHandle, normalizeQuery, PAGE_SIZE, type ProfileInput } from "@/lib/campaign-social";
@@ -213,17 +213,28 @@ export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKi
 /** What an embedded job's card shows: read from the job as it is now, server-side (never the post's word). */
 const EMBED_SELECT = {
   id: true, orgId: true, title: true, type: true, status: true, startsAt: true, endsAt: true, compensationMethod: true, payRateCents: true, geography: true, campaignDisclosure: true,
+  // Only to work out whether hiring is paused (publicPost); neither reaches the page or the API. The fields hiringPausedReasons
+  // reads and nothing else: not the staff ids on the profile (createdById, approvedById).
+  org: { select: { approved: true } },
+  jurisdiction: { select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } },
 } satisfies Prisma.JobSelect;
 export const POST_SELECT = {
   id: true, profileId: true, body: true, pinnedAt: true, createdAt: true, editedAt: true, jobId: true,
   job: { select: EMBED_SELECT },
 } satisfies Prisma.CampaignPostSelect;
 export type PostRow = Prisma.CampaignPostGetPayload<{ select: typeof POST_SELECT }>;
-/** A post as the public sees it: an embedded job only while it's still published or paused (a draft or closed job shows as "no longer hiring", without its details). */
-export type PublicPost = Omit<PostRow, "job"> & { job: PostRow["job"] | null; jobGone: boolean };
+/**
+ * A post as the public sees it: an embedded job only while it's still published or paused (a draft or closed job shows as "no longer hiring", without its details).
+ * `hiringPaused` is hiringPausedReasons worked out here, so a published job that can't take anyone reads "not taking applications"; the organization and the
+ * rule profile it was worked out from are left behind.
+ */
+export type EmbeddedJob = Omit<NonNullable<PostRow["job"]>, "org" | "jurisdiction"> & { hiringPaused: boolean };
+export type PublicPost = Omit<PostRow, "job"> & { job: EmbeddedJob | null; jobGone: boolean };
 export const publicPost = (p: PostRow): PublicPost => {
   const live = p.job && (p.job.status === "PUBLISHED" || p.job.status === "PAUSED");
-  return { ...p, job: live ? p.job : null, jobGone: !!p.jobId && !live };
+  if (!p.job || !live) return { ...p, job: null, jobGone: !!p.jobId };
+  const { org, jurisdiction, ...job } = p.job;
+  return { ...p, job: { ...job, hiringPaused: hiringPausedReasons(org, jurisdiction, new Date()).length > 0 }, jobGone: false };
 };
 
 type PostInput = { body: string; jobId: string | null };

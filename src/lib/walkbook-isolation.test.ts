@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, posix, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -14,8 +14,12 @@ import { describe, expect, it } from "vitest";
  *
  * It is a scan of source text, so it has limits it can't pass; it closes the
  * obvious ways round (a new file reading the table without naming a column, a
- * raw SELECT *, a key assembled from pieces) and pins the allowed files down
- * to the functions that may read.
+ * raw SELECT *, a key assembled from pieces, any spelling of an import path, a
+ * quoted relation key, an unsafe raw query) and pins the allowed files down to
+ * the functions that may read. What it can't see: a select object built
+ * elsewhere and passed in, or a key computed at run time. Those need a runtime
+ * guard (a Prisma extension that refuses import-table reads outside the staff
+ * modules, or a database role for worker code), a design change not made here.
  */
 const NAMES = /\b(sourceData|sourceRecordId|droppedColumns)\b/;
 /** The import tables, by their Prisma accessor, model or SQL name. */
@@ -164,21 +168,27 @@ describe("imported columns stay where they are meant to", () => {
   // The ways round the checks above that a review found (Nov 18): a relative or dynamic import, a re-export,
   // reading the rows through the walkbook's import relation, `omit`, and a shorthand or variable select.
   it("only the listed staff files import the data modules by value, however they write it (alias, relative, dynamic, re-export)", () => {
-    const mod = String.raw`(?:@\/lib\/|(?:\.\.?\/)+(?:lib\/)?)(?:walkbooks-data|stop-console-data)["']`;
-    const forms = [
-      new RegExp(String.raw`^\s*import\s+(?!type\b)[^;]*?from\s+["']` + mod, "m"), // static, value
-      new RegExp(String.raw`^\s*export\s+(?!type\b)[^;]*?from\s+["']` + mod, "m"), // re-export
-      new RegExp(String.raw`(?<!typeof\s+)\bimport\s*\(\s*["']` + mod), // dynamic (a `typeof import(...)` type carries no data)
-      new RegExp(String.raw`\brequire\s*\(\s*["']` + mod), // require
+    // Every module path a file loads by value, resolved, so "@/lib/../lib/x" and "../../lib/x" both read as src/lib/x.
+    const specs = [
+      /^\s*import\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm, // static, value
+      /^\s*export\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm, // re-export
+      /(?<!typeof\s+)\bimport\s*\(\s*["']([^"']+)["']/g, // dynamic (a `typeof import(...)` type carries no data)
+      /\brequire\s*\(\s*["']([^"']+)["']/g, // require
     ];
-    const bad = all.filter((f) => !isTest(f.path) && !IMPORTERS.some((a) => a.test(f.path)) && forms.some((r) => r.test(code(f.text)))).map((f) => f.path);
+    const resolve = (from: string, spec: string) =>
+      spec.startsWith("@/") ? posix.normalize(`src/${spec.slice(2)}`) : spec.startsWith(".") ? posix.normalize(posix.join(dirname(from), spec)) : spec;
+    const DATA_MODULE = /^src\/lib\/(walkbooks-data|stop-console-data)(\.tsx?)?$/;
+    const loads = (f: { path: string; text: string }) => specs.some((re) => [...code(f.text).matchAll(re)].some((m) => DATA_MODULE.test(resolve(f.path, m[1]))));
+    const bad = all.filter((f) => !isTest(f.path) && !IMPORTERS.some((a) => a.test(f.path)) && loads(f)).map((f) => f.path);
     expect(bad, `these import the import-data modules and aren't listed: ${bad.join(", ")}`).toEqual([]);
   });
 
   it("outside the allowed files no query reaches the import rows through a relation, omit, shorthand or a variable", () => {
     const rules: [string, RegExp][] = [
-      ["the import or addresses relation", /\b(addresses|import)\s*:\s*(true|!0|1|\{)/],
-      ["omit or include on an address relation", /\b(address|addresses|importedAddress)\s*:\s*\{\s*(omit|include)\b/],
+      // A key may be quoted ("addresses": true).
+      ["the import or addresses relation", /["'`]?\b(addresses|import)\b["'`]?\s*:\s*(true|!0|1|\{)/],
+      ["omit or include on an address relation", /["'`]?\b(address|addresses|importedAddress)\b["'`]?\s*:\s*\{\s*(omit|include)\b/],
+      ["an unsafe raw query (its table name could be built from pieces)", /\$(queryRawUnsafe|executeRawUnsafe)\b/],
       ["a shorthand address/import key in a select or include", /\b(select|include)\s*:\s*\{[^{}]*\b(address|addresses|import)\s*[,}]/],
       ["an address relation given by a variable in a select or include", /\b(select|include)\s*:\s*\{[^{}]*\baddress\s*:\s*(?![{\s])/],
     ];

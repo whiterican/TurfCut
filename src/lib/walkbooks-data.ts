@@ -151,7 +151,7 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       // Cutting and deleting a file's addresses take the same lock, in this order: the file's, then the job's.
       await lock(tx, `import:${imp.id}`);
       const fresh = await tx.addressImport.findUnique({ where: { id: imp.id }, select: { purgedAt: true } });
-      if (fresh?.purgedAt) return { ok: false as const, reason: "This file's names and addresses have been deleted. Import it again to cut more walkbooks." };
+      if (fresh?.purgedAt) return { ok: false as const, reason: "This file's data has been deleted. Its doors already on this job can't be told apart from new ones any more, so don't import it again for this job while its walkbooks are in use." };
       await lock(tx, `walkbooks:${job.id}`);
       // One rule, in SQL, for what is left to cut (and for the count the page shows): not on one of the job's books already, by id or as the same door from another file.
       const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>`

@@ -76,7 +76,7 @@ describe("page templates (redesign §4.2.2)", () => {
     // The job page uses it for a worker with no place on the job, and keeps the aside's copy for 1280 and up.
     const job = readFileSync(join(__dirname, "../../app/jobs/[jobId]/page.tsx"), "utf8");
     expect(job).toContain("foot={joinFoot}");
-    expect(job).toContain("const joinFoot = !engagement && canJoin(modes) && ownExclusions(pref, job).length === 0 ? (");
+    expect(job).toContain("const joinFoot = !engagement && canJoin(modes) && !paused.length && ownExclusions(pref, job).length === 0 ? (");
     expect(job).toContain('<div className="job-cta-bar hidden xl:block">');
     // The worker's own preferences are read once and decide both.
     expect(job.match(/loadLatestPreference\(/g)).toHaveLength(1);

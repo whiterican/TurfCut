@@ -17,6 +17,10 @@ export interface StopView {
   result: StopState;
   /** The worker's own poll answers at this stop (a worker's view only). */
   poll?: Array<{ questionId: string; choiceId: string | null; declined: boolean }>;
+  /** The worker recorded this door as Done themselves, so its poll is theirs to ask (a worker's view only). */
+  pollMine?: boolean;
+  /** Questions whose answer now was recorded by someone else: shown as such, never with the answer (a worker's view only). */
+  pollLocked?: string[];
 }
 
 export const streetOf = (s: StopView) => (s.purged ? `Stop ${s.stopNumber}` : `${s.line1}${s.unit ? `, ${s.unit}` : ""}`);

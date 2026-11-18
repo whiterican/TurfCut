@@ -17,7 +17,7 @@ export function valuesOf(answers: Array<{ questionId: string; choiceId: string |
  * question can be left unanswered, but once answered it can only be changed,
  * not cleared; there is no free text anywhere.
  */
-export function PollFields({ questions, initial, idPrefix }: { questions: PollQuestionView[]; initial: PollValues; idPrefix: string }) {
+export function PollFields({ questions, initial, idPrefix, locked = [] }: { questions: PollQuestionView[]; initial: PollValues; idPrefix: string; /** Questions answered by someone else (a worker's form): no choices are offered and nothing is sent for them. */ locked?: string[] }) {
   const [values, setValues] = useState<PollValues>(initial);
   return (
     <div className="space-y-4">
@@ -27,8 +27,9 @@ export function PollFields({ questions, initial, idPrefix }: { questions: PollQu
             <span className="text-muted">{i + 1}. </span>
             {q.prompt}
           </legend>
-          <div className="flex flex-wrap gap-2">
-            {[...q.choices, { id: DECLINED, label: "Declined" }].map((c) => {
+          {locked.includes(q.id) && <p className="text-sm text-muted">Recorded by someone else. Ask a supervisor to change it.</p>}
+          <div className={locked.includes(q.id) ? "hidden" : "flex flex-wrap gap-2"}>
+            {(locked.includes(q.id) ? [] : [...q.choices, { id: DECLINED, label: "Declined" }]).map((c) => {
               const on = values[q.id] === c.id;
               return (
                 <label

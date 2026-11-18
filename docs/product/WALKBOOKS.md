@@ -114,7 +114,9 @@ narrow the table and map only.
   the time and the holder's name, and each row's source record ID (so a return
   file can be matched, within the file's 30 days); no other ids and no notes.
   Cells that look like a
-  formula are neutralised (same guard as the finance export). Capped at
+  formula are neutralised (same guard as the finance export), and the file
+  starts with a byte-order mark so a spreadsheet reads accented street names
+  correctly. Capped at
   20,000 rows (a bigger job is exported book by book), ten an hour per
   organization (a refusal for size, or the poll rule below, isn't counted), and
   every attempt, refusals included, is an audit event with
@@ -145,6 +147,12 @@ the organization deletes the job's data. Schema approved.
     book they hold, for a door they recorded as Done themselves. An answer
     someone else recorded is refused alike whether they guess or overwrite: staff
     change it. After a take-back or hand-on the old holder loses access.
+  - The worker's page follows the same rules. At a Done door they inherited
+    with the book it offers no poll until they save the door as Done themselves.
+    A question whose answer now is someone else's (an earlier holder's, or a
+    staff edit) reads "Recorded by someone else", with nothing to pick and
+    without the answer; their own older answer to it is not shown, and they can
+    still change the questions they own.
 - **Results** are counts per question in the poll's own order. Nothing is
   combined across questions, split by worker, ranked or scored (rules 4 and 5).
 - **Export**: one column per current question ("Poll 1: ..."), answers in words,
@@ -187,6 +195,7 @@ the organization deletes the job's data. Schema approved.
 - The staff job page reads the newest outcome of every stop on the job in one
   query: about 1 s at 100,000 stops. Fine for the pilot; cache per-book
   progress before it grows.
-- The worker's shift page lists book names and counts only. That page is saved
+- The worker's shift page lists book names and counts only, and reads only
+  those (no stop, address or poll answer is loaded for it). That page is saved
   for offline use, and a saved copy would keep addresses on the phone after a
   book is taken back; the stops live on `/walkbooks`, which is never saved.

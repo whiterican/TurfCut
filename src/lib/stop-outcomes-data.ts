@@ -97,6 +97,20 @@ export async function loadStopStates(stopIds: string[]): Promise<Map<string, Sto
   return latestByStop(rows.map((r) => ({ stopId: r.stopId, createdAt: r.createdAt, outcome: r.outcome, answers: byOutcome.get(r.id) ?? [] })));
 }
 
+/**
+ * The engagement that recorded each given stop's newest outcome. A hand-on carries a stop's state to the next
+ * holder but not the visit: the worker's page uses this to tell a Done they recorded from one they inherited.
+ */
+export async function loadStopRecorders(stopIds: string[]): Promise<Map<string, string>> {
+  if (!stopIds.length) return new Map();
+  const rows = await db().$queryRaw<Array<{ stopId: string; engagementId: string }>>`
+    SELECT DISTINCT ON (o."stopId") o."stopId", o."engagementId"
+    FROM "public"."StopOutcome" o
+    WHERE o."stopId" = ANY(${stopIds}::uuid[])
+    ORDER BY o."stopId", o."createdAt" DESC, o."id" DESC`;
+  return new Map(rows.map((r) => [r.stopId, r.engagementId]));
+}
+
 /** Progress of every walkbook on a job, from each stop's newest outcome, in one query. */
 export async function loadJobProgress(jobId: string, totals: Map<string, number>): Promise<Map<string, Progress>> {
   const rows = await db().$queryRaw<Array<{ walkbookId: string; outcome: OutcomeKind; signatures: number | null }>>`

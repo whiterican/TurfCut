@@ -255,6 +255,27 @@ export async function loadWorkerPollAnswers(workerId: string, stopIds: string[])
   return out;
 }
 
+/**
+ * The questions, per stop, whose answer now was recorded by someone other than this worker (another worker
+ * before a hand-on, or staff): keyed "stopId|questionId". Only that such an answer exists, never what it says:
+ * the same thing recording already tells them ("An answer here was recorded by someone else"). The worker's
+ * form leaves those questions out, so their own older answer isn't shown as the answer now and saving the
+ * rest isn't refused because of it.
+ */
+export async function loadWorkerPollLocks(workerId: string, stopIds: string[]): Promise<Set<string>> {
+  const locked = new Set<string>();
+  for (let i = 0; i < stopIds.length; i += 5000) {
+    const rows = await db().$queryRaw<Array<{ stopId: string; questionId: string; workerId: string | null }>>`
+      SELECT DISTINCT ON (a."stopId", a."questionId") a."stopId", a."questionId", e."workerId"
+      FROM "public"."PollAnswer" a
+      LEFT JOIN "public"."Engagement" e ON e."id" = a."engagementId"
+      WHERE a."stopId" = ANY(${stopIds.slice(i, i + 5000)}::uuid[])
+      ORDER BY a."stopId", a."questionId", a."createdAt" DESC, a."id" DESC`;
+    for (const r of rows) if (r.workerId !== workerId) locked.add(`${r.stopId}|${r.questionId}`);
+  }
+  return locked;
+}
+
 export interface PollHistoryEntry {
   id: string;
   questionId: string;

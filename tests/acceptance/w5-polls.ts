@@ -8,7 +8,8 @@ import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWa
 import { recordStopOutcome } from "@/lib/stop-outcomes-data";
 import { POLL_BY_WORKER_REFUSAL, exportProblem, loadExportRows } from "@/lib/stop-console-data";
 import { exportCsv } from "@/lib/stop-console";
-import { auditPollRead, addPollQuestion, changePollQuestion, loadCurrentPolls, loadNewestJobAnswers, loadPollResults, loadPollSetup, loadStopPollHistory, loadWorkerPollAnswers, recordPollAnswers, staffRecordPollAnswers } from "@/lib/poll-data";
+import { auditPollRead, addPollQuestion, changePollQuestion, loadCurrentPolls, loadNewestJobAnswers, loadPollResults, loadPollSetup, loadStopPollHistory, loadWorkerPollAnswers, loadWorkerPollLocks, recordPollAnswers, staffRecordPollAnswers } from "@/lib/poll-data";
+import { loadWorkerWalkbookList, loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OTHER_ORG = "00000000-0000-0000-0000-0000000000ff";
@@ -104,6 +105,18 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("the staff history lists every row newest first with who gave it: Staff, then the worker's edit, then the first answer", hist.history.filter((h) => h.questionId === Q1.id).map((h) => h.by).join(",") === "Staff,Alex Rivera,Alex Rivera", hist.history.map((h) => h.by));
   const myAfter = (await loadWorkerPollAnswers(W[0], [s1.id])).get(s1.id)!;
   check("the worker still reads only their own rows: Oppose, not the staff's Undecided", myAfter.find((a) => a.questionId === Q1.id)?.choiceId === ch(Q1, "Oppose"), myAfter);
+  // What the worker's own page is served: the staff-changed question is marked as someone else's (never with the answer), their older answer to it is not
+  // shown as the answer now, and the question they still own is unchanged, so saving it is not refused because of the other.
+  const locks = await loadWorkerPollLocks(W[0], [s1.id, s2.id]);
+  check("the worker's page is told which question someone else answered, and nothing about questions they own", locks.has(`${s1.id}|${Q1.id}`) && !locks.has(`${s1.id}|${Q2.id}`) && [...locks].every((k) => k.startsWith(s1.id)), [...locks]);
+  const pageStop = (await loadWorkerWalkbooks(W[0])).flatMap((b) => b.stops).find((s) => s.id === s1.id)!;
+  check("…their older answer to it is left off the page, the question is listed as locked, and the one they own stays", !pageStop.poll.some((a) => a.questionId === Q1.id) && pageStop.pollLocked.join() === Q1.id && pageStop.poll.some((a) => a.questionId === Q2.id) && pageStop.pollMine === true, pageStop);
+  check("…and nothing on the page says what the staff answer is", !JSON.stringify(pageStop).includes(ch(Q1, "Undecided")), pageStop);
+  const onlyMine = await recordPollAnswers(actor(0), s1.id, randomUUID(), form({ [Q2.id]: ch(Q2, "Housing") }));
+  check("the worker can still change the question they own on that door", onlyMine.ok && onlyMine.saved === 1, onlyMine);
+  await recordPollAnswers(actor(0), s1.id, randomUUID(), form({ [Q2.id]: ch(Q2, "Transit") }));
+  const list = await loadWorkerWalkbookList(W[0], job.id);
+  check("the shift page's list is book names and stop counts only", list.length === 1 && list[0].stops === 4 && Object.keys(list[0]).sort().join() === "id,name,stops", list);
   const res = (await loadPollResults(ORG, job.id))!;
   check("results count each stop's newest answer once: Q1 has Undecided 1 and Declined 1 (stop 1's edits count once)", res.current[0].total === 2 && res.current[0].declined === 1 && res.current[0].choices.find((c) => c.label === "Undecided")!.n === 1 && res.current[0].choices.find((c) => c.label === "Oppose")!.n === 0, res.current[0]);
   check("…and Q2 has Transit 1", res.current[1].total === 1 && res.current[1].choices.find((c) => c.label === "Transit")!.n === 1, res.current[1]);
@@ -157,11 +170,14 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   check("after the book is taken back its old holder can't record or edit", !afterTakeBack.ok && afterTakeBack.gone === true, afterTakeBack);
   await assignWalkbook(owner, book, e1.ok ? e1.engagementId : "");
   check("the next holder reads none of the first worker's answers", ((await loadWorkerPollAnswers(W[1], [s1.id, s2.id])).size) === 0);
+  const inherited = (await loadWorkerWalkbooks(W[1])).flatMap((b) => b.stops).filter((s) => s.id === s1.id || s.id === s2.id);
+  check("the next holder's page doesn't offer the poll at a Done door they inherited", inherited.length === 2 && inherited.every((s) => s.result.outcome === "DONE" && s.pollMine === false && s.poll.length === 0), inherited);
   const notTheirs = await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
   check("a new holder can't poll a door they never recorded as Done: a hand-on carries the state, not the visit", !notTheirs.ok && /Done/.test(notTheirs.reason), notTheirs);
   await recordStopOutcome(actor(1), s2.id, randomUUID(), { outcome: "DONE" });
   const theirs = await recordPollAnswers(actor(1), s2.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));
   check("…once they record it Done themselves they can, and it reads back to them", theirs.ok && (await loadWorkerPollAnswers(W[1], [s2.id])).get(s2.id)?.length === 1, theirs);
+  check("…and their page offers it there from then on", (await loadWorkerWalkbooks(W[1])).flatMap((b) => b.stops).find((s) => s.id === s2.id)?.pollMine === true);
   await recordStopOutcome(actor(1), s1.id, randomUUID(), { outcome: "DONE" });
   const guess = await recordPollAnswers(actor(1), s1.id, randomUUID(), form({ [newQ.id]: newQ.choices[0].id }));
   const blind = await recordPollAnswers(actor(1), s1.id, randomUUID(), form({ [newQ.id]: newQ.choices[1].id }));

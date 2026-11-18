@@ -15,7 +15,7 @@ const initial: OutcomeState = { ok: false, message: "", errors: {} };
  * the earlier one stays in the history. The device makes an id when the form
  * opens, so a double tap or a retry saves once.
  */
-export function WorkerPollForm({ stopId, questions, answers }: { stopId: string; questions: PollQuestionView[]; answers: Array<{ questionId: string; choiceId: string | null; declined: boolean }> }) {
+export function WorkerPollForm({ stopId, questions, answers, locked = [] }: { stopId: string; questions: PollQuestionView[]; answers: Array<{ questionId: string; choiceId: string | null; declined: boolean }>; /** Questions whose answer now was recorded by someone else: shown as that, with nothing to pick. */ locked?: string[] }) {
   const [state, dispatch, pending] = useActionState(recordPollAction, initial);
   const router = useRouter();
   // The tap's id is made when the form is submitted (never during render, which would differ from the server's) and kept until the save lands or is refused for a reason a retry could fix: a double tap or a retry carries the same id and saves once.
@@ -32,12 +32,15 @@ export function WorkerPollForm({ stopId, questions, answers }: { stopId: string;
     <form action={action} className="space-y-3 border-t border-border bg-surface-2/50 px-3 pb-4 pt-3" aria-label="Poll">
       <input type="hidden" name="stopId" value={stopId} />
       <p className="label">Poll</p>
-      <PollFields questions={questions} initial={valuesOf(answers)} idPrefix={`poll-${stopId}`} />
-      <div className="flex items-center gap-3">
-        <button className="btn-primary min-h-12 flex-1" disabled={pending} aria-busy={pending || undefined}>
-          {pending ? "Saving…" : answers.length ? "Save changes" : "Save poll"}
-        </button>
-      </div>
+      <PollFields questions={questions} initial={valuesOf(answers)} idPrefix={`poll-${stopId}`} locked={locked} />
+      {/* Nothing to save when every question's answer is someone else's. */}
+      {questions.some((q) => !locked.includes(q.id)) && (
+        <div className="flex items-center gap-3">
+          <button className="btn-primary min-h-12 flex-1" disabled={pending} aria-busy={pending || undefined}>
+            {pending ? "Saving…" : answers.length ? "Save changes" : "Save poll"}
+          </button>
+        </div>
+      )}
       <p role="status" className={state.ok ? "text-success-msg" : "sr-only"}>{state.ok ? state.message : ""}</p>
       {state.message && !state.ok && (
         <div role="alert" className="space-y-2">

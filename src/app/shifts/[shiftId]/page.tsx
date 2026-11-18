@@ -33,7 +33,7 @@ import { computeShiftPay, money, payoutCta, payoutReadiness, statusLabel } from 
 import { stripeProvider } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { Masthead } from "@/components/Masthead";
-import { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
+import { loadWorkerWalkbookList } from "@/lib/walkbooks-worker-data";
 
 const EVENT_LABELS: Record<string, string> = {
   CHECK_IN: "Checked in",
@@ -100,7 +100,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const brief = isWorker || canField ? await loadTalkingPoints(s.engagement.job.id) : null;
   // The worker's walkbooks on this job (W1): names and stop counts only. This page is saved for offline use, and a saved copy
   // would keep a book's addresses on the phone after the book is taken back, so the stops live on /walkbooks (never saved).
-  const walkbooks = isWorker ? await loadWorkerWalkbooks(s.engagement.workerId, s.engagement.job.id) : [];
+  const walkbooks = isWorker ? await loadWorkerWalkbookList(s.engagement.workerId, s.engagement.job.id) : [];
 
   const f = facts(s);
   const st = shiftState(f);
@@ -304,7 +304,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 <Link href={`/walkbooks#book-${b.id}`} className="font-semibold text-fg underline-offset-2 hover:underline">
                   {b.name}
                 </Link>
-                <span className="text-muted-sm"> · {b.stops.length} {b.stops.length === 1 ? "stop" : "stops"}</span>
+                <span className="text-muted-sm"> · {b.stops} {b.stops === 1 ? "stop" : "stops"}</span>
               </li>
             ))}
           </ul>

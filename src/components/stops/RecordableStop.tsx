@@ -81,7 +81,7 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
       <span role="status" className="sr-only">{showState && state.ok ? `Stop ${stop.stopNumber} saved.` : ""}</span>
       <div className="flex min-h-16 items-center gap-1 py-2 pl-3 pr-2">
         <button ref={toggleRef} type="button" onClick={toggle} aria-expanded={open} aria-controls={panelId} className="flex min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-inner)] py-0.5 text-left focus-visible:outline-2">
-          <StopFace stop={stop} extra={poll.length > 0 && stop.result.outcome === "DONE" ? `Poll ${(stop.poll ?? []).filter((a) => poll.some((q) => q.id === a.questionId)).length} of ${poll.length}` : null} />
+          <StopFace stop={stop} extra={poll.length > 0 && stop.result.outcome === "DONE" && stop.pollMine ? `Poll ${poll.filter((q) => (stop.pollLocked ?? []).includes(q.id) || (stop.poll ?? []).some((a) => a.questionId === q.id)).length} of ${poll.length}` : null} />
           <ChevronDown aria-hidden className={`size-5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         <DirectionsLink stop={stop} />
@@ -168,7 +168,9 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
           )}
         </form>
         {/* The poll is asked at a Done door that is saved as one (the outcome is the poll's anchor). */}
-        {poll.length > 0 && stop.result.outcome === "DONE" && <WorkerPollForm key={stop.id} stopId={stop.id} questions={poll} answers={stop.poll ?? []} />}
+        {poll.length > 0 && stop.result.outcome === "DONE" && stop.pollMine && <WorkerPollForm key={stop.id} stopId={stop.id} questions={poll} answers={stop.poll ?? []} locked={stop.pollLocked ?? []} />}
+        {/* A Done carried over from an earlier holder: the poll is asked by whoever reached the door, so they record it Done themselves first (the server refuses otherwise). */}
+        {poll.length > 0 && stop.result.outcome === "DONE" && !stop.pollMine && <p className="border-t border-border px-3 py-2.5 text-sm text-muted">This door was recorded as Done by someone else. Save it as Done yourself to ask the poll.</p>}
         {poll.length > 0 && stop.result.outcome !== "DONE" && <p className="border-t border-border px-3 py-2.5 text-sm text-muted">This job has a poll. Save this door as Done to ask it.</p>}
         </>
       )}

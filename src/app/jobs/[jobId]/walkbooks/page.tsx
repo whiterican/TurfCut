@@ -210,11 +210,11 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                 <p className={`text-sm font-semibold ${i.purgedAt ? "text-muted" : "text-fg"}`}>
                   {i.purgedAt ? (
                     <>
-                      Names and addresses deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain.
+                      The file's data (addresses and every other column) deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain.
                     </>
                   ) : (
                     <>
-                      Names and addresses are deleted <LocalTime iso={i.deleteAfter.toISOString()} mode="date" />, or sooner if you delete them or every job this file is cut for closes.
+                      Its addresses and every other column are deleted <LocalTime iso={i.deleteAfter.toISOString()} mode="date" />, or sooner if you delete them or every job this file is cut for closes.
                     </>
                   )}
                 </p>
@@ -222,10 +222,10 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                   <ActionButton
                     action={deleteFileDataAction}
                     fields={{ importId: i.id, jobId: job.id }}
-                    label="Delete names and addresses now"
+                    label="Delete this file's data now"
                     pendingLabel="Deleting…"
                     variant="btn-secondary btn-sm"
-                    ariaLabel={`Delete the names and addresses of ${i.fileName} now`}
+                    ariaLabel={`Delete the data of ${i.fileName} now`}
                     confirm={{ text: "The addresses, record IDs and every other column of this file are deleted for good. Walkbooks already cut keep their stops and outcomes but lose their addresses. This can't be undone; import the file again to bring them back.", label: "Delete them now" }}
                   />
                 )}

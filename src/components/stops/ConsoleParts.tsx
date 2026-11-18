@@ -35,7 +35,7 @@ export function FilterChips({ base, q, todo, count }: { base: string; q: Console
   );
 }
 
-const street = (s: { line1: string; unit: string | null }) => `${s.line1}${s.unit ? `, ${s.unit}` : ""}`;
+const street = (s: { line1: string; unit: string | null; purged?: boolean; stopNumber?: number }) => (s.purged ? `Stop ${s.stopNumber ?? ""}`.trim() : `${s.line1}${s.unit ? `, ${s.unit}` : ""}`);
 
 /** The stops as a table from 768px and as cards below it: a desktop table is never squeezed onto a phone. */
 export function ConsoleTable({ base, q, stops, holderName }: { base: string; q: ConsoleQuery; stops: ConsoleStop[]; holderName: (id: string | null) => string | null }) {
@@ -69,7 +69,7 @@ export function ConsoleTable({ base, q, stops, holderName }: { base: string; q: 
                 </td>
                 <td className="py-2.5 pr-3 text-fg">
                   <span className="block font-medium">{street(s)}</span>
-                  <span className="block text-xs text-muted">{s.city}, {s.state} {s.zip}</span>
+                  <span className="block text-xs text-muted">{s.purged ? "Address deleted" : `${s.city}, ${s.state} ${s.zip}`}</span>
                 </td>
                 <td className="py-2.5 pr-3">
                   <OutcomeChip kind={s.result.outcome} />
@@ -91,7 +91,7 @@ export function ConsoleTable({ base, q, stops, holderName }: { base: string; q: 
                 <span className="font-semibold text-fg">{street(s)}</span>
                 <span className="shrink-0 text-xs tabular-nums text-muted">{s.bookNumber}.{s.stopNumber}</span>
               </span>
-              <span className="block text-sm text-muted">{s.city}, {s.state} {s.zip}</span>
+              <span className="block text-sm text-muted">{s.purged ? "Address deleted" : `${s.city}, ${s.state} ${s.zip}`}</span>
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <OutcomeChip kind={s.result.outcome} />
                 <span className="text-xs text-muted">{holderName(s.holderEngagementId) ?? "Not handed out"}</span>
@@ -127,8 +127,8 @@ export function StopInspector({ stop, closeHref }: { stop: History; closeHref: s
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="eyebrow">{stop.book.name} · stop {stop.stopNumber}</p>
-          <h2 className="text-lg font-bold text-fg">{street(a)}</h2>
-          <p className="text-muted-sm">{a.city}, {a.state} {a.zip}</p>
+          <h2 className="text-lg font-bold text-fg">{a ? street(a) : `Stop ${stop.stopNumber}`}</h2>
+          <p className="text-muted-sm">{a ? `${a.city}, ${a.state} ${a.zip}` : "Address deleted"}</p>
         </div>
         <Link href={closeHref} scroll={false} className="grid size-11 shrink-0 place-items-center rounded-full text-fg hover:bg-surface-2" aria-label="Close history">
           <X aria-hidden className="size-5" />

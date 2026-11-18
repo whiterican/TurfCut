@@ -12,7 +12,8 @@ import { LocalTime } from "@/components/LocalTime";
 import { OutcomeLegend, ProgressBar } from "@/components/stops/Outcomes";
 import { WalkbookImport } from "@/components/staff/WalkbookImport";
 import { WalkbookCut } from "@/components/staff/WalkbookCut";
-import { assignWalkbookAction } from "./actions";
+import { assignWalkbookAction, deleteFileDataAction } from "./actions";
+import { RETENTION_DAYS, SOURCE_SYSTEMS } from "@/lib/walkbooks";
 import { loadPollSetup } from "@/lib/poll-data";
 import { PollSetup } from "@/components/staff/PollSetup";
 
@@ -189,8 +190,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
         <section className="section">
           <h2 className="section-title">Import an address file</h2>
           <p className="text-muted-sm">
-            Bring a file your organization is authorized to use: a voter file, a supporter list, a customer list. Only the address of each row is kept. Names, party, vote history and every other column are dropped before
-            anything is stored.
+            Bring a file your organization is authorized to use: a voter file, a supporter list, a customer list. Each row&apos;s address, its record ID (so your return file can be matched) and every other column are stored for {RETENTION_DAYS} days, then deleted. They are never shown to workers or used to match or rank anyone. You can delete them sooner.
           </p>
           <WalkbookImport jobId={job.id} />
         </section>
@@ -207,7 +207,35 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                   Imported <LocalTime iso={i.createdAt.toISOString()} mode="date" /> · {i.keptCount.toLocaleString("en-US")} of {i.rowCount.toLocaleString("en-US")} rows kept ·{" "}
                   {i.unassigned.toLocaleString("en-US")} not yet on this job&apos;s walkbooks
                 </p>
+                <p className={`text-sm font-semibold ${i.purgedAt ? "text-muted" : "text-fg"}`}>
+                  {i.purgedAt ? (
+                    <>
+                      Names and addresses deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain.
+                    </>
+                  ) : (
+                    <>
+                      Names and addresses are deleted <LocalTime iso={i.deleteAfter.toISOString()} mode="date" />, or sooner if you delete them or every job this file is cut for closes.
+                    </>
+                  )}
+                </p>
+                {canEdit && !i.purgedAt && (
+                  <ActionButton
+                    action={deleteFileDataAction}
+                    fields={{ importId: i.id, jobId: job.id }}
+                    label="Delete names and addresses now"
+                    pendingLabel="Deleting…"
+                    variant="btn-secondary btn-sm"
+                    ariaLabel={`Delete the names and addresses of ${i.fileName} now`}
+                    confirm={{ text: "The addresses, record IDs and every other column of this file are deleted for good. Walkbooks already cut keep their stops and outcomes but lose their addresses. This can't be undone; import the file again to bring them back.", label: "Delete them now" }}
+                  />
+                )}
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  {i.sourceSystem && (
+                    <>
+                      <dt className="text-hint">System</dt>
+                      <dd className="min-w-0 break-words text-fg">{SOURCE_SYSTEMS.find((x) => x.value === i.sourceSystem)?.label ?? i.sourceSystem}</dd>
+                    </>
+                  )}
                   <dt className="text-hint">Source</dt>
                   <dd className="min-w-0 break-words text-fg">{i.recordSource}</dd>
                   <dt className="text-hint">Purpose</dt>
@@ -216,7 +244,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                   <dd className="min-w-0 break-words text-fg">{i.license}</dd>
                   {i.droppedColumns.length > 0 && (
                     <>
-                      <dt className="text-hint">Dropped</dt>
+                      <dt className="text-hint">Never stored</dt>
                       <dd className="min-w-0 break-words text-fg">{i.droppedColumns.join(", ")}</dd>
                     </>
                   )}

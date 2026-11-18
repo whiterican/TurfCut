@@ -12,13 +12,15 @@ export interface StopView {
   zip: string;
   lat: number | null;
   lng: number | null;
+  /** The import's names and addresses were deleted (30 days, or sooner): the stop stays, with its number and its outcomes, and no address. */
+  purged?: boolean;
   result: StopState;
   /** The worker's own poll answers at this stop (a worker's view only). */
   poll?: Array<{ questionId: string; choiceId: string | null; declined: boolean }>;
 }
 
-export const streetOf = (s: StopView) => `${s.line1}${s.unit ? `, ${s.unit}` : ""}`;
-export const placeOf = (s: StopView) => `${s.city}, ${s.state} ${s.zip}`;
+export const streetOf = (s: StopView) => (s.purged ? `Stop ${s.stopNumber}` : `${s.line1}${s.unit ? `, ${s.unit}` : ""}`);
+export const placeOf = (s: StopView) => (s.purged ? "Address deleted" : `${s.city}, ${s.state} ${s.zip}`);
 /** The phone's own maps app, opened by the reader tapping it; the address goes nowhere until then. */
 export const directionsTo = (s: StopView) => `https://maps.apple.com/?q=${encodeURIComponent(`${s.line1}, ${placeOf(s)}`)}`;
 
@@ -49,6 +51,8 @@ export function StopFace({ stop, extra }: { stop: StopView; extra?: string | nul
 }
 
 export function DirectionsLink({ stop }: { stop: StopView }) {
+  // Nowhere to go once the address is deleted; keep the row's width so stops line up.
+  if (stop.purged) return <span aria-hidden className="size-11 shrink-0" />;
   return (
     <a
       href={directionsTo(stop)}

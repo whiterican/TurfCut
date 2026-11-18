@@ -23,7 +23,7 @@ const HISTORY_SHOWN = 50;
 const stopsOf = (jobId: string) => Prisma.sql`
   FROM "public"."WalkbookStop" s
   JOIN "public"."Walkbook" w ON w."id" = s."walkbookId" AND w."jobId" = ${jobId}::uuid
-  JOIN "public"."ImportedAddress" ia ON ia."id" = s."addressId"
+  LEFT JOIN "public"."ImportedAddress" ia ON ia."id" = s."addressId"
   LEFT JOIN LATERAL (
     SELECT o."id", o."outcome"::text AS outcome, o."createdAt"
     FROM "public"."StopOutcome" o WHERE o."stopId" = s."id"
@@ -56,6 +56,8 @@ export interface ConsoleStop {
   zip: string;
   lat: number | null;
   lng: number | null;
+  /** The import's names and addresses were deleted (30 days, or sooner): the stop stays, the address fields are empty. */
+  purged: boolean;
   result: StopState;
   recordedAt: Date | null;
   holderEngagementId: string | null;
@@ -66,13 +68,14 @@ type Raw = {
   bookId: string;
   bookNumber: number;
   stopNumber: number;
-  line1: string;
+  line1: string | null;
   unit: string | null;
-  city: string;
-  state: string;
-  zip: string;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
   lat: number | null;
   lng: number | null;
+  sourceRecordId?: string | null;
   outcomeId: string | null;
   outcome: OutcomeKind | null;
   recordedAt: Date | null;
@@ -92,13 +95,14 @@ async function withAnswers(rows: Raw[]): Promise<ConsoleStop[]> {
     bookId: r.bookId,
     bookNumber: r.bookNumber,
     stopNumber: r.stopNumber,
-    line1: r.line1,
+    line1: r.line1 ?? "",
     unit: r.unit,
-    city: r.city,
-    state: r.state,
-    zip: r.zip,
+    city: r.city ?? "",
+    state: r.state ?? "",
+    zip: r.zip ?? "",
     lat: r.lat,
     lng: r.lng,
+    purged: r.line1 === null,
     result: r.outcome ? { outcome: r.outcome, answers: by.get(r.outcomeId!) ?? {} } : UNVISITED,
     recordedAt: r.recordedAt,
     holderEngagementId: r.holder,
@@ -202,6 +206,7 @@ export async function loadStopHistory(orgId: string, stopId: string, jobId?: str
       id: true,
       stopNumber: true,
       walkbook: { select: { id: true, number: true, name: true, jobId: true } },
+      // Explicit fields: the file's other columns and its record ID are never read for the inspector. Null once the address is deleted.
       address: { select: { line1: true, unit: true, city: true, state: true, zip: true } },
       outcomes: {
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -236,8 +241,10 @@ export async function loadExportRows(orgId: string, jobId: string, q: Pick<Conso
   const filter = where(q);
   const [{ n }] = await db().$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n ${base} ${filter}`;
   if (n > EXPORT_MAX_ROWS) return { ok: false, reason: `That's ${n.toLocaleString("en-US")} stops. Export at most ${EXPORT_MAX_ROWS.toLocaleString("en-US")} at a time: pick a walkbook or an outcome first.` };
-  const raw = await db().$queryRaw<Raw[]>`${SELECT} ${base} ${filter} ORDER BY w."number", s."stopNumber"`;
+  // The source record ID goes out with the export (so a return file can be matched, inside the 30 days) and nowhere else on this page.
+  const raw = await db().$queryRaw<Raw[]>`${SELECT}, ia."sourceRecordId" ${base} ${filter} ORDER BY w."number", s."stopNumber"`;
   const stops = await withAnswers(raw);
+  const recordIds = new Map(raw.map((r) => [r.id, r.sourceRecordId ?? null]));
   const names = await holderNames(stops.map((s) => s.holderEngagementId).filter((x): x is string => !!x));
   // Poll answers go out only when the caller may read them (full access to the field area) and the job has a poll.
   const questions = withPoll ? ((await loadCurrentPolls([job.id])).get(job.id) ?? []) : [];
@@ -254,6 +261,7 @@ export async function loadExportRows(orgId: string, jobId: string, q: Pick<Conso
       city: s.city,
       state: s.state,
       zip: s.zip,
+      sourceRecordId: recordIds.get(s.id) ?? null,
       outcome: s.result.outcome,
       talkedTo: typeof s.result.answers.talked_to === "boolean" ? s.result.answers.talked_to : null,
       leftLiterature: typeof s.result.answers.left_literature === "boolean" ? s.result.answers.left_literature : null,

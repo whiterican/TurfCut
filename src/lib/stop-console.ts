@@ -72,6 +72,8 @@ export interface ExportRow {
   city: string;
   state: string;
   zip: string;
+  /** The source system's id for the row (VanID, Ecanvasser Contact ID); empty when the file had none or the addresses were deleted. */
+  sourceRecordId: string | null;
   outcome: OutcomeKind | null;
   talkedTo: boolean | null;
   leftLiterature: boolean | null;
@@ -90,7 +92,7 @@ export interface PollColumn {
 
 const yn = (v: boolean | null) => (v === null ? "" : v ? "yes" : "no");
 
-export const EXPORT_HEADER = ["Walkbook", "Stop", "Address", "Unit", "City", "State", "ZIP", "Outcome", "Talked with someone", "Left literature", "Signatures", "Recorded at (UTC)", "Held by"];
+export const EXPORT_HEADER = ["Walkbook", "Stop", "Address", "Unit", "City", "State", "ZIP", "Source record ID", "Outcome", "Talked with someone", "Left literature", "Signatures", "Recorded at (UTC)", "Held by"];
 
 /** One CSV line per stop. Every cell goes through the finance export's guard, so a value shaped like a formula is never read as one. */
 export function exportCsv(rows: readonly ExportRow[], pollColumns: readonly PollColumn[] = []): string {
@@ -100,7 +102,7 @@ export function exportCsv(rows: readonly ExportRow[], pollColumns: readonly Poll
   const lines = [[...head, ...pollColumns.map((q, i) => `Poll ${i + 1}: ${q.prompt}`)].map(csvCell).join(",")];
   for (const r of rows) {
     lines.push(
-      [r.bookNumber, r.stopNumber, r.line1, r.unit, r.city, r.state, r.zip, r.outcome ? outcomeLook(r.outcome).label : "To do", yn(r.talkedTo), yn(r.leftLiterature), r.signatures, ...(withPoll ? [] : [r.recordedAt ? r.recordedAt.toISOString().slice(0, 19).replace("T", " ") : "", r.holder]), ...pollColumns.map((q) => r.poll?.[q.id] ?? "")]
+      [r.bookNumber, r.stopNumber, r.line1, r.unit, r.city, r.state, r.zip, r.sourceRecordId, r.outcome ? outcomeLook(r.outcome).label : "To do", yn(r.talkedTo), yn(r.leftLiterature), r.signatures, ...(withPoll ? [] : [r.recordedAt ? r.recordedAt.toISOString().slice(0, 19).replace("T", " ") : "", r.holder]), ...pollColumns.map((q) => r.poll?.[q.id] ?? "")]
         .map(csvCell)
         .join(",")
     );

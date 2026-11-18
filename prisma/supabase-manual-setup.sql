@@ -2702,6 +2702,9 @@ CREATE TABLE IF NOT EXISTS "public"."AddressImport" (
     "rowCount" INTEGER NOT NULL,
     "keptCount" INTEGER NOT NULL,
     "droppedColumns" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    "sourceSystem" TEXT,
+    "deleteAfter" TIMESTAMP(3) NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days'),
+    "purgedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AddressImport_pkey" PRIMARY KEY ("id"),
@@ -2725,6 +2728,8 @@ CREATE TABLE IF NOT EXISTS "public"."ImportedAddress" (
     "zip" TEXT NOT NULL,
     "lat" DOUBLE PRECISION,
     "lng" DOUBLE PRECISION,
+    "sourceRecordId" TEXT,
+    "sourceData" JSONB,
 
     CONSTRAINT "ImportedAddress_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "ImportedAddress_line1_length" CHECK (char_length("line1") BETWEEN 1 AND 200),
@@ -2756,7 +2761,7 @@ CREATE INDEX IF NOT EXISTS "Walkbook_createdById_idx" ON "public"."Walkbook"("cr
 CREATE TABLE IF NOT EXISTS "public"."WalkbookStop" (
     "id" UUID NOT NULL,
     "walkbookId" UUID NOT NULL,
-    "addressId" UUID NOT NULL,
+    "addressId" UUID,
     "stopNumber" INTEGER NOT NULL,
 
     CONSTRAINT "WalkbookStop_pkey" PRIMARY KEY ("id"),
@@ -2808,7 +2813,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 DO $$ BEGIN
-  ALTER TABLE "public"."WalkbookStop" ADD CONSTRAINT "WalkbookStop_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."ImportedAddress"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  ALTER TABLE "public"."WalkbookStop" ADD CONSTRAINT "WalkbookStop_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."ImportedAddress"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 DO $$ BEGIN
@@ -2823,6 +2828,40 @@ DO $$ BEGIN
   ALTER TABLE "public"."WalkbookAssignment" ADD CONSTRAINT "WalkbookAssignment_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+
+-- ---- Keep every column, and the 30-day purge (Caden, Nov 17 2026) ----
+-- Also upgrades a database that already ran the first version of this file.
+ALTER TABLE "public"."AddressImport"
+  ADD COLUMN IF NOT EXISTS "sourceSystem" TEXT,
+  ADD COLUMN IF NOT EXISTS "deleteAfter" TIMESTAMP(3) NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days'),
+  ADD COLUMN IF NOT EXISTS "purgedAt" TIMESTAMP(3);
+ALTER TABLE "public"."ImportedAddress"
+  ADD COLUMN IF NOT EXISTS "sourceRecordId" TEXT,
+  ADD COLUMN IF NOT EXISTS "sourceData" JSONB;
+
+DO $$ BEGIN
+  ALTER TABLE "public"."AddressImport" ADD CONSTRAINT "AddressImport_deleteAfter" CHECK ("deleteAfter" > "createdAt");
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."AddressImport" ADD CONSTRAINT "AddressImport_sourceSystem" CHECK ("sourceSystem" IS NULL OR "sourceSystem" IN ('ECANVASSER', 'VAN', 'PDI', 'OTHER'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."ImportedAddress" ADD CONSTRAINT "ImportedAddress_sourceRecordId_length" CHECK ("sourceRecordId" IS NULL OR char_length("sourceRecordId") BETWEEN 1 AND 100);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- An object of header -> value, at most 16 KB a row (a file is capped at 10,000 rows).
+DO $$ BEGIN
+  ALTER TABLE "public"."ImportedAddress" ADD CONSTRAINT "ImportedAddress_sourceData" CHECK ("sourceData" IS NULL OR (jsonb_typeof("sourceData") = 'object' AND octet_length("sourceData"::text) <= 16384));
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- A record ID names one row of one import.
+CREATE UNIQUE INDEX IF NOT EXISTS "ImportedAddress_importId_sourceRecordId_key" ON "public"."ImportedAddress"("importId", "sourceRecordId") WHERE "sourceRecordId" IS NOT NULL;
+-- The purge finds imports that are due.
+CREATE INDEX IF NOT EXISTS "AddressImport_deleteAfter_idx" ON "public"."AddressImport"("deleteAfter") WHERE "purgedAt" IS NULL;
+
+-- The purge fix: a stop outlives its address.
+ALTER TABLE "public"."WalkbookStop" ALTER COLUMN "addressId" DROP NOT NULL;
+ALTER TABLE "public"."WalkbookStop" DROP CONSTRAINT IF EXISTS "WalkbookStop_addressId_fkey";
+ALTER TABLE "public"."WalkbookStop" ADD CONSTRAINT "WalkbookStop_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "public"."ImportedAddress"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- Append-only (rule 3): who held a walkbook, and when, is history.
 -- Needs turfcut_private.append_only() from m4-migration.sql.

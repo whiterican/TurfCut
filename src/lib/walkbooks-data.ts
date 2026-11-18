@@ -20,7 +20,9 @@ import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
 import { loadCurrentPolls, loadWorkerPollAnswers } from "@/lib/poll-data";
 import { UNVISITED, type StopState } from "@/lib/stop-outcomes";
-import { cutBooks, readAddressFile, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
+
+type WorkerAnswerView = { questionId: string; choiceId: string | null; declined: boolean };
+import { cutBooks, NEEDS_STATE_ACK, readAddressFile, RETENTION_DAYS, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
 
 type Tx = Prisma.TransactionClient;
 type Fail = { ok: false; reason: string; errors?: Record<string, string> };
@@ -39,9 +41,12 @@ const IMPORTS_SHOWN = 50;
 // ---------------------------------------------------------------------------
 
 /**
- * Stores an authorized file's addresses (and only its addresses) for the
- * organization. `meta` is what the uploader states: where the file came
- * from, what it is for, its license, and that they are authorized to use it.
+ * Stores an authorized file for the organization: each row's address, its
+ * source record ID and every other column (names, party, vote history: the
+ * most sensitive data in the system, which never leaves the importer, the
+ * purge and the staff export). `meta` is what the uploader states: where the
+ * file came from, what it is for, its license, and that they are authorized
+ * to use it. The names and addresses are deleted 30 days later, or sooner.
  */
 export async function importAddresses(actor: Staff, meta: Record<string, unknown>, text: string, now = new Date()): Promise<{ ok: true; importId: string; kept: number; skipped: number } | Fail> {
   const m = validateImportMeta(meta);
@@ -49,6 +54,10 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
   const read = readAddressFile(text);
   if (!read.ok) return { ok: false, reason: read.reason, errors: { file: read.reason } };
   const { file } = read;
+  // Arizona restricts voter-list data online (A.R.S. 16-168): a file with Arizona addresses needs its own acknowledgement.
+  if (file.states.some((st) => (NEEDS_STATE_ACK as readonly string[]).includes(st)) && meta.ackAZ !== "on") {
+    return { ok: false, reason: "Fix the highlighted fields.", errors: { ackAZ: "This file has Arizona addresses: confirm you may upload it here." } };
+  }
   return db().$transaction(
     async (tx) => {
       const imp = await tx.addressImport.create({
@@ -56,6 +65,7 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
           orgId: actor.orgId,
           uploadedById: actor.profileId,
           ...m.value,
+          deleteAfter: new Date(now.getTime() + RETENTION_DAYS * 86_400_000),
           rowCount: file.rowCount,
           keptCount: file.rows.length,
           // Already cleaned and capped by mapColumns (names at most 100 characters; at most 200 of them plus a "+N more").
@@ -64,7 +74,19 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
         },
       });
       await tx.importedAddress.createMany({
-        data: file.rows.map((r) => ({ importId: imp.id, rowNumber: r.rowNumber, line1: r.line1, unit: r.unit, city: r.city, state: r.state, zip: r.zip, lat: r.lat, lng: r.lng })),
+        data: file.rows.map((r) => ({
+          importId: imp.id,
+          rowNumber: r.rowNumber,
+          line1: r.line1,
+          unit: r.unit,
+          city: r.city,
+          state: r.state,
+          zip: r.zip,
+          lat: r.lat,
+          lng: r.lng,
+          sourceRecordId: r.sourceRecordId,
+          sourceData: r.sourceData ?? Prisma.DbNull,
+        })),
       });
       await tx.auditEvent.create({
         data: {
@@ -73,7 +95,7 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
           entityType: "AddressImport",
           entityId: imp.id,
           // The uploader confirmed their organization is authorized to use the file for the stated purpose.
-          metadata: { rowCount: file.rowCount, kept: file.rows.length, skipped: file.skipped.length, droppedColumns: file.dropped.length, authorized: true },
+          metadata: { rowCount: file.rowCount, kept: file.rows.length, skipped: file.skipped.length, droppedColumns: file.dropped.length, storedColumns: file.storedColumns.length, recordIdColumn: !!file.recordIdColumn, sourceSystem: m.value.sourceSystem, states: file.states, authorized: true },
           createdAt: now,
         },
       });
@@ -119,8 +141,12 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
     async (tx) => {
       const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { id: true } });
       if (!job) return { ok: false as const, reason: "Job not found." };
-      const imp = await tx.addressImport.findFirst({ where: { id: importId, orgId: actor.orgId }, select: { id: true } });
+      const imp = await tx.addressImport.findFirst({ where: { id: importId, orgId: actor.orgId }, select: { id: true, purgedAt: true } });
       if (!imp) return { ok: false as const, reason: "Pick a file to cut from." };
+      // Cutting and deleting a file's addresses take the same lock, in this order: the file's, then the job's.
+      await lock(tx, `import:${imp.id}`);
+      const fresh = await tx.addressImport.findUnique({ where: { id: imp.id }, select: { purgedAt: true } });
+      if (fresh?.purgedAt) return { ok: false as const, reason: "This file's names and addresses have been deleted. Import it again to cut more walkbooks." };
       await lock(tx, `walkbooks:${job.id}`);
       // One rule, in SQL, for what is left to cut (and for the count the page shows): not on one of the job's books already, by id or as the same door from another file.
       const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>`
@@ -229,6 +255,9 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
         rowCount: true,
         keptCount: true,
         droppedColumns: true,
+        sourceSystem: true,
+        deleteAfter: true,
+        purgedAt: true,
         createdAt: true,
       },
     }),
@@ -272,6 +301,11 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
   };
 }
 
+/** What a stop shows where its address used to be, once the import's names and addresses are deleted. */
+const NO_ADDRESS = { line1: "", unit: null, city: "", state: "", zip: "", lat: null, lng: null } as const;
+/** A stop's address fields, flat, with `purged` set when the address is gone. Explicit fields only: sourceData and sourceRecordId are never selected here. */
+const flat = (a: { line1: string; unit: string | null; city: string; state: string; zip: string; lat: number | null; lng: number | null } | null) => ({ ...(a ?? NO_ADDRESS), purged: a === null });
+
 const STOP_SELECT = {
   id: true,
   stopNumber: true,
@@ -302,7 +336,7 @@ export async function loadWalkbookForStaff(orgId: string, walkbookId: string) {
   const states = await loadStopStates(wb.stops.map((s) => s.id));
   return {
     ...wb,
-    stops: wb.stops.map((s) => ({ id: s.id, stopNumber: s.stopNumber, ...s.address, result: states.get(s.id) ?? UNVISITED })),
+    stops: wb.stops.map((s) => ({ id: s.id, stopNumber: s.stopNumber, ...flat(s.address), result: states.get(s.id) ?? UNVISITED })),
     history: wb.assignments.map((a) => ({ id: a.id, at: a.createdAt, name: a.engagement?.worker.displayName ?? null })),
   };
 }
@@ -338,6 +372,76 @@ export async function loadWorkerWalkbooks(workerId: string, jobId?: string) {
   return books.map((b) => ({
     ...b,
     poll: polls.get(b.job.id) ?? [],
-    stops: b.stops.map((s): { id: string; stopNumber: number; result: StopState; poll: Array<{ questionId: string; choiceId: string | null; declined: boolean }> } & (typeof b.stops)[number]["address"] => ({ id: s.id, stopNumber: s.stopNumber, ...s.address, result: states.get(s.id) ?? UNVISITED, poll: answers.get(s.id) ?? [] })),
+    stops: b.stops.map((s) => ({ id: s.id, stopNumber: s.stopNumber, ...flat(s.address), result: states.get(s.id) ?? UNVISITED as StopState, poll: answers.get(s.id) ?? ([] as WorkerAnswerView[]) })),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Deleting names and addresses
+// ---------------------------------------------------------------------------
+
+export type PurgeReason = "requested" | "expired" | "jobs_closed";
+
+/**
+ * Deletes an import's addresses: the rows of ImportedAddress, and with them
+ * the record IDs and every other column of the file. The stops stay
+ * (addressId goes null), with their outcomes and poll answers, keyed by book
+ * and stop number. It is the one place a file's personal data is removed, so
+ * the three ways in (the organization's button, the 30 days running out,
+ * every job it was cut for closing) all come through here. Safe to call twice.
+ */
+export async function purgeImport(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
+  if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
+  return db().$transaction(async (tx) => {
+    const imp = await tx.addressImport.findUnique({ where: { id: importId.toLowerCase() }, select: { id: true, purgedAt: true } });
+    if (!imp) return { ok: false as const, reason: "File not found." };
+    // Under the lock cutting takes, so a book can't be cut from addresses in the middle of being deleted.
+    await lock(tx, `import:${imp.id}`);
+    const again = await tx.addressImport.findUnique({ where: { id: imp.id }, select: { purgedAt: true } });
+    if (again?.purgedAt) return { ok: true as const, addresses: 0, already: true };
+    const gone = await tx.importedAddress.deleteMany({ where: { importId: imp.id } });
+    await tx.addressImport.update({ where: { id: imp.id }, data: { purgedAt: now } });
+    await tx.auditEvent.create({ data: { actorId, action: "address_import.purged", entityType: "AddressImport", entityId: imp.id, metadata: { reason, addresses: gone.count }, createdAt: now } });
+    return { ok: true as const, addresses: gone.count, already: false };
+  });
+}
+
+/** The organization deletes one of its own files now, instead of waiting for the 30 days. */
+export async function purgeOwnImport(actor: Staff, importId: string, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
+  if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
+  const own = await db().addressImport.findFirst({ where: { id: importId.toLowerCase(), orgId: actor.orgId }, select: { id: true } });
+  if (!own) return { ok: false, reason: "File not found." };
+  return purgeImport(own.id, "requested", actor.profileId, now);
+}
+
+/**
+ * Deletes the names and addresses of every import that is due: its 30 days
+ * are up, or every job it was cut for has closed. Run daily by the cron route.
+ * One import failing doesn't stop the rest.
+ */
+export async function purgeDueImports(now = new Date()): Promise<{ purged: number; addresses: number; failed: number }> {
+  const due = await db().addressImport.findMany({
+    where: {
+      purgedAt: null,
+      OR: [{ deleteAfter: { lte: now } }, { walkbooks: { some: {} }, NOT: { walkbooks: { some: { job: { status: { not: "CLOSED" } } } } } }],
+    },
+    select: { id: true, deleteAfter: true },
+    take: 500,
+  });
+  let purged = 0;
+  let addresses = 0;
+  let failed = 0;
+  for (const d of due) {
+    try {
+      const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
+      if (r.ok && !r.already) {
+        purged++;
+        addresses += r.addresses;
+      }
+    } catch (e) {
+      failed++;
+      console.error("[turfcut] address import purge failed", d.id, e instanceof Error ? e.message : "error");
+    }
+  }
+  return { purged, addresses, failed };
 }

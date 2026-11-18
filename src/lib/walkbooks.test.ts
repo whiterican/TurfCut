@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   addressLine,
+  buildSourceData,
+  isNeverStored,
+  MAX_SOURCE_DATA_BYTES,
+  MAX_VALUE_CHARS,
   bookName,
   cutBooks,
   mapColumns,
@@ -30,12 +34,38 @@ describe("parseCsv", () => {
 });
 
 describe("mapColumns", () => {
-  it("finds the address columns and drops everything else by name", () => {
+  it("finds the address columns and the record ID, and keeps every other column by name", () => {
     const r = mapColumns(["Voter ID", "First Name", "Party", "Residence Address", "Apt", "City", "State", "Zip Code", "2024 General", "Phone"]);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.map.index).toEqual({ line1: 3, unit: 4, city: 5, state: 6, zip: 7 });
-    expect(r.map.dropped).toEqual(["Voter ID", "First Name", "Party", "2024 General", "Phone"]);
+    expect(r.map.recordId).toBe(0);
+    expect(r.map.stored.map((c) => c.name)).toEqual(["First Name", "Party", "2024 General", "Phone"]);
+    expect(r.map.dropped).toEqual([]);
+  });
+  it("picks the most specific record ID column, and a bare 'id' only as a last resort", () => {
+    const a = mapColumns(["id", "VANID", "address", "city", "state", "zip"]);
+    expect(a.ok && a.map.recordId).toBe(1);
+    expect(a.ok && a.map.stored.map((c) => c.name)).toEqual(["id"]);
+    const b = mapColumns(["Ecanvasser Contact ID", "address", "city", "state", "zip"]);
+    expect(b.ok && b.map.recordId).toBe(0);
+    const c = mapColumns(["id", "address", "city", "state", "zip"]);
+    expect(c.ok && c.map.recordId).toBe(0);
+    const none = mapColumns(["address", "city", "state", "zip"]);
+    expect(none.ok && none.map.recordId).toBeUndefined();
+  });
+  it("never stores a government ID, a birth date, or a payment or password column, and says which it left out", () => {
+    const r = mapColumns(["address", "city", "state", "zip", "SSN", "Driver License #", "Date of Birth", "birth_year", "DOB", "Password", "Credit Card Number", "Phone", "Party"]);
+    expect(r.ok && r.map.dropped).toEqual(["SSN", "Driver License #", "Date of Birth", "birth_year", "DOB", "Password", "Credit Card Number"]);
+    expect(r.ok && r.map.stored.map((c) => c.name)).toEqual(["Phone", "Party"]);
+    expect(isNeverStored("Voter ID")).toBe(false);
+    expect(isNeverStored("2024 General")).toBe(false);
+  });
+  it("gives repeated headers their own names, and keeps at most 60 columns", () => {
+    const r = mapColumns(["address", "city", "state", "zip", "Note", "note", ...Array.from({ length: 70 }, (_, i) => `col${i}`)]);
+    expect(r.ok && r.map.stored.slice(0, 2).map((c) => c.name)).toEqual(["Note", "note (2)"]);
+    expect(r.ok && r.map.stored.length).toBe(60);
+    expect(r.ok && r.map.dropped.length).toBe(12);
   });
   it("joins a house number and street name when there is no full address column", () => {
     const r = mapColumns(["house_number", "street_name", "city", "st", "zip5"]);
@@ -45,15 +75,15 @@ describe("mapColumns", () => {
     const r = mapColumns(["street", "city", "state", "zip"]);
     expect(r.ok && r.map.index).toEqual({ line1: 0, city: 1, state: 2, zip: 3 });
   });
-  it("drops a house number column when a full address column exists", () => {
+  it("keeps a house number column as data when a full address column exists", () => {
     const r = mapColumns(["address", "house number", "city", "state", "zip"]);
     expect(r.ok && r.map.index.houseNumber).toBeUndefined();
-    expect(r.ok && r.map.dropped).toEqual(["house number"]);
+    expect(r.ok && r.map.stored.map((c) => c.name)).toEqual(["house number"]);
   });
-  it("needs both halves of a point", () => {
+  it("needs both halves of a point; a lone latitude is kept as data", () => {
     const r = mapColumns(["address", "city", "state", "zip", "latitude"]);
     expect(r.ok && r.map.index.lat).toBeUndefined();
-    expect(r.ok && r.map.dropped).toEqual(["latitude"]);
+    expect(r.ok && r.map.stored.map((c) => c.name)).toEqual(["latitude"]);
   });
   it("names the missing columns", () => {
     const r = mapColumns(["name", "address", "party"]);
@@ -62,16 +92,52 @@ describe("mapColumns", () => {
   });
 });
 
+describe("buildSourceData", () => {
+  it("keeps header to value, trims and cuts values, and leaves empty ones out", () => {
+    const { data, cut } = buildSourceData([["Name", "  Ada   Lovelace "], ["Phone", ""], ["Notes", "x".repeat(900)], ["Party", "DEM"]]);
+    expect(Object.keys(data!)).toEqual(["Name", "Notes", "Party"]);
+    expect(data!.Name).toBe("Ada Lovelace");
+    expect(data!.Notes).toHaveLength(MAX_VALUE_CHARS);
+    expect(cut).toEqual([]);
+    expect(buildSourceData([["a", ""], ["b", "  "]]).data).toBeNull();
+  });
+  it("strips hidden and control characters, which a NUL would turn into a database error", () => {
+    const { data } = buildSourceData([["Name", "Ada\u0000 Love\u202elace\u200b"]]);
+    expect(data!.Name).toBe("Ada Lovelace");
+  });
+  it("drops columns from the end until a row fits, and says which", () => {
+    const entries = Array.from({ length: 40 }, (_, i) => [`column ${i}`, "v".repeat(500)] as const);
+    const { data, cut } = buildSourceData(entries);
+    expect(new TextEncoder().encode(JSON.stringify(data)).length).toBeLessThanOrEqual(MAX_SOURCE_DATA_BYTES);
+    expect(cut.length).toBeGreaterThan(0);
+    expect(cut[0]).toBe("column 39");
+    expect(Object.keys(data!)).not.toContain(cut[0]);
+  });
+});
+
 describe("readAddressFile", () => {
   const head = "name,party,address,unit,city,state,zip,lat,lon";
-  it("keeps addresses only: no name, party or other column reaches a row", () => {
-    const r = readAddressFile(`${head}\nAda Lovelace,DEM,12 Elm St,,Springfield,il,62701,39.78,-89.65\n`);
+  it("keeps each row's address, record ID and every other column together, apart from the address", () => {
+    const r = readAddressFile(`Voter ID,${head}\nV1,Ada Lovelace,DEM,12 Elm St,,Springfield,il,62701,39.78,-89.65\n`);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.file.rows).toEqual([{ rowNumber: 2, line1: "12 Elm St", unit: null, city: "Springfield", state: "IL", zip: "62701", lat: 39.78, lng: -89.65 }]);
-    expect(JSON.stringify(r.file.rows)).not.toMatch(/Ada|DEM/);
-    expect(r.file.dropped).toEqual(["name", "party"]);
+    expect(r.file.rows).toEqual([
+      { rowNumber: 2, line1: "12 Elm St", unit: null, city: "Springfield", state: "IL", zip: "62701", lat: 39.78, lng: -89.65, sourceRecordId: "V1", sourceData: { name: "Ada Lovelace", party: "DEM" } },
+    ]);
+    expect(r.file.recordIdColumn).toBe("Voter ID");
+    expect(r.file.storedColumns).toEqual(["name", "party"]);
+    expect(r.file.dropped).toEqual([]);
     expect(r.file.withPoint).toBe(1);
+    expect(r.file.states).toEqual(["IL"]);
+    // The address fields themselves carry no name or party.
+    const { line1, unit, city, state, zip, lat, lng } = r.file.rows[0];
+    expect(JSON.stringify({ line1, unit, city, state, zip, lat, lng })).not.toMatch(/Ada|DEM/);
+  });
+  it("leaves government ID, birth date and payment columns out of every row", () => {
+    const r = readAddressFile("address,city,state,zip,SSN,DOB,Party\n1 Oak St,Denver,CO,80202,123-45-6789,1980-01-02,DEM\n");
+    expect(r.ok && r.file.rows[0].sourceData).toEqual({ Party: "DEM" });
+    expect(JSON.stringify(r)).not.toMatch(/123-45|1980/);
+    expect(r.ok && r.file.dropped).toEqual(["SSN", "DOB"]);
   });
   it("skips unusable rows and says why, by row number", () => {
     const r = readAddressFile(
@@ -84,7 +150,7 @@ describe("readAddressFile", () => {
         "a,b,1 Oak St,,Springfield,IL,627011,,",
         "a,b,2 Oak St,,Springfield,IL,62701-1234,,",
         "a,b,2 oak st,,Springfield,IL,62701,,",
-        "a,b,3 Oak‮St,,Springfield,IL,62701,,",
+        "a,b,3 Oak\u202eSt,,Springfield,IL,62701,,",
       ].join("\n")
     );
     expect(r.ok).toBe(true);
@@ -96,25 +162,42 @@ describe("readAddressFile", () => {
     expect(r.file.skipped.find((s) => s.rowNumber === 8)?.reason).toMatch(/earlier row/);
     expect(r.file.rowCount).toBe(8);
   });
+  it("skips a row whose record ID repeats an earlier one, and keeps a blank ID as no ID", () => {
+    const r = readAddressFile("VANID,address,city,state,zip\nV1,1 Oak St,X,IL,62701\nV1,2 Oak St,X,IL,62701\n,3 Oak St,X,IL,62701\n");
+    expect(r.ok && r.file.rows.map((x) => x.sourceRecordId)).toEqual(["V1", null]);
+    expect(r.ok && r.file.skipped.find((s) => s.rowNumber === 3)?.reason).toMatch(/record ID/);
+  });
   it("reads ZIP+4 with or without the hyphen, and a spreadsheet's number", () => {
     const r = readAddressFile(`${head}\na,b,1 Oak St,,X,IL,021381234,,\na,b,2 Oak St,,X,IL,2138.0,,\n`);
     expect(r.ok && r.file.rows.map((x) => x.zip)).toEqual(["02138", "02138"]);
   });
-  it("keeps a second address line only when it is a unit: a name there never lands (rule 4)", () => {
+  it("keeps a second address line that isn't a unit as a column of its own, never as the unit a canvasser is sent to", () => {
     const rows = ["Apt 2", "Unit 4B", "#3", "Ste. 100", "2F", "B", "C/O Jane Doe", "Attn: Bob", "Jane Doe", "Apt Smith", "Apt B", "Ste A1"].map((u, i) => `a,b,${i + 1} Oak St,${u},X,IL,62701,,`);
     const r = readAddressFile([head, ...rows].join("\n"));
     expect(r.ok && r.file.rows.map((x) => x.unit)).toEqual(["Apt 2", "Unit 4B", "#3", "Ste. 100", "2F", "B", null, null, null, null, "Apt B", "Ste A1"]);
     expect(r.ok && r.file.unitsLeftOff).toBe(4);
-    expect(JSON.stringify(r)).not.toMatch(/Jane|Bob|Smith/);
+    // The value is in the row's own data, under its header, and nowhere in the address.
+    expect(r.ok && r.file.rows[6].sourceData?.unit).toBe("C/O Jane Doe");
+    expect(r.ok && r.file.rows[6].line1).toBe("7 Oak St");
   });
-  it("records dropped column names clean and capped", () => {
-    const r = readAddressFile(`address,city,state,zip,Party\u0000x,${"y".repeat(300)},${Array.from({ length: 250 }, (_, i) => `c${i}`).join(",")}\n1 Oak St,X,IL,62701\n`);
+  it("records never-stored headers clean and capped", () => {
+    const r = readAddressFile(`address,city,state,zip,SSN\u0000x,${"d".repeat(300)} dob,${Array.from({ length: 250 }, (_, i) => `ssn${i}`).join(",")}\n1 Oak St,X,IL,62701\n`);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.file.dropped[0]).toBe("Partyx");
+    expect(r.file.dropped[0]).toBe("SSNx");
     expect(r.file.dropped[1].length).toBe(100);
     expect(r.file.dropped.length).toBe(201);
     expect(r.file.dropped[200]).toBe("+52 more");
+  });
+  it("cuts columns that don't fit a row and names them", () => {
+    const cols = Array.from({ length: 40 }, (_, i) => `c${i}`);
+    const row = cols.map(() => "w".repeat(480));
+    const r = readAddressFile(`address,city,state,zip,${cols.join(",")}\n1 Oak St,X,IL,62701,${row.join(",")}\n`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.file.dropped.length).toBeGreaterThan(0);
+    expect(r.file.storedColumns).not.toContain(r.file.dropped[0]);
+    expect(new TextEncoder().encode(JSON.stringify(r.file.rows[0].sourceData)).length).toBeLessThanOrEqual(MAX_SOURCE_DATA_BYTES);
   });
   it("refuses a file in which no row has a usable address, naming the first problem", () => {
     const r = readAddressFile(`${head}\na,b,1 Oak St,,X,IL,12,,\n`);
@@ -146,6 +229,14 @@ describe("validateImportMeta", () => {
   it("refuses hidden characters in what the uploader states", () => {
     const r = validateImportMeta({ ...good, license: "ok\u0000" });
     expect(!r.ok && r.errors.license).toMatch(/hidden/);
+  });
+  it("takes a known source system or none, and refuses anything else", () => {
+    const ok = validateImportMeta({ ...good, sourceSystem: "ECANVASSER" });
+    expect(ok.ok && ok.value.sourceSystem).toBe("ECANVASSER");
+    const none = validateImportMeta(good);
+    expect(none.ok && none.value.sourceSystem).toBeNull();
+    const bad = validateImportMeta({ ...good, sourceSystem: "NGP" });
+    expect(!bad.ok && bad.errors.sourceSystem).toBeTruthy();
   });
   it("caps lengths", () => {
     const r = validateImportMeta({ ...good, purpose: "x".repeat(501) });

@@ -30,14 +30,14 @@ describe("consoleHref", () => {
 });
 
 describe("exportCsv", () => {
-  const base = { bookNumber: 1, stopNumber: 2, line1: "12 Elm St", unit: null, city: "Denver", state: "CO", zip: "80202", outcome: null, talkedTo: null, leftLiterature: null, signatures: null, recordedAt: null, holder: null };
+  const base = { bookNumber: 1, stopNumber: 2, line1: "12 Elm St", unit: null, city: "Denver", state: "CO", zip: "80202", sourceRecordId: null, outcome: null, talkedTo: null, leftLiterature: null, signatures: null, recordedAt: null, holder: null };
   it("writes a header and one line per stop, with To do for a stop with no outcome", () => {
-    const csv = exportCsv([base, { ...base, stopNumber: 3, outcome: "DONE", talkedTo: true, leftLiterature: false, signatures: 4, recordedAt: new Date("2026-11-17T08:05:09.123Z"), holder: "Alex Rivera" }]);
+    const csv = exportCsv([base, { ...base, stopNumber: 3, sourceRecordId: "V123", outcome: "DONE", talkedTo: true, leftLiterature: false, signatures: 4, recordedAt: new Date("2026-11-17T08:05:09.123Z"), holder: "Alex Rivera" }]);
     const lines = csv.trimEnd().split("\r\n");
     expect(lines).toHaveLength(3);
-    expect(lines[0]).toBe('"Walkbook","Stop","Address","Unit","City","State","ZIP","Outcome","Talked with someone","Left literature","Signatures","Recorded at (UTC)","Held by"');
-    expect(lines[1]).toBe('"1","2","12 Elm St","","Denver","CO","80202","To do","","","","",""');
-    expect(lines[2]).toBe('"1","3","12 Elm St","","Denver","CO","80202","Done","yes","no","4","2026-11-17 08:05:09","Alex Rivera"');
+    expect(lines[0]).toBe('"Walkbook","Stop","Address","Unit","City","State","ZIP","Source record ID","Outcome","Talked with someone","Left literature","Signatures","Recorded at (UTC)","Held by"');
+    expect(lines[1]).toBe('"1","2","12 Elm St","","Denver","CO","80202","","To do","","","","",""');
+    expect(lines[2]).toBe('"1","3","12 Elm St","","Denver","CO","80202","V123","Done","yes","no","4","2026-11-17 08:05:09","Alex Rivera"');
   });
   it("adds a column per poll question, with the answer in words, and an empty cell where there is none", () => {
     const cols = [{ id: "q1", prompt: "Measure 3?" }, { id: "q2", prompt: "Top issue?" }];

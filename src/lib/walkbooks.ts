@@ -1,15 +1,20 @@
 /**
- * File-to-walkbook (W1), the pure half: read an authorized CSV, keep only
- * the address of each row, put the addresses in walking order and cut them
- * into numbered walkbooks. Nothing here touches the database.
+ * File-to-walkbook (W1), the pure half: read an authorized CSV, keep each
+ * row's address, its source record ID and every other column, put the
+ * addresses in walking order and cut them into numbered walkbooks. Nothing
+ * here touches the database.
  *
- * Address only (CLAUDE.md rule 4). A voter or customer file carries names,
- * party, vote history, phone numbers and more. None of it is read past the
- * header: the columns that aren't address columns are dropped by name before
- * any row is looked at, and only their header names go back to the
- * organization so it can see what was left out. There is no geocoder: a stop
- * has a point on the map only when the file itself gave its latitude and
- * longitude.
+ * Caden decided (Nov 17 2026) to keep every column and the source record ID,
+ * so the firm's return file can be matched. A voter or customer file carries
+ * names, party, vote history and phone numbers: the most sensitive data in
+ * the system. They are stored on the address row (sourceData), deleted with
+ * it after 30 days, and never leave the importer, the purge and the staff
+ * export: not to a worker's phone, not to matching, scoring or ranking
+ * (CLAUDE.md rules 4 and 5; src/lib/walkbook-isolation.test.ts). Columns that
+ * are only a liability (government ID numbers, birth dates, payment and
+ * password columns) are never stored, whatever the file says. There is no
+ * geocoder: a stop has a point on the map only when the file itself gave its
+ * latitude and longitude.
  */
 
 import { HIDDEN_CHARS, hasHiddenChars } from "@/lib/text-guard";
@@ -18,8 +23,15 @@ export const MAX_FILE_BYTES = 2_000_000;
 export const MAX_ROWS = 10_000;
 export const MAX_STOPS_PER_BOOK = 500;
 export const DEFAULT_STOPS_PER_BOOK = 60;
-/** Dropped column names recorded per import; the rest are counted. */
+/** Not-stored column names recorded per import; the rest are counted. */
 export const MAX_DROPPED_SHOWN = 200;
+/** Columns kept in a row's sourceData, and the most one value holds. */
+export const MAX_STORED_COLUMNS = 60;
+export const MAX_VALUE_CHARS = 500;
+/** What a row's sourceData may weigh; the database refuses more than 16,384 bytes of its own JSON text, which spaces out a little. */
+export const MAX_SOURCE_DATA_BYTES = 15_000;
+/** Days until a file's names and addresses are deleted. */
+export const RETENTION_DAYS = 30;
 
 // ---------------------------------------------------------------------------
 // CSV
@@ -93,7 +105,7 @@ export function parseCsv(text: string): CsvResult {
 }
 
 // ---------------------------------------------------------------------------
-// Columns: which header is which address part; everything else is dropped
+// Columns: which header is which address part, which is the record ID; the rest are kept
 // ---------------------------------------------------------------------------
 
 export type AddressField = "line1" | "houseNumber" | "street" | "unit" | "city" | "state" | "zip" | "lat" | "lng";
@@ -111,12 +123,31 @@ const ALIASES: Record<AddressField, readonly string[]> = {
   lng: ["lng", "lon", "longitude"],
 };
 
+/** The source system's own id for a row, most specific first: Ecanvasser Contact ID, VanID, a voter file ID. A bare "id" is the last resort. */
+const RECORD_ID_ALIASES: readonly string[] = ["vanid", "myvoterid", "contactid", "ecanvasserid", "ecanvassercontactid", "recordid", "sourceid", "externalid", "pdiid", "personid", "voterid", "statevoterid", "voterfileid", "id"];
+
 const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Headers that are never stored: government ID numbers, birth dates, payment
+ * and password columns. They are risk without use here (matching a return
+ * file needs the record ID, not these), and Arizona protects several of them
+ * by name. Matched on the header with punctuation and case ignored.
+ */
+const NEVER_STORED = ["ssn", "socialsecurity", "driverlicense", "driverslicense", "driverlic", "dlnumber", "dlno", "licensenumber", "stateid", "passport", "taxid", "birth", "dob", "password", "passwd", "creditcard", "cardnumber", "cvv", "bankaccount", "routing", "accountnumber"];
+export const isNeverStored = (header: string) => {
+  const n = norm(header);
+  return NEVER_STORED.some((x) => n.includes(x));
+};
 
 export interface ColumnMap {
   /** The column index each address part comes from. */
   index: Partial<Record<AddressField, number>>;
-  /** The header names that were dropped, as they were written. */
+  /** The column the source record ID comes from, if the file has one. */
+  recordId?: number;
+  /** The other columns that are stored, in file order: index and a clean, unique name. */
+  stored: Array<{ at: number; name: string }>;
+  /** Headers never stored (government ID, birth date, payment, password) and headers beyond the column cap. */
   dropped: string[];
 }
 
@@ -164,9 +195,31 @@ export function mapColumns(headers: string[]): { ok: true; map: ColumnMap } | { 
   if (missing.length) {
     return { ok: false, reason: `No ${listWords(missing)} column found. Name the columns (for example "address", "city", "state", "zip") in the file's first row.` };
   }
-  const names = headers.filter((_, i) => !used.has(i)).map(headerName);
-  const dropped = names.length > MAX_DROPPED_SHOWN ? [...names.slice(0, MAX_DROPPED_SHOWN), `+${names.length - MAX_DROPPED_SHOWN} more`] : names;
-  return { ok: true, map: { index, dropped } };
+  // The record ID: the first alias present, most specific first.
+  let recordId: number | undefined;
+  for (const alias of RECORD_ID_ALIASES) {
+    const found = headers.findIndex((h, i) => !used.has(i) && norm(h) === alias);
+    if (found >= 0) {
+      recordId = found;
+      used.add(found);
+      break;
+    }
+  }
+  // Everything else is kept, with clean unique names, unless it is on the never-stored list or past the column cap.
+  const seenNames = new Map<string, number>();
+  const stored: Array<{ at: number; name: string }> = [];
+  const dropped: string[] = [];
+  headers.forEach((h, i) => {
+    if (used.has(i)) return;
+    const name = headerName(h);
+    if (isNeverStored(h)) return void dropped.push(name);
+    if (stored.length >= MAX_STORED_COLUMNS) return void dropped.push(name);
+    const n = (seenNames.get(name.toLowerCase()) ?? 0) + 1;
+    seenNames.set(name.toLowerCase(), n);
+    stored.push({ at: i, name: n === 1 ? name : `${name} (${n})` });
+  });
+  const shown = dropped.length > MAX_DROPPED_SHOWN ? [...dropped.slice(0, MAX_DROPPED_SHOWN), `+${dropped.length - MAX_DROPPED_SHOWN} more`] : dropped;
+  return { ok: true, map: { index, recordId, stored, dropped: shown } };
 }
 
 /** A dropped column's name as it is recorded: hidden characters out, at most 100 characters. */
@@ -195,6 +248,10 @@ export interface AddressRow {
   zip: string;
   lat: number | null;
   lng: number | null;
+  /** The source system's id for the row (a VanID, an Ecanvasser Contact ID); null when the file has none or it is blank. */
+  sourceRecordId: string | null;
+  /** Every other column of the row, header to value, empty values left out. Null when there are none. */
+  sourceData: Record<string, string> | null;
 }
 
 export interface Skipped {
@@ -206,11 +263,18 @@ export interface AddressFile {
   rowCount: number;
   rows: AddressRow[];
   skipped: Skipped[];
+  /** Headers not stored: government ID, birth date, payment and password columns, and columns past the cap or cut to fit a row. */
   dropped: string[];
+  /** The headers kept in each row's sourceData, in file order. */
+  storedColumns: string[];
+  /** The header the record ID came from, or null. */
+  recordIdColumn: string | null;
   /** Rows with a usable point from the file. */
   withPoint: number;
-  /** Rows whose second address line wasn't a unit and was left off (it may hold a name: "C/O …"). */
+  /** Rows whose second address line wasn't a unit: it is kept as a column of its own, not as the unit (it may hold "C/O …"). */
   unitsLeftOff: number;
+  /** The states the addresses are in, sorted (Arizona restricts voter-list data online). */
+  states: string[];
 }
 
 const clean = (s: string | undefined) => (s ?? "").replace(/\s+/g, " ").trim();
@@ -226,10 +290,11 @@ function readZip(raw: string): string | null {
 }
 
 /**
- * A second address line is kept only when it is shaped like a unit
- * ("Apt 2", "Unit 4B", "#3", "Ste 100", "2F"). Mailing files put other things
- * there, a name above all ("C/O Jane Doe", "Attn: …"); those never reach the
- * database (CLAUDE.md rule 4).
+ * A second address line is the unit only when it is shaped like one ("Apt 2",
+ * "Unit 4B", "#3", "Ste 100", "2F"). Mailing files put other things there, a
+ * name above all ("C/O Jane Doe", "Attn: …"); that value is kept as a column
+ * of its own with the rest of the row's data, never as part of the address a
+ * canvasser is sent to.
  */
 const UNIT_WORDS = "apt|apartment|unit|ste|suite|bldg|building|fl|floor|rm|room|lot|spc|space|trlr|ph|penthouse|bsmt|basement|dept|no|num|number";
 const UNIT_SHAPE = new RegExp(`^(?:(?:${UNIT_WORDS})\\.?\\s*#?\\s*(?:\\d[0-9a-z]{0,5}|[a-z]\\d{0,4})(?:-[0-9a-z]{1,6})?|#\\s*[0-9a-z]{1,6}(?:-[0-9a-z]{1,6})?|\\d{1,6}[a-z]?|[a-z]\\d{0,4}|\\d{1,3}(?:st|nd|rd|th)\\s+(?:fl|floor)|(?:upper|lower|rear|front|side|uppr|lowr|frnt))$`, "i");
@@ -241,7 +306,33 @@ function readCoord(raw: string, limit: number): number | null {
   return Math.abs(n) <= limit ? n : null;
 }
 
-/** Reads a whole file: CSV, columns, then each row's address. Address parts only. */
+const stripHidden = new RegExp(HIDDEN_CHARS.source, "gu");
+const bytes = (t: string) => new TextEncoder().encode(t).length;
+
+/**
+ * A row's other columns as header -> value: values trimmed and cut at
+ * MAX_VALUE_CHARS, hidden and control characters out (a NUL can't be stored
+ * as JSON), empty values left out. If the row would weigh more than
+ * MAX_SOURCE_DATA_BYTES, columns are dropped from the end until it fits; the
+ * names of any dropped are returned so the import can say so.
+ */
+export function buildSourceData(entries: ReadonlyArray<readonly [string, string]>): { data: Record<string, string> | null; cut: string[] } {
+  const kept: Array<[string, string]> = [];
+  for (const [name, raw] of entries) {
+    const v = raw.replace(stripHidden, "").replace(/\s+/g, " ").trim().slice(0, MAX_VALUE_CHARS);
+    if (v) kept.push([name, v]);
+  }
+  let size = 2 + kept.reduce((n, [k, v]) => n + bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4, 0);
+  const cut: string[] = [];
+  while (size > MAX_SOURCE_DATA_BYTES && kept.length) {
+    const [k, v] = kept.pop()!;
+    size -= bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4;
+    cut.push(k);
+  }
+  return { data: kept.length ? Object.fromEntries(kept) : null, cut };
+}
+
+/** Reads a whole file: CSV, columns, then each row's address, record ID and other columns. */
 export function readAddressFile(text: string): { ok: true; file: AddressFile } | { ok: false; reason: string } {
   if (new TextEncoder().encode(text).length > MAX_FILE_BYTES) return { ok: false, reason: `The file is over ${MAX_FILE_BYTES / 1_000_000} MB. Split it, or keep only the address columns.` };
   const csv = parseCsv(text);
@@ -258,12 +349,18 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
   const rows: AddressRow[] = [];
   const skipped: Skipped[] = [];
   const seen = new Set<string>();
+  const seenIds = new Set<string>();
+  const cutNames = new Set<string>();
   let unitsLeftOff = 0;
+  const unitHeader = index.unit !== undefined ? headerName(headers[index.unit]) : null;
   data.forEach((r, i) => {
     const rowNumber = lineOf[i + 1];
     const line1 = index.line1 !== undefined ? at(r, "line1") : clean(`${at(r, "houseNumber")} ${at(r, "street")}`);
     let unit = at(r, "unit");
+    // A second line that isn't a unit stays in the row's data, under its own header.
+    let notAUnit: string | null = null;
     if (unit && !isUnitShaped(unit)) {
+      notAUnit = unit;
       unit = "";
       unitsLeftOff++;
     }
@@ -280,6 +377,16 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
     if (!zip) return skipped.push({ rowNumber, reason: "The ZIP code isn't five digits." });
     const key = addressKey({ line1, unit, zip });
     if (seen.has(key)) return skipped.push({ rowNumber, reason: "Same address as an earlier row." });
+    let sourceRecordId: string | null = null;
+    if (mapped.map.recordId !== undefined) {
+      const id = clean(r[mapped.map.recordId]);
+      if (id.length > 100 || hasHiddenChars(id)) return skipped.push({ rowNumber, reason: "The record ID is over 100 characters or has hidden characters." });
+      if (id) {
+        if (seenIds.has(id)) return skipped.push({ rowNumber, reason: "Same record ID as an earlier row." });
+        seenIds.add(id);
+        sourceRecordId = id;
+      }
+    }
     seen.add(key);
     let lat: number | null = null;
     let lng: number | null = null;
@@ -288,13 +395,31 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
       lng = readCoord(at(r, "lng"), 180);
       if (lat === null || lng === null) lat = lng = null;
     }
-    rows.push({ rowNumber, line1, unit: unit || null, city, state, zip, lat, lng });
+    const extra = mapped.map.stored.map((c) => [c.name, r[c.at] ?? ""] as const);
+    if (notAUnit && unitHeader) extra.push([unitHeader, notAUnit]);
+    const sd = buildSourceData(extra);
+    for (const c of sd.cut) cutNames.add(c);
+    rows.push({ rowNumber, line1, unit: unit || null, city, state, zip, lat, lng, sourceRecordId, sourceData: sd.data });
   });
   if (!rows.length) {
     const first = skipped[0];
     return { ok: false, reason: `No row in the file has a usable address${first ? ` (line ${first.rowNumber}: ${first.reason})` : ""}.` };
   }
-  return { ok: true, file: { rowCount: data.length, rows, skipped, dropped: mapped.map.dropped, withPoint: rows.filter((r) => r.lat !== null).length, unitsLeftOff } };
+  const dropped = [...mapped.map.dropped, ...[...cutNames].filter((n) => !mapped.map.dropped.includes(n))];
+  return {
+    ok: true,
+    file: {
+      rowCount: data.length,
+      rows,
+      skipped,
+      dropped,
+      storedColumns: mapped.map.stored.map((c) => c.name).filter((n) => !cutNames.has(n)),
+      recordIdColumn: mapped.map.recordId !== undefined ? headerName(headers[mapped.map.recordId]) : null,
+      withPoint: rows.filter((r) => r.lat !== null).length,
+      unitsLeftOff,
+      states: [...new Set(rows.map((r) => r.state))].sort(),
+    },
+  };
 }
 
 /** One door within a file: the same first line, unit and ZIP, ignoring case. Across files on a job, the rule is notOnJob in walkbooks-data.ts. */
@@ -304,11 +429,23 @@ export const addressKey = (a: { line1: string; unit: string | null; zip: string 
 // What the uploader states about the file
 // ---------------------------------------------------------------------------
 
+export const SOURCE_SYSTEMS = [
+  { value: "ECANVASSER", label: "Ecanvasser" },
+  { value: "VAN", label: "VAN / MiniVAN" },
+  { value: "PDI", label: "PDI" },
+  { value: "OTHER", label: "Another system or list" },
+] as const;
+export type SourceSystem = (typeof SOURCE_SYSTEMS)[number]["value"];
+
+/** Arizona law limits voter-list data to political use and bars posting it online (A.R.S. 16-168); an Arizona file needs its own acknowledgement. */
+export const NEEDS_STATE_ACK = ["AZ"] as const;
+
 export interface ImportMeta {
   fileName: string;
   recordSource: string;
   purpose: string;
   license: string;
+  sourceSystem: SourceSystem | null;
 }
 
 export function validateImportMeta(raw: Record<string, unknown>): { ok: true; value: ImportMeta } | { ok: false; errors: Record<string, string> } {
@@ -326,7 +463,9 @@ export function validateImportMeta(raw: Record<string, unknown>): { ok: true; va
   else if (license.length > 500) errors.license = "Keep it under 500 characters.";
   for (const [k, v] of Object.entries({ recordSource, purpose, license })) if (!errors[k] && hasHiddenChars(v)) errors[k] = "Remove the hidden characters.";
   if (raw.authorized !== "on" && raw.authorized !== true) errors.authorized = "Confirm your organization is authorized to use this file for this purpose.";
-  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: { fileName, recordSource, purpose, license } };
+  const sys = s("sourceSystem");
+  if (sys && !SOURCE_SYSTEMS.some((x) => x.value === sys)) errors.sourceSystem = "Pick one of the systems listed, or leave it empty.";
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: { fileName, recordSource, purpose, license, sourceSystem: (sys || null) as SourceSystem | null } };
 }
 
 // ---------------------------------------------------------------------------

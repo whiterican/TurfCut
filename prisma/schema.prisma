@@ -1649,7 +1649,14 @@ model AddressImport {
   license        String
   rowCount       Int // data rows in the file
   keptCount      Int // rows that had a usable address
+  /// Headers that were not stored: government ID, birth date, payment and password columns (never kept), and columns cut to fit the 16 KB row.
   droppedColumns String[]     @default([])
+  /// Where the file came from: ECANVASSER, VAN, PDI or OTHER (the source record ID is that system's own id).
+  sourceSystem   String?
+  /// When the names and addresses go: 30 days after the import, or sooner (the organization deletes the file, or all its jobs closed). Set by the app.
+  deleteAfter    DateTime
+  /// When they went. After it the file's addresses, record IDs and other columns are gone; the stops, outcomes and poll answers stay.
+  purgedAt       DateTime?
   createdAt      DateTime     @default(now())
 
   addresses ImportedAddress[]
@@ -1659,19 +1666,23 @@ model AddressImport {
   @@index([uploadedById])
 }
 
-/// One address from an import, and nothing else about the household.
+/// One address from an import, with the row's source record ID and every other column of the file. Deleted with its import's data after 30 days.
 model ImportedAddress {
-  id        String        @id @default(uuid()) @db.Uuid
-  importId  String        @db.Uuid
-  import    AddressImport @relation(fields: [importId], references: [id], onDelete: Restrict)
-  rowNumber Int // the line of the file the row starts on (the header is line 1)
-  line1     String
-  unit      String?
-  city      String
-  state     String // two letters
-  zip       String // five digits
-  lat       Float? // only when the file supplied it; there is no geocoder
-  lng       Float?
+  id             String        @id @default(uuid()) @db.Uuid
+  importId       String        @db.Uuid
+  import         AddressImport @relation(fields: [importId], references: [id], onDelete: Restrict)
+  rowNumber      Int // the line of the file the row starts on (the header is line 1)
+  line1          String
+  unit           String?
+  city           String
+  state          String // two letters
+  zip            String // five digits
+  lat            Float? // only when the file supplied it; there is no geocoder
+  lng            Float?
+  /// The source system's own id for the row (Ecanvasser Contact ID, VanID), so a return file can be matched.
+  sourceRecordId String?
+  /// Every other column of the row, header to value, at most 16 KB. Names, phone numbers, party, vote history: the most sensitive data in the system. Read only by the importer, the purge and the staff export; never sent to a worker, matching or scoring (src/lib/walkbook-isolation.test.ts).
+  sourceData     Json?
 
   stops WalkbookStop[]
 
@@ -1700,11 +1711,12 @@ model Walkbook {
 }
 
 model WalkbookStop {
-  id          String          @id @default(uuid()) @db.Uuid
-  walkbookId  String          @db.Uuid
-  walkbook    Walkbook        @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
-  addressId   String          @db.Uuid
-  address     ImportedAddress @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  id          String           @id @default(uuid()) @db.Uuid
+  walkbookId  String           @db.Uuid
+  walkbook    Walkbook         @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
+  /// Null once the import's names and addresses are deleted (30 days, or sooner): the stop stays, keyed by walkbook and stop number, with its outcomes and poll answers.
+  addressId   String?          @db.Uuid
+  address     ImportedAddress? @relation(fields: [addressId], references: [id], onDelete: SetNull)
   stopNumber  Int
   outcomes    StopOutcome[]
   pollAnswers PollAnswer[]

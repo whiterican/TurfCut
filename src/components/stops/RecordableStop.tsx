@@ -37,10 +37,15 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
   if (seen !== state) {
     setSeen(state);
     setShowState(true);
-    // After saving a Done at a job with a poll, the panel stays open: the poll is next.
-    if (state.ok) setOpen(poll.length > 0 && chosen === "DONE");
-    // A refused tap that isn't about a field gets a fresh id, so the retry isn't refused the same way.
-    else if (!state.gone && Object.keys(state.errors).length === 0) setClientId(newId());
+    // After saving a Done at a job with a poll, the panel stays open: the poll is next. A save is done with its
+    // id: a fresh one, so a changed outcome saved from the open panel is a new entry, not "Already saved".
+    if (state.ok) {
+      setOpen(poll.length > 0 && chosen === "DONE");
+      setClientId(newId());
+    }
+    // A refused tap that isn't about a field gets a fresh id, so the retry isn't refused the same way. A save
+    // that may have landed (state.retry) keeps its id, so trying again counts it once.
+    else if (!state.gone && !state.retry && Object.keys(state.errors).length === 0) setClientId(newId());
   }
   // Keyboard and screen-reader users: into the panel when it opens, back to the stop when it closes.
   useEffect(() => {

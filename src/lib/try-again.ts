@@ -1,0 +1,16 @@
+/**
+ * A server action's database call that fails (a transaction that times out behind another cut or a purge, a
+ * full connection pool) is a message to try again, not the error page. Only the error's code is logged, never
+ * its message: a database message can quote the data it was handling.
+ */
+export const TRY_AGAIN = "That didn't save. Nothing was changed. Try again in a moment.";
+
+export async function orTryAgain<T>(what: string, run: () => Promise<T>): Promise<T | null> {
+  try {
+    return await run();
+  } catch (e) {
+    const code = typeof e === "object" && e && "code" in e && typeof e.code === "string" ? e.code : "unknown";
+    console.error(`[turfcut] ${what} failed (${code})`);
+    return null;
+  }
+}

@@ -6,6 +6,7 @@ import { assignWalkbook, cutWalkbooks, importAddresses, purgeOwnImport } from "@
 import { MAX_FILE_BYTES } from "@/lib/walkbooks";
 import { UUID_RE } from "@/lib/jobs";
 import type { ActionState } from "@/app/jobs/actions";
+import { orTryAgain, TRY_AGAIN } from "@/lib/try-again";
 
 export interface WalkbookFormState {
   ok: boolean;
@@ -42,7 +43,8 @@ export async function importAddressesAction(_prev: WalkbookFormState, fd: FormDa
 
 export async function cutWalkbooksAction(_prev: WalkbookFormState, fd: FormData): Promise<WalkbookFormState> {
   const actor = await staff();
-  const r = await cutWalkbooks(actor, str(fd, "jobId"), str(fd, "importId"), str(fd, "stopsPerBook"));
+  const r = await orTryAgain("walkbook cut", () => cutWalkbooks(actor, str(fd, "jobId"), str(fd, "importId"), str(fd, "stopsPerBook")));
+  if (!r) return { ok: false, message: TRY_AGAIN, errors: {} };
   if (!r.ok) return { ok: false, message: r.reason, errors: r.errors ?? {} };
   changed(r.jobId);
   const repeats = r.repeats ? ` ${r.repeats.toLocaleString("en-US")} ${r.repeats === 1 ? "address was" : "addresses were"} already on this job's walkbooks and left out.` : "";
@@ -52,7 +54,8 @@ export async function cutWalkbooksAction(_prev: WalkbookFormState, fd: FormData)
 export async function assignWalkbookAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const actor = await staff();
   const engagementId = str(fd, "engagementId");
-  const r = await assignWalkbook(actor, str(fd, "walkbookId"), engagementId);
+  const r = await orTryAgain("walkbook hand-out", () => assignWalkbook(actor, str(fd, "walkbookId"), engagementId));
+  if (!r) return { ok: false, message: TRY_AGAIN };
   if (!r.ok) return { ok: false, message: r.reason };
   if (r.changed) changed(r.jobId);
   return { ok: true, message: !r.changed ? "No change." : engagementId ? "Handed over. It's on their phone now." : "Taken back. Nobody holds it now." };
@@ -61,7 +64,8 @@ export async function assignWalkbookAction(_prev: ActionState, fd: FormData): Pr
 /** The organization deletes a file's names and addresses now, instead of waiting for the 30 days. Stops, outcomes and poll answers stay. */
 export async function deleteFileDataAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const actor = await staff();
-  const r = await purgeOwnImport(actor, str(fd, "importId"));
+  const r = await orTryAgain("file delete", () => purgeOwnImport(actor, str(fd, "importId")));
+  if (!r) return { ok: false, message: TRY_AGAIN };
   if (!r.ok) return { ok: false, message: r.reason };
   const jobId = str(fd, "jobId").toLowerCase();
   if (UUID_RE.test(jobId)) revalidatePath(`/jobs/${jobId}/walkbooks`, "layout");

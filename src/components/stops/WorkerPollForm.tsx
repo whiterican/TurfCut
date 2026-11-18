@@ -21,7 +21,8 @@ export function WorkerPollForm({ stopId, questions, answers }: { stopId: string;
   // The tap's id is made when the form is submitted (never during render, which would differ from the server's) and kept until the save lands or is refused for a reason a retry could fix: a double tap or a retry carries the same id and saves once.
   const tapId = useRef<string | null>(null);
   useEffect(() => {
-    if (state.ok || (!state.gone && Object.keys(state.errors).length === 0 && state.message)) tapId.current = null;
+    // A save that may have landed (state.retry: a database timeout) keeps its id, so trying again counts it once.
+    if (state.ok || (!state.gone && !state.retry && Object.keys(state.errors).length === 0 && state.message)) tapId.current = null;
   }, [state]);
   const action = (fd: FormData) => {
     fd.set("clientId", (tapId.current ??= newId()));

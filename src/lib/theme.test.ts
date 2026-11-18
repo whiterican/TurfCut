@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { THEME_CHOICES, THEME_INIT_SCRIPT, currentTheme, leaveSunlight, setTheme, storedTheme, themeClasses } from "./theme";
+import { FLAT_STRIP_MEDIA, STRIP_COLORS, STRIP_COLORS_FLAT, THEME_CHOICES, THEME_INIT_SCRIPT, currentTheme, leaveSunlight, setTheme, storedTheme, themeClasses } from "./theme";
 
 describe("themes (P1.5 adds Sunlight)", () => {
   it("offers four choices, Sunlight among them", () => {
@@ -36,6 +36,65 @@ describe("themes (P1.5 adds Sunlight)", () => {
       // Nothing saved, or something unknown: follow the phone, like storedTheme() says.
       for (const v of [null, "glow"]) expect(prepaint(v, phoneLight)).toEqual(phoneLight ? [] : ["dark"]);
     }
+  });
+
+  type Tag = { name?: string; content: string; media?: string };
+  const serverTags = (): Tag[] => [
+    { name: "theme-color", content: STRIP_COLORS.light, media: "(prefers-color-scheme: light)" },
+    { name: "theme-color", content: STRIP_COLORS.dark, media: "(prefers-color-scheme: dark)" },
+  ];
+  /**
+   * The theme-color tags in head order after the pre-paint script. The server's two tags are parsed before it
+   * (`serverFirst`) or arrive after it, unchanged, as the framework may send them; `flat` is the contrast settings.
+   */
+  function stripTags(stored: string | null, phoneLight: boolean, { flat = false, serverFirst = true } = {}): Tag[] {
+    const head: Tag[] = serverFirst ? serverTags() : [];
+    const classList = { add: () => {}, toggle: () => {} };
+    new Function("document", "localStorage", "window", THEME_INIT_SCRIPT)(
+      {
+        documentElement: { classList, dataset: {} },
+        head: { firstChild: head[0] ?? null, insertBefore: (n: Tag, before: Tag | null) => head.splice(before ? head.indexOf(before) : head.length, 0, n) },
+        querySelectorAll: () => head.filter((t) => t.name === "theme-color"),
+        createElement: () => ({ content: "" }),
+      },
+      { getItem: (k: string) => (k === "turfcut-theme" ? stored : null) },
+      // Each query its own answer: the phone's light or dark, and the contrast settings.
+      { matchMedia: (q: string) => ({ matches: q === FLAT_STRIP_MEDIA ? flat : q.includes("prefers-color-scheme: light") ? phoneLight : false }) },
+    );
+    if (!serverFirst) head.push(...serverTags());
+    return head.map(({ content, media }) => ({ content, media }));
+  }
+  const CHOICES = [["dark", "dark"], ["sun", "sun"], ["light", "light"]] as const;
+  it("puts the chosen theme's strip colour first in theme-color before the page loads, whatever the phone's setting", () => {
+    for (const phoneLight of [true, false]) {
+      for (const [stored, key] of CHOICES) {
+        const want = STRIP_COLORS[key];
+        const tags = stripTags(stored, phoneLight);
+        // A tag with no media, first in the head, so it is the one a phone reads; the server's tags carry the same colour.
+        expect(tags[0]).toEqual({ content: want, media: undefined });
+        expect(tags.map((t) => t.content)).toEqual([want, want, want]);
+        // The server's tags arriving after the script: the script's tag is still first, so it is still the one read.
+        expect(stripTags(stored, phoneLight, { serverFirst: false })[0]).toEqual({ content: want, media: undefined });
+      }
+      // Match my phone: the phone's own colour.
+      expect(stripTags(null, phoneLight)[0].content).toBe(phoneLight ? STRIP_COLORS.light : STRIP_COLORS.dark);
+    }
+  });
+  it("uses the flat page colour when the device asks for more contrast or less transparency", () => {
+    for (const [stored, key] of CHOICES) expect(stripTags(stored, true, { flat: true })[0].content).toBe(STRIP_COLORS_FLAT[key]);
+    expect(stripTags(null, false, { flat: true })[0].content).toBe(STRIP_COLORS_FLAT.dark);
+  });
+  it("still applies the theme when the head can't be touched", () => {
+    const classes = new Set<string>();
+    const classList = { add: (c: string) => classes.add(c), toggle: (c: string, on: boolean) => (on ? classes.add(c) : classes.delete(c)) };
+    expect(() =>
+      new Function("document", "localStorage", "window", THEME_INIT_SCRIPT)(
+        { documentElement: { classList, dataset: {} } },
+        { getItem: () => "dark" },
+        { matchMedia: () => ({ matches: true }) },
+      ),
+    ).not.toThrow();
+    expect([...classes]).toEqual(["dark"]);
   });
 });
 

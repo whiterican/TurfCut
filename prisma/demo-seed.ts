@@ -26,7 +26,18 @@
  * dates (the hiring history events carry the backdated times).
  *
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
- * the base seed's approved CO/Denver jurisdiction must exist). It runs once:
+ * the base seed's approved CO/Denver jurisdiction must exist). Before it
+ * reads or writes anything it checks where it is pointed (demoSeedTarget):
+ * the live Turfcut project, named anywhere in the Supabase or database
+ * settings, is always refused, and any other hosted Supabase database is
+ * refused unless the run is guarded (TURFCUT_DEMO=1, and
+ * TURFCUT_DEMO_PROJECT_REF matches the ref in both NEXT_PUBLIC_SUPABASE_URL
+ * and DATABASE_URL). A refusal exits 1 with nothing written. A local
+ * Postgres runs with no extra settings. Jobs outside Denver are filed under
+ * a statewide CO profile only on a guarded run: the database's current
+ * usable one, or one this run makes with a 14-day expiry and a "DEMO ONLY"
+ * label, settled before any job is created. On an unguarded local run those
+ * jobs are filed in Denver, and no statewide profile is created. It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
  * What can be checked without writing is checked before the first write.
  * Scheduling and the steps after it are not: each shift, check-in and
@@ -38,6 +49,7 @@
  * than by a name anyone could type.
  */
 import { cleanDatabaseUrl } from "../src/lib/env";
+import { STATEWIDE_CO_ID, demoJobCityAndJurisdiction, demoSeedTarget, demoStatewideExpiry, planStatewideProfile, shouldRenewDemoStatewide } from "../src/lib/demo-seed-guard";
 import { db } from "../src/lib/db";
 import { compensationProblem, jurisdictionProblems, validateJob, type Affiliation, type CampaignType, type JobInput } from "../src/lib/jobs";
 import type { IssueKey } from "../src/lib/political-fit";
@@ -45,12 +57,20 @@ import { createJob, publishJob } from "../src/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "../src/lib/engagements-data";
 import { scheduleShift, SHIFT_OVERLAPS, supervisorShiftAction, workerShiftAction } from "../src/lib/field-day-data";
 import { ensureDirect, sendMessage } from "../src/lib/chat-data";
+import { addCredential } from "../src/lib/credentials-data";
 
 const p = db();
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const MIN = 60_000;
 const JURISDICTION = "00000000-0000-0000-0000-000000000021";
+/**
+ * A city profile covers that city only (jobs.ts jurisdictionLocalityProblem), so demo jobs outside Denver are filed under
+ * a statewide Colorado profile only in a guarded demo database: the current
+ * usable one if the database has one, else this one, made with a 14-day
+ * expiry and DEMO ONLY notes. Elsewhere those jobs stay in Denver.
+ */
+const STATEWIDE = STATEWIDE_CO_ID;
 const DEMO = " (demo)";
 /**
  * Written last, with the ids of the organizations and workers the run made: a
@@ -155,6 +175,16 @@ function target(): string {
 }
 
 async function main() {
+  // Hard stop before the first read or write: the live project is always
+  // refused, and a hosted Supabase database only takes a guarded run.
+  const where = demoSeedTarget(process.env);
+  if (!where.ok) {
+    console.error(`Refusing to seed demo data into ${target()}: ${where.reason}`);
+    console.error("Nothing was written.");
+    process.exitCode = 1;
+    return;
+  }
+  const guard = where.kind === "guarded" ? ({ ok: true, ref: where.ref } as const) : where.guard;
   if (!process.argv.includes("--yes")) {
     console.log(`This writes permanent, append-only demo data to ${target()}.`);
     console.log("Run it again with --yes to go ahead: npm run seed:demo -- --yes");
@@ -170,12 +200,31 @@ async function main() {
         "(its history is append-only, so check it by hand before anything else) or a real organization has a demo name."
     );
   }
+  const now = new Date();
   if (named.length) {
-    console.log("Demo data is already here; nothing to do.");
+    const existing = await p.jurisdictionProfile.findFirst({
+      where: { state: "CO", locality: null },
+      orderBy: [{ isCurrent: "desc" }, { version: "desc" }],
+    });
+    if (existing && guard.ok && shouldRenewDemoStatewide(existing, now)) {
+      const until = demoStatewideExpiry(now);
+      await p.jurisdictionProfile.update({ where: { id: existing.id }, data: { approvalExpiresAt: until } });
+      await p.auditEvent.create({
+        data: {
+          actorId: null,
+          action: "demo.statewide_profile_renewed",
+          entityType: "JurisdictionProfile",
+          entityId: existing.id,
+          metadata: { demoOnly: true, approvalExpiresAt: until.toISOString() },
+          createdAt: now,
+        },
+      });
+      console.log(`Demo data is already here. Extended the DEMO ONLY statewide profile to ${until.toISOString().slice(0, 10)}.`);
+    } else {
+      console.log("Demo data is already here; nothing to do.");
+    }
     return;
   }
-
-  const now = new Date();
   const T0 = new Date(now.getTime() - 45 * DAY); // when the demo's history starts
 
   // --- Check what can be checked before the first write ---
@@ -185,9 +234,42 @@ async function main() {
   const problems = [...new Set([...jurisdictionProblems(jurisdiction, now), ...jurisdictionProblems(jurisdiction, T0)])];
   const shiftRate = compensationProblem("SHIFT_RATE", jurisdiction.rules);
   if (problems.length || shiftRate) throw new Error(`The CO/Denver jurisdiction can't take demo jobs: ${[...problems, shiftRate].filter(Boolean).join(" ")}`);
+  // Statewide Colorado, for jobs outside Denver. Look at every statewide row,
+  // not only the current one: a null locality is not unique, so creating
+  // another approved v1 would silently succeed. Creating a placeholder is
+  // allowed only on a guarded demo database (checked here, at the start of
+  // the seed, not just around the insert). The plan, and so every job's city
+  // and profile, is settled here, before anything is written.
+  const statewideRows = await p.jurisdictionProfile.findMany({
+    // Every statewide row, including a pending or non-current v1. Do not add
+    // isCurrent: true — that would hide a leftover v1 and let a duplicate be created.
+    where: { state: "CO", locality: null },
+    orderBy: [{ isCurrent: "desc" }, { version: "desc" }],
+  });
+  const usabilityOf = (row: (typeof statewideRows)[number]) => {
+    const sw = [...new Set([...jurisdictionProblems(row, now), ...jurisdictionProblems(row, T0)])];
+    const swRate = compensationProblem("SHIFT_RATE", row.rules);
+    return { ok: !sw.length && !swRate, problems: [...sw, swRate].filter(Boolean) };
+  };
+  const existing = statewideRows.map((row) => ({ id: row.id, isCurrent: row.isCurrent, usable: usabilityOf(row).ok }));
+  // guard.ok, not true: an unguarded run must stay Denver-only and must not create a profile.
+  const swPlan = planStatewideProfile({ guarded: guard.ok, existing, now, fixedId: STATEWIDE });
+  if (swPlan.kind === "refuse") {
+    const current = statewideRows.find((row) => row.isCurrent);
+    const details = current ? usabilityOf(current).problems : [];
+    throw new Error(details.length ? `${swPlan.reason} ${details.join(" ")}`.trim() : swPlan.reason);
+  }
+  if (guard.ok) {
+    console.log(`Guarded demo database (project ref ${guard.ref}).`);
+  } else {
+    console.log(`Local database, not a guarded demo (${guard.reason})`);
+    if (swPlan.kind === "denver-only") {
+      console.log("Demo jobs outside Denver will be filed in Denver. No statewide CO profile will be created.");
+    }
+  }
 
   type Planned = { input: JobInput; orgIdx: number; type: "PETITION" | "CANVASS"; startsAt: Date; endsAt: Date; past: boolean; modes: string[] };
-  const plan = (c: Campaign, orgIdx: number, past: boolean): Planned => {
+  const plan = (c: Campaign, orgIdx: number, past: boolean, cityIndex: number): Planned => {
     const startsAt = dayOf(past ? new Date(T0.getTime() + int(0, 10) * DAY) : new Date(now.getTime() + int(2, 21) * DAY));
     const endsAt = dayOf(new Date((past ? now.getTime() : startsAt.getTime()) + int(20, 60) * DAY));
     const method = rand() < 0.7 ? "HOURLY" : "SHIFT_RATE";
@@ -199,14 +281,16 @@ async function main() {
     const o = ORGS[orgIdx];
     const phone = `(303) 555-01${String(10 + orgIdx).padStart(2, "0")}`;
     const petition = c.type === "PETITION";
+    const placed = demoJobCityAndJurisdiction(CITIES[cityIndex % CITIES.length], swPlan, JURISDICTION);
+    const city = placed.city;
     const v = validateJob({
       type: c.type,
       title: `${c.title}${DEMO}`,
       description: `${c.message} Training provided on day one; staging point shared after you're hired. Demo job: not a real campaign.`,
-      jurisdictionId: JURISDICTION,
+      jurisdictionId: placed.jurisdictionId,
       startsAt: iso(startsAt),
       endsAt: iso(endsAt),
-      city: pick(CITIES),
+      city,
       state: "CO",
       compensationMethod: method,
       payRate: rate,
@@ -232,11 +316,43 @@ async function main() {
   // ~20 jobs on the local campaigns (some running since the demo began, holding
   // the history; some starting soon), then one for each campaign type and affiliation.
   const planned = [
-    ...Array.from({ length: 20 }, (_, i) => plan(CAMPAIGNS[i % CAMPAIGNS.length], i % ORGS.length, i < 12)),
-    ...MORE_CAMPAIGNS.map((c) => plan(c, c.org, false)),
+    ...Array.from({ length: 20 }, (_, i) => plan(CAMPAIGNS[i % CAMPAIGNS.length], i % ORGS.length, i < 12, i)),
+    ...MORE_CAMPAIGNS.map((c, i) => plan(c, c.org, false, 20 + i)),
   ];
 
   console.log(`Writing demo data to ${target()}…`);
+
+  // --- Statewide Colorado rules: only created on a guarded demo database, with a 14-day expiry and DEMO ONLY notes.
+  // approvedById is left null: there is no system or Turfcut-staff user in the seed, and attributing approval to an
+  // unrelated staff profile would be misleading. A system audit event records the creation instead.
+  if (swPlan.kind === "create") {
+    const rules = { ...(jurisdiction.rules && typeof jurisdiction.rules === "object" ? jurisdiction.rules : {}), notes: swPlan.notes };
+    await p.jurisdictionProfile.create({
+      data: {
+        id: swPlan.id,
+        state: "CO",
+        locality: null,
+        version: 1,
+        isCurrent: true,
+        approved: true,
+        approvedAt: T0,
+        approvalExpiresAt: swPlan.approvalExpiresAt,
+        rules,
+        createdAt: T0,
+      },
+    });
+    await p.auditEvent.create({
+      data: {
+        actorId: null,
+        action: "demo.statewide_profile",
+        entityType: "JurisdictionProfile",
+        entityId: swPlan.id,
+        metadata: { demoOnly: true, approvalExpiresAt: swPlan.approvalExpiresAt.toISOString(), notes: swPlan.notes },
+        createdAt: now,
+      },
+    });
+    console.log(`Creating a DEMO ONLY statewide CO profile that expires on ${swPlan.approvalExpiresAt.toISOString().slice(0, 10)}.`);
+  }
 
   // --- Organizations, each with an owner and a supervisor ---
   const orgs = [];
@@ -261,6 +377,14 @@ async function main() {
   for (const name of WORKERS) {
     const profile = await p.profile.create({ data: { id: crypto.randomUUID(), role: "WORKER", createdAt: T0 } });
     const worker = await p.worker.create({ data: { profileId: profile.id, displayName: `${name}${DEMO}`, createdAt: T0 } });
+    // Hiring checks credentials (job-credentials.ts): each demo worker holds a Colorado set, self-reported, as a worker adds it.
+    for (const c of [
+      { kind: "CIRCULATOR_REGISTRATION", state: "CO", expiresOn: iso(new Date(now.getTime() + 365 * DAY)) },
+      { kind: "NOTARY_OR_AFFIDAVIT", state: "CO" },
+      { kind: "OTHER", label: "Badge" },
+      { kind: "TRAINING", label: "Petition basics" },
+      { kind: "TRAINING", label: "Canvass basics" },
+    ]) must(await addCredential(worker.id, profile.id, c), `credential for ${name}`);
     workers.push({ worker, profile });
   }
 
@@ -357,18 +481,27 @@ async function main() {
   if (shiftsWorked === 0) throw new Error("demo seed: no shifts were worked — the hires above didn't take");
 
   // --- Upcoming jobs: applications waiting for a decision, claimed spots and invitations out ---
+  // Some are refused on purpose, mostly invitations to a worker who never
+  // worked for that organization and isn't findable ("Worker not found.", the
+  // no-directory rule in engagements-data.ts). They're counted by reason and
+  // printed, not dropped silently.
   let pending = 0;
+  const skipped = new Map<string, number>();
+  // One counter per attempt, so a job's 1–4 tries go to different workers.
+  // (Keyed on successes, as before, it came back to the same worker.)
+  let attempt = 0;
   for (const job of jobs.filter((j) => !j.past)) {
     const { org, owner } = orgs[job.orgIdx];
     const n = int(1, 4);
     for (let k = 0; k < n; k++) {
-      const { worker, profile } = workers[(pending * 5 + k) % workers.length];
+      const { worker, profile } = workers[attempt++ % workers.length];
       const r = job.modes.includes("application")
         ? await applyToJob(worker.id, profile.id, job.id)
         : job.modes.includes("instant_claim")
           ? await claimJob(worker.id, profile.id, job.id)
           : await inviteWorker(org.id, owner.id, job.id, worker.id);
       if (r.ok) pending++;
+      else skipped.set(r.reason, (skipped.get(r.reason) ?? 0) + 1);
     }
   }
 
@@ -391,12 +524,17 @@ async function main() {
     await sendMessage(w, conv.conversationId, "Sounds good, see you Saturday!");
   }
 
+  const statewideProfileId = swPlan.kind === "create" || swPlan.kind === "use-existing" ? swPlan.id : null;
   await p.auditEvent.create({
-    data: { ...MARKER, actorId: null, metadata: { orgIds, workerIds: workers.map((w) => w.worker.id), jobs: jobs.length, shiftsWorked } },
+    data: { ...MARKER, actorId: null, metadata: { orgIds, workerIds: workers.map((w) => w.worker.id), jobs: jobs.length, shiftsWorked, statewideProfileId } },
   });
   console.log("Demo data loaded:");
   console.log(`  ${orgs.length} organizations, ${workers.length} workers, ${jobs.length} published jobs`);
   console.log(`  ${shiftsWorked} worked shifts, ${pending} waiting applications, claims and invitations, ${engagements.length} message threads`);
+  if (skipped.size) {
+    console.log(`  Not made (${[...skipped.values()].reduce((a, b) => a + b, 0)}), by the app's reason:`);
+    for (const [reason, count] of skipped) console.log(`    ${count} × ${reason}`);
+  }
 }
 
 main()

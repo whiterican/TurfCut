@@ -50,12 +50,13 @@ describe("scroll direction for the top row", () => {
     // With reduced transparency or more contrast the bar is a plain surface, not glass: it stays, as Sunlight's does.
     const solid = css.slice(css.lastIndexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {"));
     expect(solid).toMatch(/html:not\(\[data-scrolled\], \.sun\) body:not\(:has\(\.staff-band, \.thread-top\)\):not\(\.x\)::after \{\s*opacity: 1;/);
-    // ...and a job page's strip under the clock stays on the way down too: there is no row for it to leave with.
-    // Phone only: wider, a job's page keeps its header, and the bar must still leave with it.
-    const stay = "html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {\n      opacity: 1 !important;";
+    // ...and a job page's strip under the clock is there from the start and stays on the way down: there is no row
+    // for it to leave with. Phone only: wider, a job's page keeps its header, and the bar must still leave with it.
+    const stay = "html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {\n      opacity: 1 !important;";
     expect(solid.split(stay)).toHaveLength(2);
     expect(solid.slice(solid.lastIndexOf("@media", solid.indexOf(stay)), solid.indexOf(stay))).toMatch(/^@media \(width < 48rem\) \{/);
-    expect(solid).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*background: rgb\(0 0 0 \/ 0\.5\);\s*-webkit-backdrop-filter: none;/);
+    // No layer over the photograph under these settings either.
+    expect(solid).not.toMatch(/\.job-photo-head::after \{\s*background:/);
     // Nothing keyed on the scroll marks changes a size or takes anything out of the page.
     expect(css).not.toMatch(/data-scrolled[^{]*\{[^}]*(height:|visibility: hidden|display: none)/);
     // A job's own page on a phone: no site bar and no menu strip. The photograph runs under the clock, its buttons
@@ -68,29 +69,22 @@ describe("scroll direction for the top row", () => {
     expect(block).toMatch(/\.tpl:has\(\.job-photo-head\) \{\s*padding-top: 0;/);
     expect(block).toMatch(/\.job-photo-head \{\s*margin-top: 0;\s*\}/);
     expect(block).toMatch(/\.job-head-actions \{\s*top: calc\(1rem \+ env\(safe-area-inset-top\)\);/);
-    // Two panes share the top, one at a time (Caden, Nov 14). Over the photograph: clear glass under the clock, fixed
-    // to the screen, a blur and a breath of shade with none of the page's colour, ending above the buttons.
-    const clear = block.slice(block.indexOf("html:not(.sun) .job-photo-head::after {"));
-    const clearRule = clear.slice(0, clear.indexOf("}"));
-    expect(clearRule).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(env\(safe-area-inset-top\) \* 2\.4\);/);
-    expect(clearRule).toMatch(/backdrop-filter: blur\(18px\) saturate\(1\.4\);/);
-    expect(clearRule).not.toContain("--page-top");
-    expect(clearRule).toContain("pointer-events: none;");
-    // Feathered: solid under the clock, then four steps down to nothing, so there is no straight foot to see.
-    expect(clearRule).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 30%, rgb\(0 0 0 \/ 0\.72\) 48%, rgb\(0 0 0 \/ 0\.4\) 66%, rgb\(0 0 0 \/ 0\.15\) 84%, transparent 100%\);/);
-    expect(block).toMatch(/html:not\(\.sun\)\[data-past-photo\] \.job-photo-head::after \{\s*opacity: 0;/);
-    // It reaches below the buttons' top now, so they stand above it and stay sharp.
+    // The buttons stand above any layer at the top, sharp.
     expect(block).toMatch(/body:has\(\.job-photo-head\) \.job-head-actions \{\s*z-index: 44;/);
-    // Past the photograph: the page's own gradient glass, hidden until then.
+    // Under the clock, the page's own strip in its top colour, from the start (Caden, Nov 17): fixed to the screen,
+    // the clock's height, nothing blurred or masked. It replaced a clear masked shade over the photograph, which an
+    // iPhone drew as a solid pale bar, and the cross-fade to it.
     const band = "html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {";
     const bandRule = block.slice(block.indexOf(band), block.indexOf("}", block.indexOf(band)));
-    expect(bandRule).toMatch(/height: calc\(env\(safe-area-inset-top\) \+ 2\.25rem\);/);
-    expect(bandRule).toMatch(/var\(--page-top\)[\s\S]*backdrop-filter: blur\(10px\);[\s\S]*opacity: 0;/);
-    expect(block).toMatch(/html:not\(\.sun\)\[data-past-photo\] body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.thread-top\)\)::after \{\s*opacity: 1;/);
-    // The two stand in for the cap under the clock; Sunlight has neither and keeps its cap.
+    expect(bandRule).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);/);
+    expect(bandRule).toMatch(/background: var\(--page-top\);/);
+    expect(bandRule).not.toMatch(/opacity: 0|blur\(|mask-image/);
+    expect(block).not.toContain(".job-photo-head::after");
+    expect(css).not.toMatch(/\[data-past-photo\]/);
+    // The strip stands in for the cap under the clock; Sunlight has no strip and keeps its cap.
     expect(block).toMatch(/html:not\(\.sun\):has\(\.job-photo-head\)::after \{\s*opacity: 0;/);
     expect(block).toMatch(/html\.sun body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.thread-top\)\)::after \{\s*content: none;/);
-    // The mark that switches them: a photograph whose foot is above the strip has passed.
+    // The mark is still computed, though no style reads it now (ScrollDirection.tsx says so).
     expect(photoPassed(null)).toBe(false);
     expect(photoPassed(PHOTO_PAST_PX + 1)).toBe(false);
     expect(photoPassed(PHOTO_PAST_PX)).toBe(true);

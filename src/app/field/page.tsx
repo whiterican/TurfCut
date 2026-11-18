@@ -9,6 +9,8 @@ import { WorkspacePage } from "@/components/layout/Page";
 import { FieldBoard } from "@/components/staff/FieldBoard";
 import { CoverageMap } from "@/components/staff/CoverageMap";
 import { TurfCards } from "@/components/staff/TurfCards";
+import { AssignTurfPanel, type AssignableShift } from "@/components/staff/AssignTurfPanel";
+import { canUse } from "@/lib/access";
 import { FieldLiveProvider, LiveFigure, LiveRatio } from "@/components/staff/FieldLive";
 import { summarizeField } from "@/lib/field-live";
 
@@ -43,6 +45,14 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   // Under way: checked in and not out, or due now and not checked in (late). Counted by the live summary, which the page then polls (P1.7).
   const live = summarizeField(rows, now);
   const cards = turfCards(rows);
+  // Whoever may schedule shifts may give turf; the shifts offered are the ones still to work or under way.
+  const assignable: AssignableShift[] = canUse(session, "scheduling")
+    ? rows
+        .filter((r) => !r.state.cancelled && !r.state.checkedOutAt && (r.state.checkedInAt || r.endsAt >= now))
+        .sort((a, b) => a.jobTitle.localeCompare(b.jobTitle) || a.startsAt.getTime() - b.startsAt.getTime())
+        .map((r) => ({ id: r.shiftId, worker: r.worker, jobTitle: r.jobTitle, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt.toISOString(), hasTurf: r.turf !== null }))
+    : [];
+  const firstCorner = live.zones[0]?.turf.coordinates[0][0];
   const heldNow = kept.filter((h) => h.takenOn === null).length;
   // The loader stops at REVIEW_CAP rows; if it did, there may be more than it shows ("+").
   const orgWaiting = reviewQueue(orgCandidates).length;
@@ -107,6 +117,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
               <TurfCards cards={cards} now={now} />
             </aside>
           </div>
+          {assignable.length > 0 && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} />}
         </section>
         <section className="section" aria-labelledby="shifts-heading">
           <h2 id="shifts-heading" className="section-title">Shifts</h2>

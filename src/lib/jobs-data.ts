@@ -46,6 +46,7 @@ function jobData(input: JobInput) {
     // Nothing said about the launch leaves it as stored (an API edit from before C4).
     ...(input.launch ? { launch: json(input.launch) } : {}),
     ...(input.tools ? { tools: json(input.tools) } : {}),
+    providesTraining: input.providesTraining,
   };
 }
 
@@ -76,6 +77,7 @@ function draftData(d: DraftInput) {
     ...(d.cancellationNoticeHours !== undefined ? { cancellationNoticeHours: d.cancellationNoticeHours } : {}),
     ...(d.launch ? { launch: json(d.launch) } : {}),
     ...(d.tools ? { tools: json(d.tools) } : {}),
+    ...(d.providesTraining !== undefined ? { providesTraining: d.providesTraining } : {}),
   };
 }
 

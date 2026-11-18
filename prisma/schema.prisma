@@ -475,6 +475,11 @@ model Job {
   launch                  Json?
   tools                   Json?
   publishedAt             DateTime?
+  /// When true, a missing required training credential or badge does not
+  /// block apply, claim, or accepting an invitation or offer; registration
+  /// and affidavit are still required. Existing hires are left as they are
+  /// if this is later turned off (prisma/c3-provides-training.sql).
+  providesTraining        Boolean             @default(false)
   // Matching weights are versioned on the job (M3); stored when matching ships.
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt

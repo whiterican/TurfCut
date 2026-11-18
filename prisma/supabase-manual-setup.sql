@@ -190,6 +190,7 @@ CREATE TABLE "public"."Job" (
     "launch" JSONB,
     "tools" JSONB,
     "publishedAt" TIMESTAMP(3),
+    "providesTraining" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -3032,3 +3033,7 @@ ALTER TABLE "public"."PollAnswer" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."PollQuestion", "public"."PollChoice", "public"."PollAnswer" FROM anon, authenticated;
 
 COMMIT;
+
+-- "We provide training" on jobs (PR #187). Also in prisma/c3-provides-training.sql.
+-- Existing jobs stay false. Safe to run again (no-op when the column is already on CREATE TABLE above).
+ALTER TABLE "public"."Job" ADD COLUMN IF NOT EXISTS "providesTraining" BOOLEAN NOT NULL DEFAULT false;

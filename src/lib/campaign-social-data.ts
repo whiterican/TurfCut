@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { openJobsEndAfter, UUID_RE } from "@/lib/jobs";
+import { hiringOpenWhere, openJobsEndAfter, UUID_RE } from "@/lib/jobs";
 import { checkImage, type MediaKind, type MediaStore } from "@/lib/campaign-media";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
 import { decodeCursor, DIRECTORY_PAGE_SIZE, embedProblem, encodeCursor, likePattern, MAX_CAMPAIGNS_PER_ORG, MAX_PINNED, normalizeHandle, normalizeQuery, PAGE_SIZE, type ProfileInput } from "@/lib/campaign-social";
@@ -420,15 +420,16 @@ export type HiringJob = Prisma.JobGetPayload<{ select: typeof HIRING_SELECT }>;
 
 /**
  * A public campaign's jobs that are hiring now, for its profile: the same
- * rule as the directory's "hiring" count and the job feed (published, and
- * not ended a day ago or more), scoped to this campaign and its own
+ * rule as the directory's "hiring" count and the job feed (published, not
+ * ended a day ago or more, and hiring not paused), scoped to this campaign and its own
  * organization. An organization can run several campaigns; each lists only
  * the jobs linked to it. Newest published first, bounded; `more` says the
  * list was cut.
  */
 export async function listHiringJobs(campaign: { id: string; orgId: string }, now = new Date()): Promise<{ jobs: HiringJob[]; more: boolean }> {
   const rows = await db().job.findMany({
-    where: { campaignProfileId: campaign.id, orgId: campaign.orgId, status: "PUBLISHED", OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }] },
+    // Paused jobs (organization approval on hold, rules failing the gate) are not hiring: hiringOpenWhere.
+    where: { campaignProfileId: campaign.id, orgId: campaign.orgId, status: "PUBLISHED", OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }], AND: [hiringOpenWhere(now)] },
     orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { id: "desc" }],
     take: HIRING_MAX + 1,
     select: HIRING_SELECT,
@@ -452,7 +453,7 @@ export type DirectoryRow = {
   activeAt: Date;
   /** Whether Turfcut staff have verified this as the organization's official campaign account (M10.5). */
   verified: boolean;
-  /** The campaign's jobs that are hiring now: published and not ended (the job feed's rule). */
+  /** The campaign's jobs that are hiring now: published, not ended and not paused (listHiringJobs' rule). */
   hiring: number;
 };
 
@@ -467,13 +468,24 @@ export async function listPublicCampaigns(opts: { cursor?: string | null; q?: un
   const q = normalizeQuery(opts.q);
   const after = decodeCursor(opts.cursor);
   const pattern = likePattern(q);
-  const openEnd = openJobsEndAfter(opts.now ?? new Date());
+  const now = opts.now ?? new Date();
+  const openEnd = openJobsEndAfter(now);
   const rows = await db().$queryRaw<(Omit<DirectoryRow, "hiring"> & { hiring: number | bigint })[]>`
     SELECT c."id", c."handle", c."displayName", c."bio", c."avatarKey",
            (c."verifiedAt" IS NOT NULL) AS "verified",
            lp."lastPostAt",
            GREATEST(lp."lastPostAt", c."publishedAt") AS "activeAt",
-           (SELECT count(*) FROM "public"."Job" j WHERE j."campaignProfileId" = c."id" AND j."status" = 'PUBLISHED' AND (j."endsAt" IS NULL OR j."endsAt" > ${openEnd}::timestamp)) AS "hiring"
+           -- listHiringJobs' rule: this campaign's own organization's open jobs, not paused (hiringOpenWhere in SQL;
+           -- the organization's approval is o."approved" below). The columns hold UTC without a zone, as Prisma's
+           -- own filters read them, so the times are compared in UTC whatever the session's time zone.
+           (SELECT count(*) FROM "public"."Job" j
+              JOIN "public"."JurisdictionProfile" jp ON jp."id" = j."jurisdictionId"
+             WHERE j."campaignProfileId" = c."id" AND j."orgId" = c."orgId" AND j."status" = 'PUBLISHED'
+               AND (j."endsAt" IS NULL OR j."endsAt" > (${openEnd} AT TIME ZONE 'UTC'))
+               AND jp."approved" AND jp."isCurrent"
+               AND (jp."effectiveFrom" IS NULL OR jp."effectiveFrom" <= (${now} AT TIME ZONE 'UTC'))
+               AND (jp."approvalExpiresAt" IS NULL OR jp."approvalExpiresAt" > (${now} AT TIME ZONE 'UTC'))
+               AND jsonb_typeof(jp."rules" -> 'compensationAllowed') = 'array') AS "hiring"
       FROM "public"."CampaignProfile" c
       JOIN "public"."Organization" o ON o."id" = c."orgId"
       LEFT JOIN LATERAL (

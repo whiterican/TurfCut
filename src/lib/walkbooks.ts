@@ -112,13 +112,13 @@ export type AddressField = "line1" | "houseNumber" | "street" | "unit" | "city" 
 
 /** Header names each address part answers to, compared with case, spaces and punctuation ignored. */
 const ALIASES: Record<AddressField, readonly string[]> = {
-  line1: ["address", "address1", "addressline1", "streetaddress", "residenceaddress", "residentialaddress", "line1", "addr", "addr1", "siteaddress", "propertyaddress"],
+  line1: ["address", "address1", "addressline1", "streetaddress", "residenceaddress", "residentialaddress", "line1", "addr", "addr1", "siteaddress", "propertyaddress", "homeaddress", "physicaladdress", "primaryaddress", "address01"],
   houseNumber: ["housenumber", "houseno", "housenum", "streetnumber", "streetno", "stnum", "addressnumber"],
   street: ["street", "streetname", "stname", "road"],
   unit: ["unit", "apt", "apartment", "aptnumber", "unitnumber", "suite", "address2", "addressline2", "line2", "addr2"],
-  city: ["city", "town", "municipality", "residencecity", "residentialcity", "sitecity"],
-  state: ["state", "st", "stateabbr", "statecode", "residencestate", "residentialstate", "sitestate"],
-  zip: ["zip", "zipcode", "zip5", "postalcode", "postcode", "residencezip", "residentialzip", "sitezip"],
+  city: ["city", "town", "municipality", "residencecity", "residentialcity", "sitecity", "homecity", "physicalcity"],
+  state: ["state", "st", "stateabbr", "statecode", "residencestate", "residentialstate", "sitestate", "homestate", "physicalstate"],
+  zip: ["zip", "zipcode", "zip5", "postalcode", "postcode", "residencezip", "residentialzip", "sitezip", "homezip", "physicalzip"],
   lat: ["lat", "latitude"],
   lng: ["lng", "lon", "longitude"],
 };

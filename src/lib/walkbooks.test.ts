@@ -71,6 +71,10 @@ describe("mapColumns", () => {
     const r = mapColumns(["house_number", "street_name", "city", "st", "zip5"]);
     expect(r.ok && r.map.index).toEqual({ houseNumber: 0, street: 1, city: 2, state: 3, zip: 4 });
   });
+  it("knows the headers voter and supporter files use for a home address", () => {
+    const r = mapColumns(["VANID", "Home Address", "Home City", "Home State", "Home Zip"]);
+    expect(r.ok && r.map.index).toEqual({ line1: 1, city: 2, state: 3, zip: 4 });
+  });
   it("treats a lone street column as the whole first line", () => {
     const r = mapColumns(["street", "city", "state", "zip"]);
     expect(r.ok && r.map.index).toEqual({ line1: 0, city: 1, state: 2, zip: 3 });

@@ -15,25 +15,60 @@ databases):
 2. `prisma/w2-stop-outcomes.sql`
 3. `prisma/w5-polls.sql`
 
+`w1-walkbooks.sql` already includes the keep-every-column and purge changes and
+also upgrades a database that ran its first version. Add `CRON_SECRET` to the
+project (the proof purge needs it too) so the daily purge can run.
+
 Neither has been applied to production by an agent.
 
 ## What is stored, and what is not
 
-- **Addresses only** (CLAUDE.md rule 4). `src/lib/walkbooks.ts` maps the
-  file's headers to address parts and drops every other column by name before
-  any row is read. Only the dropped columns' *names* are recorded on the
-  import, so the organization can see what was left out. A second address line
-  is kept only if it is shaped like a unit; "C/O Jane Doe" never lands.
-- **Provenance**: each import records its source, purpose and license as the
-  uploader stated them, and that they are authorized to use it. The file
-  itself is not kept.
+Caden decided on Nov 17 2026 to store the source record ID and keep every
+column of an imported file, with names and addresses deleted after 30 days. This
+reverses the first version of W1 (addresses only).
+
+- **Stored with each row**: the address; the source record ID (an Ecanvasser
+  Contact ID or VanID, found by header name) so a return file can be matched; and
+  every other column, header to value (`ImportedAddress.sourceData`, at most 60
+  columns and 16 KB a row, values cut at 500 characters). These columns hold
+  names, phone numbers, party and vote history: the most sensitive data in the
+  system.
+- **Never stored**, whatever the file says: government ID numbers, birth dates,
+  and payment and password columns (`isNeverStored` in `src/lib/walkbooks.ts`).
+  They are listed by name on the import, so the organization sees what was left
+  out. Columns past the first 60, or cut to fit a row, are listed too.
+- **Where they may be read**: only the importer that writes them, the purge that
+  deletes them, and the staff export (the record ID only). `src/lib/walkbook-isolation.test.ts`
+  fails if any other file names `sourceData` or `sourceRecordId`, if any
+  worker-facing or matching/scoring code touches the import tables, or if a query
+  selects an address whole. They are never sent to a worker's phone, and never
+  used to match, score or rank anyone (rules 4 and 5). Nothing in the app shows
+  `sourceData` to anyone: it is held for matching the firm's return file and goes
+  when the address does.
+- **Deletion**: 30 days after the import (`AddressImport.deleteAfter`), sooner if
+  the organization deletes the file ("Delete names and addresses now"), or when
+  every job the file was cut for has closed. `purgeImport` deletes the
+  `ImportedAddress` rows only; `purgedAt` says when. The walkbooks, stops, outcomes
+  and poll answers stay, keyed by walkbook and stop number
+  (`WalkbookStop.addressId` is nullable, `ON DELETE SET NULL`); a stop without an
+  address shows "Address deleted". A daily cron (`/api/cron/purge-imports`,
+  `vercel.json`, `CRON_SECRET`) runs it. A deleted file can't be cut again: import
+  it again. **Export the return file inside the 30 days**: the record IDs go with
+  the addresses.
+- **Provenance**: each import records its source, purpose, license, and the
+  system it came from, as the uploader stated them, and that they are authorized.
+  The file itself is not kept.
+- **Arizona**: A.R.S. 16-168 limits voter-list data to political use and bars
+  posting it online. A file with Arizona addresses needs an extra acknowledgement
+  to import (`ackAZ`). Whether a web app counts under that statute is unresolved by
+  its text (see `docs/compliance/VOTER_DATA_AND_POLLING_LEGAL_NOTES.md` once merged).
+  Keep row content out of logs and error reports: skipped-row reasons and audit
+  events carry row numbers and counts only.
 - **No geocoder**: a stop is on the map only when the file supplied its
   latitude and longitude.
 - **Outcomes are a closed set.** `StopOutcomeAnswer.key` is checked in the
   database to be `talked_to`, `left_literature` or `signatures`. There is no
-  free text and no recorded opinion of a resident. Adding a field is a
-  reviewed change to the SQL file and the schema, not a string the app can
-  invent.
+  free text and no recorded opinion of a resident.
 
 ## Append-only (rule 3)
 

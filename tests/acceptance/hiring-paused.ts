@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { listHiringJobs, listPublicCampaigns, loadPosts, loadPublicPost } from "@/lib/campaign-social-data";
 import { embedState } from "@/lib/campaign-social";
+import { postJson } from "@/lib/campaign-api";
 import { hiringOpenWhere, hiringPausedReasons } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
@@ -108,19 +109,21 @@ const idOf = (r: { ok: boolean } & ({ engagementId: string } | object)) => ("eng
     const posts = (await loadPosts(camp.id)).posts;
     const one = posts.find((x) => x.id === post.id)?.job ?? null;
     const viaPage = (await loadPublicPost("second_field_co", post.id))?.post.job ?? null;
-    return { one, viaPage, state: one ? embedState(one, new Date()) : null, viaPageState: viaPage ? embedState(viaPage, new Date()) : null };
+    const api = posts.find((x) => x.id === post.id);
+    return { one, viaPage, state: one ? embedState(one, new Date()) : null, viaPageState: viaPage ? embedState(viaPage, new Date()) : null, apiPaused: api ? postJson(api).job?.hiringPaused : undefined };
   };
   const e0 = await embedded();
   check("an open job's embed reads open", e0.state === "open" && e0.viaPageState === "open", e0);
   check("…and carries neither the organization nor the rules", !!e0.one && !("org" in e0.one) && !("jurisdiction" in e0.one), e0.one && Object.keys(e0.one));
+  check("…and the public API says hiringPaused: false, with no organization or rules in it", e0.apiPaused === false && !JSON.stringify(postJson((await loadPosts(camp.id)).posts[0])).match(/approved|compensationAllowed|createdById/), e0.apiPaused);
   await p.organization.update({ where: { id: ORG2 }, data: { approved: false } });
   const e1 = await embedded();
   // (The post's own page is gone with the campaign while its organization is unapproved, so only the post lists show it.)
-  check("approval withdrawn: the embed reads paused, and the post's own page is hidden with the campaign", e1.state === "paused" && e1.viaPage === null, e1);
+  check("approval withdrawn: the embed reads paused (and the API says so), and the post's own page is hidden with the campaign", e1.state === "paused" && e1.apiPaused === true && e1.viaPage === null, e1);
   await p.organization.update({ where: { id: ORG2 }, data: { approved: true } });
   await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: new Date(Date.now() - DAY) } });
   const e2 = await embedded();
-  check("rules lapsed: the embed reads paused", e2.state === "paused" && e2.viaPageState === "paused", e2);
+  check("rules lapsed: the embed reads paused, in the API too", e2.state === "paused" && e2.viaPageState === "paused" && e2.apiPaused === true, e2);
   await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: null } });
   check("cleared: the embed reads open again", (await embedded()).state === "open");
 

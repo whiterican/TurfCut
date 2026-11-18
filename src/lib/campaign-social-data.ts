@@ -213,9 +213,10 @@ export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKi
 /** What an embedded job's card shows: read from the job as it is now, server-side (never the post's word). */
 const EMBED_SELECT = {
   id: true, orgId: true, title: true, type: true, status: true, startsAt: true, endsAt: true, compensationMethod: true, payRateCents: true, geography: true, campaignDisclosure: true,
-  // Only to work out whether hiring is paused (publicPost); neither reaches the page or the API.
+  // Only to work out whether hiring is paused (publicPost); neither reaches the page or the API. The fields hiringPausedReasons
+  // reads and nothing else: not the staff ids on the profile (createdById, approvedById).
   org: { select: { approved: true } },
-  jurisdiction: true,
+  jurisdiction: { select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } },
 } satisfies Prisma.JobSelect;
 export const POST_SELECT = {
   id: true, profileId: true, body: true, pinnedAt: true, createdAt: true, editedAt: true, jobId: true,

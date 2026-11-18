@@ -24,7 +24,7 @@ export function postJson(p: PublicPost) {
     createdAt: p.createdAt,
     editedAt: p.editedAt,
     job: p.job
-      ? { id: p.job.id, title: p.job.title, type: p.job.type, status: p.job.status, startsAt: p.job.startsAt, endsAt: p.job.endsAt, city: geo.city ?? null, state: geo.state ?? null, compensationMethod: p.job.compensationMethod, payRateCents: p.job.payRateCents }
+      ? { id: p.job.id, title: p.job.title, type: p.job.type, status: p.job.status, startsAt: p.job.startsAt, endsAt: p.job.endsAt, city: geo.city ?? null, state: geo.state ?? null, compensationMethod: p.job.compensationMethod, payRateCents: p.job.payRateCents, hiringPaused: p.job.hiringPaused }
       : null,
     jobNoLongerHiring: p.jobGone,
   };

@@ -111,10 +111,13 @@ narrow the table and map only.
   There is no total, percentage or ranking of people (rule 5).
 - **Export** (`.../console/export`): the filtered stops as CSV, for full
   access to the field area only. Addresses, outcomes, the three closed fields,
-  the time and the holder's name; no ids or notes. Cells that look like a
+  the time and the holder's name, and each row's source record ID (so a return
+  file can be matched, within the file's 30 days); no other ids and no notes.
+  Cells that look like a
   formula are neutralised (same guard as the finance export). Capped at
   20,000 rows (a bigger job is exported book by book), ten an hour per
-  organization, and every attempt, refusals included, is an audit event with
+  organization (a refusal for size, or the poll rule below, isn't counted), and
+  every attempt, refusals included, is an audit event with
   the filters and row count but never the contents.
 
 ## Polling at the door (W5)
@@ -146,8 +149,12 @@ the organization deletes the job's data. Schema approved.
   combined across questions, split by worker, ranked or scored (rules 4 and 5).
 - **Export**: one column per current question ("Poll 1: ..."), answers in words,
   full field access only. With poll columns the file carries no worker name and
-  no time, so it can't be pivoted into a per-worker breakdown of what residents
-  said (rule 5). Answers given to *earlier wording* of a changed question are not
+  no time, and an export of a poll job narrowed to one worker ("Held by") is
+  refused, so it can't be pivoted into a per-worker breakdown of what residents
+  said (rule 5). ("Held by nobody" is allowed: it is no one's doors.) A file
+  exported book by book, set beside the console's holder column, still says
+  whose doors a book held; that is the same per-book view staff already have.
+  Answers given to *earlier wording* of a changed question are not
   exported (they stay visible in the console history).
 - **Not enforced by the database** (the app does): that an answer's stop and its
   question belong to the same job. A composite key would need approval.
@@ -166,6 +173,16 @@ the organization deletes the job's data. Schema approved.
 | Acceptance checks | `tests/acceptance/w1-walkbooks.ts`, `w2-stop-outcomes.ts`, `w3-console.ts`, `w5-polls.ts` (`run.sh w1 w2 w3 w5`) |
 
 ## Known limits
+
+- **A purged file can't tell which of its doors were already worked.** The
+  "already on this job's walkbooks" check compares a new file's addresses with
+  the stops' addresses, which live in the imported file. After that file's 30
+  days (or "Delete now"), the old stops keep their outcomes but no address, so
+  re-importing the same file and cutting it again brings every door back as a
+  new stop, Don't-knock doors included. Keeping a door key after the purge (a
+  normalised-address hash on the stop, say) is a schema change and needs
+  Caden's approval; until then, don't re-import a purged file for a job whose
+  books are still in use.
 
 - The staff job page reads the newest outcome of every stop on the job in one
   query: about 1 s at 100,000 stops. Fine for the pilot; cache per-book

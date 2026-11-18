@@ -246,7 +246,10 @@ export function mapColumns(headers: string[]): { ok: true; map: ColumnMap } | { 
     }
   }
   // Everything else is kept, with clean unique names, unless it is on the never-stored list or past the column cap.
-  const seenNames = new Map<string, number>();
+  // Every name handed out is reserved, so "Notes, Notes, Notes (2)" can't give two columns the same key (one value
+  // would silently overwrite the other). The unit column's own header is reserved too: a second line that isn't a
+  // unit is stored under that name.
+  const taken = new Set<string>(index.unit !== undefined ? [headerName(headers[index.unit]).toLowerCase()] : []);
   const stored: Array<{ at: number; name: string }> = [];
   const dropped: string[] = [];
   headers.forEach((h, i) => {
@@ -254,9 +257,10 @@ export function mapColumns(headers: string[]): { ok: true; map: ColumnMap } | { 
     const name = headerName(h);
     if (isNeverStored(h)) return void dropped.push(name);
     if (stored.length >= MAX_STORED_COLUMNS) return void dropped.push(name);
-    const n = (seenNames.get(name.toLowerCase()) ?? 0) + 1;
-    seenNames.set(name.toLowerCase(), n);
-    stored.push({ at: i, name: n === 1 ? name : `${name} (${n})` });
+    let unique = name;
+    for (let n = 2; taken.has(unique.toLowerCase()); n++) unique = `${name} (${n})`;
+    taken.add(unique.toLowerCase());
+    stored.push({ at: i, name: unique });
   });
   const shown = dropped.length > MAX_DROPPED_SHOWN ? [...dropped.slice(0, MAX_DROPPED_SHOWN), `+${dropped.length - MAX_DROPPED_SHOWN} more`] : dropped;
   return { ok: true, map: { index, recordId, stored, dropped: shown } };
@@ -599,7 +603,8 @@ export function bookName(number: number, stops: readonly Walkable[]): string {
   const last = stops.length ? title(splitHouseNumber(stops[stops.length - 1].line1).street) : "";
   const where = !first ? "" : first === last ? ` · ${first}` : ` · ${first} to ${last}`;
   const name = `Book ${number}${where}`;
-  return name.length <= 100 ? name : `${name.slice(0, 99)}…`;
+  // Counted as people count characters, so an emoji at the cut is never split in half.
+  return Array.from(name).length <= 100 ? name : `${cutChars(name, 99)}…`;
 }
 
 /** One line for an address as a canvasser reads it. */

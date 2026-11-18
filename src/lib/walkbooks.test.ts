@@ -68,6 +68,15 @@ describe("mapColumns", () => {
     expect(r.ok && r.map.stored.length).toBe(60);
     expect(r.ok && r.map.dropped.length).toBe(12);
   });
+  it("never gives two stored columns the same name, even when a header already reads like a generated one", () => {
+    const r = mapColumns(["address", "city", "state", "zip", "Notes", "Notes", "Notes (2)"]);
+    const names = r.ok ? r.map.stored.map((c) => c.name.toLowerCase()) : [];
+    expect(names).toHaveLength(3);
+    expect(new Set(names).size).toBe(3);
+    // The unit column's header is reserved: its non-unit second lines are stored under that name.
+    const u = mapColumns(["address", "unit", "city", "state", "zip", "Unit"]);
+    expect(u.ok && u.map.stored.map((c) => c.name)).toEqual(["Unit (2)"]);
+  });
   it("joins a house number and street name when there is no full address column", () => {
     const r = mapColumns(["house_number", "street_name", "city", "st", "zip5"]);
     expect(r.ok && r.map.index).toEqual({ houseNumber: 0, street: 1, city: 2, state: 3, zip: 4 });
@@ -318,6 +327,10 @@ describe("walking order and cutting", () => {
     ]);
     expect(bookName(1, [a("x", "1 Ash St"), a("y", "1 Oak Ave")])).toBe("Book 1 · Ash St to Oak Ave");
     expect(bookName(7, [a("x", `1 ${"Long ".repeat(40)}St`)]).length).toBeLessThanOrEqual(100);
+    // An emoji at the cut is kept whole or left out, never split into half a surrogate pair.
+    const emoji = bookName(7, [a("x", `1 ${"A".repeat(89)}🏡🏡🏡 St`)]);
+    expect(Array.from(emoji).length).toBeLessThanOrEqual(100);
+    expect(emoji).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
   it("puts same-number addresses in order", () => {
     expect(walkOrder([a("1", "12B Main St"), a("2", "12A Main St")]).map((x) => x.id)).toEqual(["2", "1"]);

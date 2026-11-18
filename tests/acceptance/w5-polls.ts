@@ -6,7 +6,7 @@ import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
 import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff } from "@/lib/walkbooks-data";
 import { recordStopOutcome } from "@/lib/stop-outcomes-data";
-import { loadExportRows } from "@/lib/stop-console-data";
+import { POLL_BY_WORKER_REFUSAL, exportProblem, loadExportRows } from "@/lib/stop-console-data";
 import { exportCsv } from "@/lib/stop-console";
 import { auditPollRead, addPollQuestion, changePollQuestion, loadCurrentPolls, loadNewestJobAnswers, loadPollResults, loadPollSetup, loadStopPollHistory, loadWorkerPollAnswers, recordPollAnswers, staffRecordPollAnswers } from "@/lib/poll-data";
 
@@ -188,6 +188,13 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   } else check("the export loads", false, ex);
   const noPoll = await loadExportRows(ORG, job.id, { outcome: null, bookId: null, holderId: null }, false);
   check("without poll access the export has no poll columns", noPoll.ok && noPoll.pollColumns.length === 0);
+  // Residents' answers are never broken down by worker (rule 5): a poll export narrowed to one worker is refused.
+  const oneWorker = { outcome: null, bookId: null, holderId: e1.ok ? e1.engagementId : "" };
+  const byWorker = await loadExportRows(ORG, job.id, oneWorker, true);
+  check("a poll export narrowed to one worker is refused, with the reason", !byWorker.ok && byWorker.reason === POLL_BY_WORKER_REFUSAL, byWorker);
+  check("…and the route's preflight refuses it before an export is counted", (await exportProblem(ORG, job.id, oneWorker, true)) === POLL_BY_WORKER_REFUSAL);
+  check("'Held by nobody' is not a worker: still exported", (await loadExportRows(ORG, job.id, { outcome: null, bookId: null, holderId: "none" }, true)).ok);
+  check("without poll columns the worker filter still works", (await loadExportRows(ORG, job.id, oneWorker, false)).ok);
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

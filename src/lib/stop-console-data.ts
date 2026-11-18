@@ -232,15 +232,33 @@ export async function loadStopHistory(orgId: string, stopId: string, jobId?: str
   };
 }
 
+/** A poll export narrowed to one worker would break residents' answers down by worker (rule 5): refused. */
+export const POLL_BY_WORKER_REFUSAL =
+  "This job has a poll, and residents' answers are never broken down by worker. Set \"Held by\" back to Anyone to export.";
+
+/**
+ * Why an export would be refused before it is counted against the organization's hourly exports, or null:
+ * a job that isn't the organization's, more stops than one export may hold, or (on a job with a poll) a filter
+ * to one worker. The route asks this first, so a refusal costs no export; loadExportRows checks the same again.
+ */
+export async function exportProblem(orgId: string, jobId: string, q: Pick<ConsoleQuery, "outcome" | "bookId" | "holderId">, withPoll = false): Promise<string | null> {
+  if (!UUID_RE.test(jobId)) return "Job not found.";
+  const job = await db().job.findFirst({ where: { id: jobId, orgId }, select: { id: true } });
+  if (!job) return "Job not found.";
+  // "Held by nobody" is stops no one holds, not a worker: allowed.
+  if (withPoll && q.holderId && q.holderId !== "none" && ((await loadCurrentPolls([job.id])).get(job.id) ?? []).length) return POLL_BY_WORKER_REFUSAL;
+  const [{ n }] = await db().$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n ${stopsOf(job.id)} ${where(q)}`;
+  if (n > EXPORT_MAX_ROWS) return `That's ${n.toLocaleString("en-US")} stops. Export at most ${EXPORT_MAX_ROWS.toLocaleString("en-US")} at a time: pick a walkbook or an outcome first.`;
+  return null;
+}
+
 /** The rows an export writes: the filtered stops of a job, in book order, up to EXPORT_MAX_ROWS (a bigger job is refused, not cut short). */
 export async function loadExportRows(orgId: string, jobId: string, q: Pick<ConsoleQuery, "outcome" | "bookId" | "holderId">, withPoll = false): Promise<{ ok: true; rows: ExportRow[]; pollColumns: PollColumn[] } | { ok: false; reason: string }> {
-  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
-  const job = await db().job.findFirst({ where: { id: jobId, orgId }, select: { id: true } });
-  if (!job) return { ok: false, reason: "Job not found." };
-  const base = stopsOf(job.id);
+  const problem = await exportProblem(orgId, jobId, q, withPoll);
+  if (problem) return { ok: false, reason: problem };
+  const base = stopsOf(jobId.toLowerCase());
   const filter = where(q);
-  const [{ n }] = await db().$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n ${base} ${filter}`;
-  if (n > EXPORT_MAX_ROWS) return { ok: false, reason: `That's ${n.toLocaleString("en-US")} stops. Export at most ${EXPORT_MAX_ROWS.toLocaleString("en-US")} at a time: pick a walkbook or an outcome first.` };
+  const job = { id: jobId.toLowerCase() };
   // The source record ID goes out with the export (so a return file can be matched, inside the 30 days) and nowhere else on this page.
   const raw = await db().$queryRaw<Raw[]>`${SELECT}, ia."sourceRecordId" ${base} ${filter} ORDER BY w."number", s."stopNumber"`;
   const stops = await withAnswers(raw);

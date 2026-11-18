@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { allow, check, retryAfter } from "@/lib/rate-limit";
 import { exportCsv, parseConsoleQuery } from "@/lib/stop-console";
-import { loadExportRows } from "@/lib/stop-console-data";
+import { exportProblem, loadExportRows } from "@/lib/stop-console-data";
 
 /**
  * Walkbook export (W3): the stops of a job, as CSV, narrowed by the same
@@ -49,6 +49,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ jobId: s
   if (!(await db().job.findFirst({ where: { id: job, orgId: s.orgId }, select: { id: true } }))) {
     await audit("refused: job not found");
     return new NextResponse("Job not found.", { status: 404 });
+  }
+  // Refusals that don't depend on the limit come before it, so they cost the organization no export: too many
+  // stops, or a poll job narrowed to one worker (residents' answers are never broken down by worker, rule 5).
+  const problem = await exportProblem(s.orgId, job, q, true);
+  if (problem) {
+    await audit(`refused: ${problem}`);
+    return new NextResponse(problem, { status: problem === "Job not found." ? 404 : 400 });
   }
   const verdict = await check("walkbook-export", s.orgId);
   if (verdict !== "ok") {

@@ -183,6 +183,11 @@ function Preview({ name, file }: { name: string; file: AddressFile }) {
       <p className="text-sm text-fg">
         <span className="font-semibold">Deleted in {RETENTION_DAYS} days:</span> the addresses, record IDs and every other column. You can delete them sooner, and they go 7 days after every job this file is cut for has closed. The walkbooks, stops and outcomes stay, without the addresses.
       </p>
+      {file.valuesLeftOut > 0 && (
+        <p className="text-hint">
+          {file.valuesLeftOut.toLocaleString("en-US")} {file.valuesLeftOut === 1 ? "value" : "values"} that look like a Social Security or card number {file.valuesLeftOut === 1 ? "was" : "were"} left out of the stored columns.
+        </p>
+      )}
       {file.unitsLeftOff > 0 && (
         <p className="text-hint">
           {file.unitsLeftOff.toLocaleString("en-US")} second address {file.unitsLeftOff === 1 ? "line isn't" : "lines aren't"} shaped like a unit (for example &ldquo;C/O&nbsp;…&rdquo;): {file.unitsLeftOff === 1 ? "it is" : "they are"} kept as data, not as part of the address.

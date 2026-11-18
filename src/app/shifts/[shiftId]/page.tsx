@@ -33,7 +33,7 @@ import { computeShiftPay, money, payoutCta, payoutReadiness, statusLabel } from 
 import { stripeProvider } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { Masthead } from "@/components/Masthead";
-import { loadWorkerWalkbooks } from "@/lib/walkbooks-data";
+import { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
 
 const EVENT_LABELS: Record<string, string> = {
   CHECK_IN: "Checked in",

@@ -55,7 +55,8 @@ function body(text: string, name: string): string {
   const start = text.search(new RegExp(`^(export )?(async )?function ${name}\\b`, "m"));
   expect(start, `function ${name} exists`).toBeGreaterThanOrEqual(0);
   const end = text.indexOf("\n}\n", start);
-  return text.slice(start, end < 0 ? undefined : end + 3);
+  expect(end, `function ${name} ends with a closing brace at column 0`).toBeGreaterThan(start);
+  return text.slice(start, end + 3);
 }
 /** Every match of `re` in `text` that falls outside the given function bodies. */
 function outside(text: string, re: RegExp, fns: string[]): string[] {
@@ -91,9 +92,11 @@ describe("imported columns stay where they are meant to", () => {
 
   it("no query that could reach an address selects every column ('SELECT *') or an address whole", () => {
     const star = /\bSELECT\s+(\w+\.)?\*/i;
-    const whole = /\b(address|importedAddress)\s*:\s*true\b|include\s*:\s*\{[^}]*\baddress\b/;
+    // A relation key named address/importedAddress taken whole (true, 1, {}, or a quoted key); STOP_SELECT's explicit field list is the only form allowed.
+    const whole = /["'`](address|importedAddress)["'`]\s*\]?\s*:|\b(address|importedAddress)\s*:\s*(true|!0|1|\{\s*\}|\{\s*include)/;
+    const json = /\b(to_jsonb|row_to_json|json_agg)\s*\(\s*(ia|a|b)\b|\b(ia|a|b)\.\*/i;
     const wholeAddress = all
-      .filter((f) => !isTest(f.path) && ((allowed(f.path) && star.test(f.text)) || (!allowed(f.path) && whole.test(f.text))))
+      .filter((f) => !isTest(f.path) && ((allowed(f.path) && (star.test(f.text) || (TABLES.test(f.text) && json.test(f.text)))) || (!allowed(f.path) && whole.test(f.text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")))))
       .map((f) => f.path);
     expect(wholeAddress, `these select whole rows: ${wholeAddress.join(", ")}`).toEqual([]);
   });
@@ -108,12 +111,13 @@ describe("imported columns stay where they are meant to", () => {
       const fns = ["importAddresses", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImport", "purgeOwnImport", "purgeDueImports", "failedCount"];
       const rest = outside(wd.replace(/\/\*[\s\S]*?\*\//g, ""), TABLES, fns);
       // Only notOnJob's join (a plain equality on addressId) is left outside those functions.
-      expect(rest.length).toBeLessThanOrEqual(1);
+      const notOnJob = wd.slice(wd.indexOf("const notOnJob"), wd.indexOf("`;", wd.indexOf("const notOnJob")));
+      expect(rest.length).toBe([...notOnJob.matchAll(new RegExp(TABLES.source, "g"))].length);
     });
     const sc = get("src/lib/stop-console-data.ts");
     it("stop-console-data: the record ID is read by the export only; the console page and the inspector never read it", () => {
-      expect(body(sc, "loadConsole")).not.toMatch(/sourceRecordId/);
-      expect(body(sc, "loadStopHistory")).not.toMatch(/sourceRecordId/);
+      // (the Raw row type declares the optional field; only the export function fills it)
+      expect(outside(sc.replace(/\/\*[\s\S]*?\*\//g, "").replace("sourceRecordId?: string | null;", ""), /sourceRecordId/, ["loadExportRows"])).toEqual([]);
       expect(body(sc, "loadExportRows")).toMatch(/sourceRecordId/);
       expect(sc).not.toMatch(/\bsourceData\b/);
     });
@@ -132,5 +136,15 @@ describe("imported columns stay where they are meant to", () => {
     const block = shared.slice(shared.indexOf("export const STOP_SELECT"), shared.indexOf("} as const;", shared.indexOf("export const STOP_SELECT")) + 11);
     expect(block).toMatch(/address: \{ select: \{ line1: true, unit: true, city: true, state: true, zip: true, lat: true, lng: true \} \}/);
     expect(block).not.toMatch(/sourceData|sourceRecordId|include/);
+  });
+
+  it("no guarded file imports an allowed data module, and the worker pages load from the worker file directly", () => {
+    // Value imports only: a type-only import carries no data.
+    const DATA = /^import\s+(?!type\b)[^;]*from\s+["']@\/lib\/(walkbooks-data|stop-console-data)["']/m;
+    const bad = all.filter((f) => GUARDED.test(f.path) && !isTest(f.path) && DATA.test(f.text)).map((f) => f.path);
+    expect(bad, `guarded code imports the import-data modules: ${bad.join(", ")}`).toEqual([]);
+    for (const page of ["src/app/walkbooks/page.tsx", "src/app/shifts/[shiftId]/page.tsx"]) {
+      expect(get(page)).toMatch(/from\s+["']@\/lib\/walkbooks-worker-data["']/);
+    }
   });
 });

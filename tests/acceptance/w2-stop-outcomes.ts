@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
-import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff, loadWorkerWalkbooks } from "@/lib/walkbooks-data";
+import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff } from "@/lib/walkbooks-data";
+import { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
 import { recordStopOutcome } from "@/lib/stop-outcomes-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";

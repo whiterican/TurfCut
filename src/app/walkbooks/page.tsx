@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
-import { loadWorkerWalkbooks } from "@/lib/walkbooks-data";
+import { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
 import { ReadingPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
 import { OutcomeLegend, ProgressBar } from "@/components/stops/Outcomes";

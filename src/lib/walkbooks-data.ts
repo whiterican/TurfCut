@@ -20,8 +20,6 @@ import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
 import { flat, HIRED, holders, STOP_SELECT } from "@/lib/walkbook-shared";
 
-/** The worker's own walkbooks live in a file of their own, one the isolation test guards: it can't name the import tables. */
-export { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
 import { UNVISITED } from "@/lib/stop-outcomes";
 
 import { cutBooks, NEEDS_STATE_ACK, readAddressFile, RETENTION_DAYS, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
@@ -403,6 +401,7 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
     });
     if (!due.length) break;
     for (const d of due) {
+      if (Date.now() - started > budgetMs) break;
       try {
         const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
         if (r.ok && !r.already) {
@@ -411,7 +410,7 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
         } else skip.push(d.id);
       } catch (e) {
         skip.push(d.id);
-        console.error("[turfcut] address import purge failed", d.id, e instanceof Error ? e.message.slice(0, 80) : "error");
+        console.error("[turfcut] address import purge failed", d.id, (e as { code?: unknown })?.code ?? "error");
       }
     }
   }

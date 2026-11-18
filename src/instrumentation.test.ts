@@ -25,3 +25,11 @@ describe("Sentry scrub", () => {
     expect(e.exception?.values?.[1].value).toBe("plain failure");
   });
 });
+
+describe("scrub: Prisma errors", () => {
+  it("redacts a Prisma invocation error that echoes the call's arguments, and drops extra", () => {
+    const e = scrub({ type: "error", exception: { values: [{ value: "Invalid `prisma.importedAddress.createMany()` invocation: { data: [ { line1: '1 Main' } ] }" }] }, extra: { rows: 1 } } as never) as { exception: { values: Array<{ value: string }> }; extra?: unknown };
+    expect(e.exception.values[0].value).toBe("Database error (details removed)");
+    expect(e.extra).toBeUndefined();
+  });
+});

@@ -23,6 +23,11 @@ export function scrub<E extends Sentry.ErrorEvent>(event: E): E {
   }
   const nextjs = (event.contexts as Record<string, Record<string, unknown> | undefined> | undefined)?.nextjs;
   if (nextjs?.request_path) nextjs.request_path = stripQuery(nextjs.request_path);
+  // A database error can quote the row it refused (names, phone numbers, party): keep the error's type and stack, never its text.
+  for (const ex of event.exception?.values ?? []) {
+    if (typeof ex.value === "string" && /Failing row contains|\bDETAIL:|Key \(.+\)=\(/.test(ex.value)) ex.value = "Database error (details removed)";
+  }
+  if (typeof event.message === "string" && /Failing row contains|\bDETAIL:|Key \(.+\)=\(/.test(event.message)) event.message = "Database error (details removed)";
   // Console lines can carry objects (a Supabase user, an address); keep only navigation and http breadcrumbs, URL-only.
   event.breadcrumbs = event.breadcrumbs?.filter((b) => b.category !== "console").map((b) => (b.data?.url ? { ...b, data: { ...b.data, url: stripQuery(b.data.url) } } : b));
   return event;

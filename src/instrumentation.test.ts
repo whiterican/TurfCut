@@ -14,4 +14,14 @@ describe("Sentry scrub", () => {
     expect((e.contexts as { nextjs: { request_path: string } }).nextjs.request_path).toBe("/auth/confirm");
     expect(e.breadcrumbs).toEqual([{ category: "fetch", data: { url: "https://x/api" } }]);
   });
+
+  it("keeps a database error's type but never its text, which can quote the row it refused", () => {
+    const e = scrub<Parameters<typeof scrub>[0]>({
+      exception: { values: [{ type: "PrismaClientKnownRequestError", value: 'new row violates check constraint "x"\nDETAIL:  Failing row contains (Ada Lovelace, 555-0100, DEM).' }, { type: "Error", value: "plain failure" }] },
+      message: "Key (sourceRecordId)=(V1) already exists",
+    } as unknown as Parameters<typeof scrub>[0]);
+    expect(e.exception?.values?.[0].type).toBe("PrismaClientKnownRequestError");
+    expect(JSON.stringify(e)).not.toMatch(/Lovelace|555-0100|DEM|V1/);
+    expect(e.exception?.values?.[1].value).toBe("plain failure");
+  });
 });

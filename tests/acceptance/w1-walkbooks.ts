@@ -212,6 +212,8 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("…audited as expired, with no user", (expiredAudit?.metadata as { reason?: string })?.reason === "expired" && expiredAudit?.actorId === null);
   check("running it again finds nothing", (await purgeDueImports()).purged === 0);
   await p.job.update({ where: { id: job.id }, data: { status: "CLOSED" } });
+  check("a file whose jobs just closed is kept for the 7-day grace", (await purgeDueImports()).purged === 0 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) > 0);
+  await p.$executeRaw`UPDATE "Job" SET "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
   const due2 = await purgeDueImports();
   const closedAudit = await p.auditEvent.findFirst({ where: { entityId: part.ok ? part.importId : "", action: "address_import.purged" } });
   check("when every job a file was cut for has closed, its data goes at the next run", due2.purged >= 1 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) === 0 && (closedAudit?.metadata as { reason?: string })?.reason === "jobs_closed", due2);

@@ -18,10 +18,12 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
-import { loadCurrentPolls, loadWorkerPollAnswers } from "@/lib/poll-data";
-import { UNVISITED, type StopState } from "@/lib/stop-outcomes";
+import { flat, HIRED, holders, STOP_SELECT } from "@/lib/walkbook-shared";
 
-type WorkerAnswerView = { questionId: string; choiceId: string | null; declined: boolean };
+/** The worker's own walkbooks live in a file of their own, one the isolation test guards: it can't name the import tables. */
+export { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
+import { UNVISITED } from "@/lib/stop-outcomes";
+
 import { cutBooks, NEEDS_STATE_ACK, readAddressFile, RETENTION_DAYS, readStopsPerBook, validateImportMeta, walkOrder } from "@/lib/walkbooks";
 
 type Tx = Prisma.TransactionClient;
@@ -30,7 +32,6 @@ export type Staff = { profileId: string; orgId: string };
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 /** Confirmed workers: hired on the job (accepted offer or instant claim). */
-const HIRED = ["ACTIVE", "CLAIMED"] as const;
 /** Walkbook.number's ceiling in the database (Walkbook_number). */
 const MAX_BOOK_NUMBER = 100_000;
 /** Imports listed on a job's walkbook page. */
@@ -58,7 +59,8 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
   if (file.states.some((st) => (NEEDS_STATE_ACK as readonly string[]).includes(st)) && meta.ackAZ !== "on") {
     return { ok: false, reason: "Fix the highlighted fields.", errors: { ackAZ: "This file has Arizona addresses: confirm you may upload it here." } };
   }
-  return db().$transaction(
+  try {
+  return await db().$transaction(
     async (tx) => {
       const imp = await tx.addressImport.create({
         data: {
@@ -103,6 +105,11 @@ export async function importAddresses(actor: Staff, meta: Record<string, unknown
     },
     { timeout: 30_000 }
   );
+  } catch (e) {
+    // A database refusal can quote the failing row (names, phone numbers, party) in its message. That text must never reach a log or an error report, so only its code does, and the person is told nothing was saved.
+    console.error("[turfcut] address import failed", e instanceof Prisma.PrismaClientKnownRequestError ? e.code : "error");
+    return { ok: false, reason: "The file couldn't be saved, so nothing was imported. Check it and try again." };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,17 +226,6 @@ export async function assignWalkbook(actor: Staff, walkbookIdRaw: string, engage
 // Reads
 // ---------------------------------------------------------------------------
 
-/** The newest assignment row of each walkbook: who holds it now. */
-async function holders(walkbookIds: string[]) {
-  if (!walkbookIds.length) return new Map<string, { engagementId: string | null; at: Date }>();
-  // DISTINCT ON in the database: one row per book, however long its history grows.
-  const rows = await db().$queryRaw<Array<{ walkbookId: string; engagementId: string | null; createdAt: Date }>>`
-    SELECT DISTINCT ON ("walkbookId") "walkbookId", "engagementId", "createdAt"
-    FROM "public"."WalkbookAssignment"
-    WHERE "walkbookId" = ANY(${walkbookIds}::uuid[])
-    ORDER BY "walkbookId", "createdAt" DESC`;
-  return new Map(rows.map((r) => [r.walkbookId, { engagementId: r.engagementId, at: r.createdAt }]));
-}
 
 /** Everything the job's walkbook page shows staff. */
 export async function loadJobWalkbooks(orgId: string, jobId: string) {
@@ -301,17 +297,6 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
   };
 }
 
-/** What a stop shows where its address used to be, once the import's names and addresses are deleted. */
-const NO_ADDRESS = { line1: "", unit: null, city: "", state: "", zip: "", lat: null, lng: null } as const;
-/** A stop's address fields, flat, with `purged` set when the address is gone. Explicit fields only: sourceData and sourceRecordId are never selected here. */
-const flat = (a: { line1: string; unit: string | null; city: string; state: string; zip: string; lat: number | null; lng: number | null } | null) => ({ ...(a ?? NO_ADDRESS), purged: a === null });
-
-const STOP_SELECT = {
-  id: true,
-  stopNumber: true,
-  address: { select: { line1: true, unit: true, city: true, state: true, zip: true, lat: true, lng: true } },
-} as const;
-
 /** One walkbook for staff: its stops in order and who has held it. */
 export async function loadWalkbookForStaff(orgId: string, walkbookId: string) {
   if (!UUID_RE.test(walkbookId)) return null;
@@ -341,46 +326,15 @@ export async function loadWalkbookForStaff(orgId: string, walkbookId: string) {
   };
 }
 
-/**
- * The walkbooks a worker holds now, on jobs they're still hired on, with
- * their stops. A book handed to someone else, or taken back, is no longer
- * theirs to see.
- */
-export async function loadWorkerWalkbooks(workerId: string, jobId?: string) {
-  if (jobId && !UUID_RE.test(jobId)) return [];
-  const mine = await db().engagement.findMany({
-    where: { workerId, status: { in: [...HIRED] }, worker: { closedAt: null }, ...(jobId ? { jobId } : {}) },
-    select: { id: true },
-  });
-  if (!mine.length) return [];
-  const mineIds = new Set(mine.map((e) => e.id));
-  // Books ever handed to one of these engagements; then keep those whose newest row is still theirs.
-  const touched = await db().walkbookAssignment.findMany({ where: { engagementId: { in: [...mineIds] } }, distinct: ["walkbookId"], select: { walkbookId: true } });
-  const held = await holders(touched.map((t) => t.walkbookId));
-  const ids = [...held.entries()].filter(([, h]) => h.engagementId && mineIds.has(h.engagementId)).map(([id]) => id);
-  if (!ids.length) return [];
-  const books = await db().walkbook.findMany({
-    where: { id: { in: ids } },
-    orderBy: [{ jobId: "asc" }, { number: "asc" }],
-    select: { id: true, number: true, name: true, job: { select: { id: true, title: true, type: true } }, stops: { orderBy: { stopNumber: "asc" }, select: STOP_SELECT } },
-  });
-  // A book carries its state with it: what the last holder recorded is what the next one sees.
-  const states = await loadStopStates(books.flatMap((b) => b.stops.map((s) => s.id)));
-  // The job's poll, and what this worker themselves recorded at each stop (never anyone else's rows).
-  const polls = await loadCurrentPolls(books.map((b) => b.job.id));
-  const answers = polls.size ? await loadWorkerPollAnswers(workerId, books.flatMap((b) => b.stops.map((s) => s.id))) : new Map<string, never[]>();
-  return books.map((b) => ({
-    ...b,
-    poll: polls.get(b.job.id) ?? [],
-    stops: b.stops.map((s) => ({ id: s.id, stopNumber: s.stopNumber, ...flat(s.address), result: states.get(s.id) ?? UNVISITED as StopState, poll: answers.get(s.id) ?? ([] as WorkerAnswerView[]) })),
-  }));
-}
 
 // ---------------------------------------------------------------------------
 // Deleting names and addresses
 // ---------------------------------------------------------------------------
 
 export type PurgeReason = "requested" | "expired" | "jobs_closed";
+
+/** Days after the last job a file was cut for closes before its data is deleted: time to export the return file. */
+export const CLOSED_GRACE_DAYS = 7;
 
 /**
  * Deletes an import's addresses: the rows of ImportedAddress, and with them
@@ -392,7 +346,8 @@ export type PurgeReason = "requested" | "expired" | "jobs_closed";
  */
 export async function purgeImport(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
-  return db().$transaction(async (tx) => {
+  return db().$transaction(
+    async (tx) => {
     const imp = await tx.addressImport.findUnique({ where: { id: importId.toLowerCase() }, select: { id: true, purgedAt: true } });
     if (!imp) return { ok: false as const, reason: "File not found." };
     // Under the lock cutting takes, so a book can't be cut from addresses in the middle of being deleted.
@@ -403,7 +358,10 @@ export async function purgeImport(importId: string, reason: PurgeReason, actorId
     await tx.addressImport.update({ where: { id: imp.id }, data: { purgedAt: now } });
     await tx.auditEvent.create({ data: { actorId, action: "address_import.purged", entityType: "AddressImport", entityId: imp.id, metadata: { reason, addresses: gone.count }, createdAt: now } });
     return { ok: true as const, addresses: gone.count, already: false };
-  });
+    },
+    // A purge waiting on a long cut's lock must not time out at the 5-second default.
+    { timeout: 30_000, maxWait: 10_000 }
+  );
 }
 
 /** The organization deletes one of its own files now, instead of waiting for the 30 days. */
@@ -416,32 +374,51 @@ export async function purgeOwnImport(actor: Staff, importId: string, now = new D
 
 /**
  * Deletes the names and addresses of every import that is due: its 30 days
- * are up, or every job it was cut for has closed. Run daily by the cron route.
- * One import failing doesn't stop the rest.
+ * are up, or every job it was cut for closed at least CLOSED_GRACE_DAYS ago
+ * (time to export the return file). Run daily by the cron route. Oldest
+ * first, in batches, within a time budget; one import failing is skipped for
+ * this run and doesn't hold up the rest.
  */
-export async function purgeDueImports(now = new Date()): Promise<{ purged: number; addresses: number; failed: number }> {
-  const due = await db().addressImport.findMany({
-    where: {
-      purgedAt: null,
-      OR: [{ deleteAfter: { lte: now } }, { walkbooks: { some: {} }, NOT: { walkbooks: { some: { job: { status: { not: "CLOSED" } } } } } }],
-    },
-    select: { id: true, deleteAfter: true },
-    take: 500,
-  });
+export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Promise<{ purged: number; addresses: number; failed: number }> {
+  const graceEnds = new Date(now.getTime() - CLOSED_GRACE_DAYS * 86_400_000);
+  const started = Date.now();
+  const skip: string[] = [];
   let purged = 0;
   let addresses = 0;
-  let failed = 0;
-  for (const d of due) {
-    try {
-      const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
-      if (r.ok && !r.already) {
-        purged++;
-        addresses += r.addresses;
+  for (;;) {
+    if (Date.now() - started > budgetMs) break;
+    const due = await db().addressImport.findMany({
+      where: {
+        purgedAt: null,
+        id: { notIn: skip },
+        OR: [
+          { deleteAfter: { lte: now } },
+          // Cut for at least one job, and every one of them closed more than the grace ago.
+          { walkbooks: { some: {} }, NOT: { walkbooks: { some: { job: { OR: [{ status: { not: "CLOSED" } }, { updatedAt: { gt: graceEnds } }] } } } } },
+        ],
+      },
+      orderBy: { deleteAfter: "asc" },
+      select: { id: true, deleteAfter: true },
+      take: 100,
+    });
+    if (!due.length) break;
+    for (const d of due) {
+      try {
+        const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
+        if (r.ok && !r.already) {
+          purged++;
+          addresses += r.addresses;
+        } else skip.push(d.id);
+      } catch (e) {
+        skip.push(d.id);
+        console.error("[turfcut] address import purge failed", d.id, e instanceof Error ? e.message.slice(0, 80) : "error");
       }
-    } catch (e) {
-      failed++;
-      console.error("[turfcut] address import purge failed", d.id, e instanceof Error ? e.message : "error");
     }
   }
-  return { purged, addresses, failed };
+  return { purged, addresses, failed: skip.length ? await failedCount(skip) : 0 };
+}
+
+/** Of the ids skipped in a run, how many are still not purged (those that failed rather than were already done). */
+async function failedCount(ids: string[]): Promise<number> {
+  return db().addressImport.count({ where: { id: { in: ids }, purgedAt: null } });
 }

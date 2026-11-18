@@ -177,11 +177,11 @@ function Preview({ name, file }: { name: string; file: AddressFile }) {
         <div className="space-y-1">
           <p className="label">Never stored: {file.dropped.length} {file.dropped.length === 1 ? "column" : "columns"}</p>
           <p className="text-sm text-fg break-words">{file.dropped.join(", ")}</p>
-          <p className="text-hint">Government ID numbers, birth dates, and payment and password columns are left out whatever the file says; so are any columns past the first 60, or cut to fit a row.</p>
+          <p className="text-hint">Government ID numbers, birth dates, and payment and password columns are left out whatever the file says; so are any columns past the first 60, or cut to fit a row. Your whole file is read here, but only what is listed under Stored is kept; the stored columns aren&apos;t shown or exported again, except the record ID in your return file. Keep your own copy: we are not a backup.</p>
         </div>
       )}
       <p className="text-sm text-fg">
-        <span className="font-semibold">Deleted in {RETENTION_DAYS} days:</span> the addresses, record IDs and every other column. You can delete them sooner, and they go when every job this file is cut for has closed. The walkbooks, stops and outcomes stay, without the addresses.
+        <span className="font-semibold">Deleted in {RETENTION_DAYS} days:</span> the addresses, record IDs and every other column. You can delete them sooner, and they go 7 days after every job this file is cut for has closed. The walkbooks, stops and outcomes stay, without the addresses.
       </p>
       {file.unitsLeftOff > 0 && (
         <p className="text-hint">

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addressLine,
   buildSourceData,
+  looksLikeGovIdOrCard,
   isNeverStored,
   MAX_SOURCE_DATA_BYTES,
   MAX_VALUE_CHARS,
@@ -93,6 +94,52 @@ describe("mapColumns", () => {
     const r = mapColumns(["name", "address", "party"]);
     expect(r.ok).toBe(false);
     expect(!r.ok && r.reason).toContain("city, state or ZIP code");
+  });
+});
+
+describe("never-stored headers (word-based, so an ID column can't hide behind an abbreviation)", () => {
+  const dropped = ["SSN", "SSN4", "Last4SSN", "ssn_last_4", "SS#", "Soc Sec", "Social", "Social Security #", "D.O.B", "DOB", "Birthdate", "Born", "Date Of Birth", "DateOfBirth", "Birth Year", "License No", "License #", "Lic Num", "DL", "DL#", "Drivers Lic No", "Driver License", "Govt ID", "ID Number", "Passport", "Tax ID", "TIN", "EIN", "ITIN", "Credit Card", "Card #", "CC Number", "CVV", "Account", "Acct #", "Account Number", "IBAN", "Routing", "Password", "Pwd", "PIN", "Token", "Secret"];
+  const kept = ["Business Name", "Class Name", "Voter ID", "VANID", "First Name", "Last Name", "Party", "Phone", "Email", "2024 General", "Precinct", "Registered Date", "Notes", "Age", "Gender", "Race", "Employer", "Licensed Voter Since", "Pinned", "Tinder Group", "Accountant", "Birthplace Note"];
+  it("drops every government ID, birth date, payment and password header in the list", () => {
+    for (const h of dropped) expect(isNeverStored(h), h).toBe(true);
+  });
+  it("keeps ordinary columns, including words that merely contain an abbreviation", () => {
+    for (const h of kept) expect(isNeverStored(h), h).toBe(false);
+  });
+});
+
+describe("values that look like a Social Security or card number", () => {
+  it("are left out of a free-text column, and counted, while the rest of the row is kept", () => {
+    const r = buildSourceData([["Notes", "SSN is 123-45-6789 call after 5"], ["Memo", "card 4111 1111 1111 1111"], ["Phone", "555-0100"], ["Party", "DEM"]]);
+    expect(r.data).toEqual({ Phone: "555-0100", Party: "DEM" });
+    expect(r.leftOut).toBe(2);
+  });
+  it("don't catch an ordinary phone number, ZIP+4, date or long ID that fails the card check", () => {
+    for (const v of ["(303) 555-0100", "+1 303 555 0100", "80202-1234", "2026-11-18", "1234567890123", "Unit 12-34-5678"]) expect(looksLikeGovIdOrCard(v), v).toBe(false);
+    expect(looksLikeGovIdOrCard("123 45 6789")).toBe(true);
+    expect(looksLikeGovIdOrCard("5500005555555559")).toBe(true);
+  });
+});
+
+describe("a half of an emoji can never reach the database", () => {
+  it("cuts values and headers by whole characters, never through the middle of one", () => {
+    const longValue = `${"a".repeat(499)}😀tail`;
+    const { data } = buildSourceData([["Note", longValue]]);
+    expect(data!.Note).toBe(`${"a".repeat(499)}😀`);
+    expect(() => JSON.parse(JSON.stringify(data))).not.toThrow();
+    const r = readAddressFile(`address,city,state,zip,${"h".repeat(98)}😀😀\n1 Oak St,X,IL,62701,1\n`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    // Every string that will be stored round-trips through JSON and UTF-8 intact.
+    for (const t of [...r.file.storedColumns, ...r.file.dropped]) expect(JSON.parse(JSON.stringify(t))).toBe(t);
+    expect(r.file.storedColumns[0].endsWith("😀")).toBe(true);
+  });
+  it("strips a lone surrogate that was already in the file", () => {
+    const { data } = buildSourceData([["Note", "ok\ud83dend"]]);
+    expect(data!.Note).toBe("okend");
+    const r = readAddressFile("address,city,state,zip,Note\n1 Oak\ud83d St,Den\udc00ver,CO,80202,x\n");
+    expect(r.ok && r.file.rows[0].line1).toBe("1 Oak St");
+    expect(r.ok && r.file.rows[0].city).toBe("Denver");
   });
 });
 

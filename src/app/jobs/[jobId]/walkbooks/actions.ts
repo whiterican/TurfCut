@@ -63,7 +63,8 @@ export async function deleteFileDataAction(_prev: ActionState, fd: FormData): Pr
   const actor = await staff();
   const r = await purgeOwnImport(actor, str(fd, "importId"));
   if (!r.ok) return { ok: false, message: r.reason };
-  revalidatePath(`/jobs/${str(fd, "jobId")}/walkbooks`, "layout");
+  const jobId = str(fd, "jobId").toLowerCase();
+  if (UUID_RE.test(jobId)) revalidatePath(`/jobs/${jobId}/walkbooks`, "layout");
   revalidatePath("/walkbooks");
   return { ok: true, message: r.already ? "Already deleted." : `Deleted ${r.addresses.toLocaleString("en-US")} ${r.addresses === 1 ? "address" : "addresses"} and everything stored with them.` };
 }

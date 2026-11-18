@@ -132,13 +132,53 @@ const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, "");
  * Headers that are never stored: government ID numbers, birth dates, payment
  * and password columns. They are risk without use here (matching a return
  * file needs the record ID, not these), and Arizona protects several of them
- * by name. Matched on the header with punctuation and case ignored.
+ * by name.
+ *
+ * Matched on the header's words, not on a substring, so "Business Name" isn't
+ * caught by "ssn": the header is split on punctuation and camelCase ("DateOf
+ * Birth" -> date of birth), and a word matches an abbreviation exactly or
+ * with digits after it ("SSN4"). Multi-word names ("Social Security",
+ * "License Number") are matched on the squeezed header.
  */
-const NEVER_STORED = ["ssn", "socialsecurity", "driverlicense", "driverslicense", "driverlic", "dlnumber", "dlno", "licensenumber", "stateid", "passport", "taxid", "birth", "dob", "password", "passwd", "creditcard", "cardnumber", "cvv", "bankaccount", "routing", "accountnumber"];
-export const isNeverStored = (header: string) => {
-  const n = norm(header);
-  return NEVER_STORED.some((x) => n.includes(x));
-};
+const NEVER_WORD = /^(ssn|ss|sin|itin|tin|ein|dob|dl|dln|pin|pwd|passwd|password|passphrase|token|secret|cvv|cvc|iban|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc)\d*$/;
+const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthdate", "lastfour", "last4"];
+export function isNeverStored(header: string): boolean {
+  const words = header
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+  if (words.some((w) => NEVER_WORD.test(w))) return true;
+  const squeezed = words.join("");
+  // "D.O.B" and "S.S.N." split into single letters; squeezed back they are the abbreviation, matched exactly (never as a substring: "Adobe").
+  if (["dob", "dl", "ssn", "ss", "sin", "tin", "ein", "pin"].includes(squeezed)) return true;
+  return NEVER_SQUEEZED.some((x) => squeezed.includes(x));
+}
+
+/** Luhn check, for spotting a card number in a free-text column. */
+function luhn(digits: string): boolean {
+  let sum = 0;
+  for (let i = 0; i < digits.length; i++) {
+    let d = Number(digits[digits.length - 1 - i]);
+    if (i % 2 === 1 && (d *= 2) > 9) d -= 9;
+    sum += d;
+  }
+  return sum % 10 === 0;
+}
+
+/**
+ * A value that looks like a Social Security number (123-45-6789) or a payment
+ * card number (13-19 digits passing the Luhn check). A free-text column ("Notes")
+ * can hold either; the value is left out rather than stored.
+ */
+export function looksLikeGovIdOrCard(value: string): boolean {
+  if (/(?<!\d)\d{3}[- ]\d{2}[- ]\d{4}(?!\d)/.test(value)) return true;
+  for (const m of value.matchAll(/(?<![\d])(?:\d[ -]?){13,19}(?!\d)/g)) {
+    const digits = m[0].replace(/\D/g, "");
+    if (digits.length >= 13 && digits.length <= 19 && luhn(digits)) return true;
+  }
+  return false;
+}
 
 export interface ColumnMap {
   /** The column index each address part comes from. */
@@ -224,9 +264,9 @@ export function mapColumns(headers: string[]): { ok: true; map: ColumnMap } | { 
 
 /** A dropped column's name as it is recorded: hidden characters out, at most 100 characters. */
 function headerName(h: string): string {
-  const t = h.replace(new RegExp(HIDDEN_CHARS.source, "gu"), "").replace(/\s+/g, " ").trim();
+  const t = h.replace(LONE_SURROGATE, "").replace(new RegExp(HIDDEN_CHARS.source, "gu"), "").replace(/\s+/g, " ").trim();
   if (!t) return "(unnamed)";
-  return t.length > 100 ? `${t.slice(0, 99)}…` : t;
+  return Array.from(t).length > 100 ? `${cutChars(t, 99)}…` : t;
 }
 
 function listWords(words: string[]): string {
@@ -275,9 +315,18 @@ export interface AddressFile {
   unitsLeftOff: number;
   /** The states the addresses are in, sorted (Arizona restricts voter-list data online). */
   states: string[];
+  /** Values left out because they looked like a Social Security or card number (a free-text column can hold either). */
+  valuesLeftOut: number;
 }
 
-const clean = (s: string | undefined) => (s ?? "").replace(/\s+/g, " ").trim();
+/** A half of a surrogate pair on its own (an emoji cut in two): it can't be written as JSON or UTF-8, and would fail the whole import. */
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+/** At most `n` characters, counted as people count them (an emoji is one), never cutting one in half. */
+const cutChars = (t: string, n: number) => {
+  const chars = Array.from(t);
+  return chars.length > n ? chars.slice(0, n).join("") : t;
+};
+const clean = (s: string | undefined) => (s ?? "").replace(LONE_SURROGATE, "").replace(/\s+/g, " ").trim();
 
 function readZip(raw: string): string | null {
   // ZIP+4 with or without the hyphen; a spreadsheet's number ("2138.0") too.
@@ -316,11 +365,18 @@ const bytes = (t: string) => new TextEncoder().encode(t).length;
  * MAX_SOURCE_DATA_BYTES, columns are dropped from the end until it fits; the
  * names of any dropped are returned so the import can say so.
  */
-export function buildSourceData(entries: ReadonlyArray<readonly [string, string]>): { data: Record<string, string> | null; cut: string[] } {
+export function buildSourceData(entries: ReadonlyArray<readonly [string, string]>): { data: Record<string, string> | null; cut: string[]; leftOut: number } {
   const kept: Array<[string, string]> = [];
+  let leftOut = 0;
   for (const [name, raw] of entries) {
-    const v = raw.replace(stripHidden, "").replace(/\s+/g, " ").trim().slice(0, MAX_VALUE_CHARS);
-    if (v) kept.push([name, v]);
+    const v = cutChars(raw.replace(LONE_SURROGATE, "").replace(stripHidden, "").replace(/\s+/g, " ").trim(), MAX_VALUE_CHARS);
+    if (!v) continue;
+    // A free-text column can hold an SSN or a card number: that value is left out, and counted.
+    if (looksLikeGovIdOrCard(v)) {
+      leftOut++;
+      continue;
+    }
+    kept.push([name, v]);
   }
   let size = 2 + kept.reduce((n, [k, v]) => n + bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4, 0);
   const cut: string[] = [];
@@ -329,7 +385,7 @@ export function buildSourceData(entries: ReadonlyArray<readonly [string, string]
     size -= bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4;
     cut.push(k);
   }
-  return { data: kept.length ? Object.fromEntries(kept) : null, cut };
+  return { data: kept.length ? Object.fromEntries(kept) : null, cut, leftOut };
 }
 
 /** Reads a whole file: CSV, columns, then each row's address, record ID and other columns. */
@@ -352,6 +408,7 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
   const seenIds = new Set<string>();
   const cutNames = new Set<string>();
   let unitsLeftOff = 0;
+  let valuesLeftOut = 0;
   const unitHeader = index.unit !== undefined ? headerName(headers[index.unit]) : null;
   data.forEach((r, i) => {
     const rowNumber = lineOf[i + 1];
@@ -399,6 +456,7 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
     if (notAUnit && unitHeader) extra.push([unitHeader, notAUnit]);
     const sd = buildSourceData(extra);
     for (const c of sd.cut) cutNames.add(c);
+    valuesLeftOut += sd.leftOut;
     rows.push({ rowNumber, line1, unit: unit || null, city, state, zip, lat, lng, sourceRecordId, sourceData: sd.data });
   });
   if (!rows.length) {
@@ -418,6 +476,7 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
       withPoint: rows.filter((r) => r.lat !== null).length,
       unitsLeftOff,
       states: [...new Set(rows.map((r) => r.state))].sort(),
+      valuesLeftOut,
     },
   };
 }

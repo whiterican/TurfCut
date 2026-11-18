@@ -47,7 +47,8 @@ reverses the first version of W1 (addresses only).
   when the address does.
 - **Deletion**: 30 days after the import (`AddressImport.deleteAfter`), sooner if
   the organization deletes the file ("Delete names and addresses now"), or when
-  every job the file was cut for has closed. `purgeImport` deletes the
+  every job the file was cut for has been closed for 7 days (`CLOSED_GRACE_DAYS`,
+  counted from the last job's `updatedAt`). `purgeImport` deletes the
   `ImportedAddress` rows only; `purgedAt` says when. The walkbooks, stops, outcomes
   and poll answers stay, keyed by walkbook and stop number
   (`WalkbookStop.addressId` is nullable, `ON DELETE SET NULL`); a stop without an

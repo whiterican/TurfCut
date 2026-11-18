@@ -35,7 +35,20 @@ const ALLOWED = [
   /^src\/app\/zz-preview\//,
 ];
 /** Code that ranks, matches, scores or explains, and everything a worker is served: stricter, and never allowed. */
-const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring.*|desk.*|experience.*|applicants.*|invitations.*|engagements.*|org-profile.*|field-day.*|shift.*|pay.*|profile.*|worker.*|availability.*|credentials.*|walkbook-shared|walkbooks-worker-data|poll.*|stop-outcomes.*)\.ts|components\/(FitSignals|ScorecardPanel|JobCard|OrgProfileSections|FieldDayLive|OfflineBrief|ShiftDayList|WalkbookStops)\.tsx|components\/stops\/.*\.tsx?|app\/(shifts|earnings|pay|profile|workers|hiring|desk|walkbooks|api\/workers|api\/shifts|api\/feed)\/.*\.tsx?)$/;
+const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring.*|desk.*|experience.*|applicants.*|invitations.*|engagements.*|org-profile.*|field-day.*|shift.*|pay.*|profile.*|worker.*|availability.*|credentials.*|walkbook-shared|walkbooks-worker-data|poll.*|stop-outcomes.*)\.ts|components\/(FitSignals|ScorecardPanel|JobCard|OrgProfileSections|FieldDayLive|OfflineBrief|ShiftDayList|WalkbookStops)\.tsx|components\/stops\/.*\.tsx?|app\/(shifts|earnings|pay|profile|workers|hiring|desk|walkbooks|api\/workers|api\/shifts|api\/feed|api\/walkbooks|api\/stops|api\/polls)\/.*\.tsx?)$/;
+/**
+ * The files that may import the two data modules by value (anything else, however it imports them, fails):
+ * the allowed files above and the staff pages and routes that run the console, the export, a walkbook's
+ * own page and the purge. Listing importers, not just guarded files, also closes a re-export chain: a new
+ * module that re-exported loadExportRows would itself have to be on this list.
+ */
+const IMPORTERS = [
+  ...ALLOWED,
+  /^src\/app\/jobs\/\[jobId\]\/walkbooks\/\[walkbookId\]\/page\.tsx$/,
+  /^src\/app\/jobs\/\[jobId\]\/walkbooks\/console\/(page\.tsx|export\/route\.ts)$/,
+];
+/** Comments out, so a rule reads code only. */
+const code = (text: string) => text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
@@ -146,5 +159,38 @@ describe("imported columns stay where they are meant to", () => {
     for (const page of ["src/app/walkbooks/page.tsx", "src/app/shifts/[shiftId]/page.tsx"]) {
       expect(get(page)).toMatch(/from\s+["']@\/lib\/walkbooks-worker-data["']/);
     }
+  });
+
+  // The ways round the checks above that a review found (Nov 18): a relative or dynamic import, a re-export,
+  // reading the rows through the walkbook's import relation, `omit`, and a shorthand or variable select.
+  it("only the listed staff files import the data modules by value, however they write it (alias, relative, dynamic, re-export)", () => {
+    const mod = String.raw`(?:@\/lib\/|(?:\.\.?\/)+(?:lib\/)?)(?:walkbooks-data|stop-console-data)["']`;
+    const forms = [
+      new RegExp(String.raw`^\s*import\s+(?!type\b)[^;]*?from\s+["']` + mod, "m"), // static, value
+      new RegExp(String.raw`^\s*export\s+(?!type\b)[^;]*?from\s+["']` + mod, "m"), // re-export
+      new RegExp(String.raw`(?<!typeof\s+)\bimport\s*\(\s*["']` + mod), // dynamic (a `typeof import(...)` type carries no data)
+      new RegExp(String.raw`\brequire\s*\(\s*["']` + mod), // require
+    ];
+    const bad = all.filter((f) => !isTest(f.path) && !IMPORTERS.some((a) => a.test(f.path)) && forms.some((r) => r.test(code(f.text)))).map((f) => f.path);
+    expect(bad, `these import the import-data modules and aren't listed: ${bad.join(", ")}`).toEqual([]);
+  });
+
+  it("outside the allowed files no query reaches the import rows through a relation, omit, shorthand or a variable", () => {
+    const rules: [string, RegExp][] = [
+      ["the import or addresses relation", /\b(addresses|import)\s*:\s*(true|!0|1|\{)/],
+      ["omit or include on an address relation", /\b(address|addresses|importedAddress)\s*:\s*\{\s*(omit|include)\b/],
+      ["a shorthand address/import key in a select or include", /\b(select|include)\s*:\s*\{[^{}]*\b(address|addresses|import)\s*[,}]/],
+      ["an address relation given by a variable in a select or include", /\b(select|include)\s*:\s*\{[^{}]*\baddress\s*:\s*(?![{\s])/],
+    ];
+    const walkbookQuery = /\b(walkbook|walkbookStop|walkbookAssignment|stopOutcome)\s*\./;
+    const hits = all
+      .filter((f) => !isTest(f.path) && !allowed(f.path))
+      .flatMap((f) => {
+        const c = code(f.text);
+        const found = rules.filter(([, r]) => r.test(c)).map(([n]) => `${f.path}: ${n}`);
+        if (walkbookQuery.test(c) && /\bomit\s*:/.test(c)) found.push(`${f.path}: omit in a file that queries walkbooks`);
+        return found;
+      });
+    expect(hits, hits.join("; ")).toEqual([]);
   });
 });

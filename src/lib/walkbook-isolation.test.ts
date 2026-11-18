@@ -172,12 +172,13 @@ describe("imported columns stay where they are meant to", () => {
     const specs = [
       /^\s*import\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm, // static, value
       /^\s*export\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/gm, // re-export
-      /(?<!typeof\s+)\bimport\s*\(\s*["']([^"']+)["']/g, // dynamic (a `typeof import(...)` type carries no data)
-      /\brequire\s*\(\s*["']([^"']+)["']/g, // require
+      /(?<!typeof\s+)\bimport\s*\(\s*["'`]([^"'`]+)["'`]/g, // dynamic, any quotes (a `typeof import(...)` type carries no data)
+      /\brequire\s*\(\s*["'`]([^"'`]+)["'`]/g, // require, any quotes
     ];
     const resolve = (from: string, spec: string) =>
       spec.startsWith("@/") ? posix.normalize(`src/${spec.slice(2)}`) : spec.startsWith(".") ? posix.normalize(posix.join(dirname(from), spec)) : spec;
-    const DATA_MODULE = /^src\/lib\/(walkbooks-data|stop-console-data)(\.tsx?)?$/;
+    // With or without an extension, .js included (TypeScript resolves "x.js" to x.ts).
+    const DATA_MODULE = /^src\/lib\/(walkbooks-data|stop-console-data)(\.(tsx?|jsx?|mjs|cjs|mts|cts))?$/;
     const loads = (f: { path: string; text: string }) => specs.some((re) => [...code(f.text).matchAll(re)].some((m) => DATA_MODULE.test(resolve(f.path, m[1]))));
     const bad = all.filter((f) => !isTest(f.path) && !IMPORTERS.some((a) => a.test(f.path)) && loads(f)).map((f) => f.path);
     expect(bad, `these import the import-data modules and aren't listed: ${bad.join(", ")}`).toEqual([]);

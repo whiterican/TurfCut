@@ -1,5 +1,6 @@
 /* W2 acceptance checks: stop outcomes on real Postgres. Only the worker holding a book can record on it; the newest row of a stop is its state; the database is append-only and accepts only the closed set of fields; a taken-back book stops accepting outcomes; a double tap records once; progress counts Come back as still open; a book carries its state to the next holder (tests/acceptance/run.sh). */
 import { randomUUID } from "node:crypto";
+import { credentialed } from "./credentialed";
 import { db } from "@/lib/db";
 import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
@@ -34,6 +35,8 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
 
 (async () => {
   const p = db();
+  // Hiring checks credentials: these workers hold the circulator set a petition job asks for.
+  await credentialed(p, W);
   await p.profile.createMany({ data: [{ id: OWNER, role: "OWNER", orgId: ORG, displayName: "Maya Chen" }] });
   await p.organization.update({ where: { id: ORG }, data: { approved: true, contractorTermsSignedAt: new Date(), classificationReviewedAt: new Date() } });
   const owner = { profileId: OWNER, orgId: ORG };

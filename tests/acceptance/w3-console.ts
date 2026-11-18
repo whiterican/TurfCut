@@ -1,5 +1,6 @@
 /* W3 acceptance checks: the walkbook console on real Postgres. Filters narrow the table but not the chip counts; paging; per-worker summary; a stop's whole history newest first; org isolation on every read; the export writes the filtered rows and guards formulas (tests/acceptance/run.sh). */
 import { randomUUID } from "node:crypto";
+import { credentialed } from "./credentialed";
 import { db } from "@/lib/db";
 import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
@@ -25,6 +26,8 @@ const META = { fileName: "big.csv", recordSource: "Own list", purpose: "Canvassi
 
 (async () => {
   const p = db();
+  // Hiring checks credentials: these workers hold the circulator set a petition job asks for.
+  await credentialed(p, W);
   await p.profile.createMany({ data: [{ id: OWNER, role: "OWNER", orgId: ORG, displayName: "Maya Chen" }] });
   await p.organization.update({ where: { id: ORG }, data: { approved: true, contractorTermsSignedAt: new Date(), classificationReviewedAt: new Date() } });
   await p.organization.create({ data: { id: OTHER_ORG, name: "Other org" } });

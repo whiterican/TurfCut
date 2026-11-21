@@ -145,6 +145,21 @@ const w1 = { workerId: W1, profileId: W1 };
   check("a map pin doesn't move an offline check-out to now", status(co)?.status === "saved" && !!coEv && Math.abs(coEv.createdAt.getTime() - (Date.now() - 180 * M)) < 2 * M, coEv?.createdAt);
   check("…and it's marked as recorded offline for the reviewer", !!coEv?.receivedAt, coEv?.receivedAt);
 
+  // --- The counter's take-back (Caden, Nov 21): a new entry, the +1s stay, never below none ---
+  const s6 = await p.shift.create({ data: { engagementId: ENG, startsAt: new Date(Date.now() - H), endsAt: new Date(Date.now() + 3 * H), status: "ACTIVE", checkInAt: new Date(Date.now() - 50 * M) } });
+  await p.workEvent.create({ data: { shiftId: s6.id, type: "CHECK_IN", payload: {}, actorId: W1, createdAt: new Date(Date.now() - 50 * M) } });
+  const tb = await sync(s6.id, [
+    backdated(10, { kind: "log", unit: "signatures", count: 1 }),
+    backdated(9, { kind: "log", unit: "signatures", count: 1 }),
+    backdated(8, { kind: "undo_signature" }),
+    backdated(7, { kind: "undo_signature" }),
+    backdated(6, { kind: "undo_signature" }), // nothing left to take back
+  ]);
+  check("take-backs sync in order; one past none is refused", tb.ok && tb.results.slice(0, 4).every((x) => x.status === "saved") && tb.results[4].status === "rejected" && /no signature/.test(tb.results[4].reason ?? ""), tb);
+  const tbEvs = await p.workEvent.findMany({ where: { shiftId: s6.id }, orderBy: { createdAt: "asc" } });
+  check("…the +1s are still in the record, each take-back its own entry", tbEvs.filter((e) => e.type === "SIGNATURE_SUBMITTED").length === 2 && tbEvs.filter((e) => e.type === "SIGNATURE_UNDONE").length === 2, tbEvs.map((e) => e.type));
+  check("…and the shift's submitted count is none", verifiedWork(tbEvs, []).submitted === 0);
+
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

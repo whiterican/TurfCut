@@ -41,7 +41,9 @@ interface TurfPick {
   setSaving: (saving: boolean) => void;
 }
 
-const Ctx = createContext<TurfPick | null>(null);
+/** Exported for tests, which cannot press Give: they render a button inside a context that is already saving. */
+export const TurfPickContext = createContext<TurfPick | null>(null);
+const Ctx = TurfPickContext;
 
 /** Null where nobody may assign turf (no provider): callers render nothing extra then. */
 export const useTurfPick = () => useContext(Ctx);

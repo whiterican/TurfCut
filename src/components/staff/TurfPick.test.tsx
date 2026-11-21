@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { readFileSync } from "node:fs";
-import { AssignThisTurfButton, TurfPickProvider, pickReducer, type PickState } from "./TurfPick";
+import { AssignThisTurfButton, TurfPickContext, TurfPickProvider, pickReducer, type PickState } from "./TurfPick";
 import { AssignTurfPanel, type AssignableShift } from "./AssignTurfPanel";
 import { CoverageMap } from "./CoverageMap";
 import { turfCards } from "@/lib/field-turf";
@@ -26,8 +26,12 @@ describe("picking a turf that is already on the map", () => {
     expect(bare).toContain("Assign this turf");
     expect(bare).not.toContain("aria-label");
   });
-  it("the button is ready to press: only a save on its way holds it", () => {
+  it("the button is ready to press, and held while a save is on its way", () => {
     expect(renderToStaticMarkup(<TurfPickProvider><AssignThisTurfButton id="z" name="Turf 1" turf={turf} /></TurfPickProvider>)).not.toContain("disabled");
+    const ctx = { picked: null, pick: () => {}, clear: () => {}, setSaving: () => {} };
+    const button = <AssignThisTurfButton id="z" name="Turf 1" turf={turf} />;
+    expect(renderToStaticMarkup(<TurfPickContext.Provider value={{ ...ctx, saving: true }}>{button}</TurfPickContext.Provider>)).toContain('disabled=""');
+    expect(renderToStaticMarkup(<TurfPickContext.Provider value={{ ...ctx, saving: false }}>{button}</TurfPickContext.Provider>)).not.toContain("disabled");
   });
   it("a card carries its own polygon, under the same id the map's zone has", () => {
     const state = { cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null };

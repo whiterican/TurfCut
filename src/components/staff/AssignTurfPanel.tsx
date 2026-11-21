@@ -47,7 +47,8 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   // While a save is on its way nothing here or on the cards can change the panel's turf or close it: an answer that
-  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick.
+  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick. The price, accepted:
+  // a save that stalls on bad signal holds these buttons until the browser gives the request up (or a reload).
   const setSaving = turfPick?.setSaving;
   useEffect(() => {
     setSaving?.(pending);
@@ -109,6 +110,8 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
       }
     }
     const sentAt = turfChanges.current;
+    // Held from this click on, not from the effect a moment later: a tap already queued on a card must not get through.
+    setSaving?.(true);
     start(async () => {
       // The answer belongs to the turf it was sent for; the panel may be on another by now, or closed (saveOutcome).
       const result = await assignTurfAction(ids, polygon).catch(() => null);

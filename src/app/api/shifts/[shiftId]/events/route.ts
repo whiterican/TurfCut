@@ -11,7 +11,8 @@ const s = (v: unknown) => (typeof v === "string" ? v : "");
 /**
  * POST /api/shifts/:shiftId/events { kind, … }
  * Workers: pause · resume · log {unit, count} · return_packet {packetId,
- * sheetsReturned, signatures} · check_out · cancel {reason}.
+ * sheetsReturned, signatures} · undo_signature (takes one signature back) ·
+ * check_out · cancel {reason}.
  * Owners/supervisors: packet_pickup {packetId, sheets} · batch_count
  * {reviewed, accepted, rejected, exceptions?} · cancel {reason}.
  * Every accepted request appends one work event; nothing is edited.
@@ -31,6 +32,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
       case "pause":
       case "resume":
       case "check_out":
+      case "undo_signature":
         r = { kind: b.kind };
         break;
       case "log":

@@ -677,7 +677,7 @@ enum WorkEventType {
   NOTE
   APP_COUNTS // C4.4: the canvassing app's returned totals for the shift — payload: { app, doors, contacts }; the newest replaces logged doors/contacts
   PACKET_HELD // C4.5: a packet the worker keeps between shifts — payload: { packetId }; it is picked up again on their next shift
-  SIGNATURE_UNDONE // F1: the worker takes back their latest +1 (a mis-tap) — payload: { count: 1 }; a new event, the +1 stays
+  SIGNATURE_UNDONE // F1: the worker takes one signature back off the counter (a mis-tap) — payload: { count: 1 }; a new event, the +1 stays
 }
 
 /// Immutable ledger of everything that happened on a shift.

@@ -141,6 +141,12 @@ exercise the locks, triggers and data rules, not the RLS policies.
      jobs, PR #187), **before** deploying the build that reads
      `Job.providesTraining`: until it runs, job pages and hiring fail.
      Safe to run again.
+   - Then `prisma/f1-signature-undo.sql` (the signature counter's "Take
+     back 1"), **before** deploying the build that records it: until it
+     runs, a phone's batch holding a take-back fails whole and keeps
+     retrying, the +1s with it. It adds an enum value, so run it as its
+     own paste. Safe to run again. Once take-backs exist, don't roll the
+     code back past it: the older build can't read those shifts.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app

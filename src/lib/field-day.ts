@@ -145,7 +145,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
         st.signatures += num(p.count) || 1;
         break;
       case "SIGNATURE_UNDONE":
-        // The worker took back their latest +1 (a mis-tap): never below none, whatever review later drops.
+        // The worker took back one signature (a mis-tap): never below none, whatever review later drops.
         st.signatures = Math.max(0, st.signatures - (num(p.count) || 1));
         break;
       case "DOOR_KNOCK":
@@ -408,7 +408,7 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       return { ok: true, event: { type, payload: { count: a.count } } };
     }
     case "undo_signature":
-      // Takes back the latest +1 on the counter, as a new event: the +1 itself stays in the record.
+      // Takes one signature off the counter, as a new entry: the +1s themselves stay in the record.
       if (!active) return no("Check in before changing your count.");
       if (st.paused) return no("End your break before changing your count.");
       if (s.workType !== "PETITION") return no("This isn't a petition shift.");
@@ -541,6 +541,7 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
   let checkIn: Date | null = null;
   let checkOut: Date | null = null;
   let paused = false;
+  let signatures = 0;
   const out = new Set<string>();
   const held = new Set<string>();
   for (const e of sorted) {
@@ -573,6 +574,15 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (!intIn(p.count, 1, 500)) return "Counts are whole numbers from 1 to 500.";
         if (e.type === "SIGNATURE_SUBMITTED" && s.workType !== "PETITION") return "Signatures are for petition shifts.";
         if (e.type !== "SIGNATURE_SUBMITTED" && s.workType !== "CANVASS") return "Doors and contacts are for canvass shifts.";
+        if (e.type === "SIGNATURE_SUBMITTED") signatures += p.count as number;
+        break;
+      case "SIGNATURE_UNDONE":
+        // A worker's take-back has to stay on shift and still have a signature before it to take back: a correction
+        // that moved a +1 after it, or lowered the count it followed, would quietly bring that signature back.
+        if (!checkIn || checkOut) return "Work has to be logged while on shift.";
+        if (s.workType !== "PETITION") return "Signatures are for petition shifts.";
+        if (signatures < 1) return "A signature the worker took back would have nothing before it to take back.";
+        signatures -= 1;
         break;
       case "APP_COUNTS":
         if (!checkIn) return "App totals need a shift that started.";

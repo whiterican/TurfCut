@@ -433,18 +433,19 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                     <span className="label block">Signatures this shift</span>
                     <span className="signature-tally-figure">{st.signatures}</span>
                   </p>
-                  {/* Small and away from the +1, so taking one back is never the tap that was meant for adding one. */}
-                  {st.signatures > 0 && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm signature-tally-undo"
-                      onClick={() => record({ kind: "undo_signature" }, { what: `Signature ${st.signatures} taken back`, batched: true })}
-                      aria-label="Take back 1 signature"
-                    >
-                      <Undo2 aria-hidden className="btn-icon" />
-                      Take back 1
-                    </button>
-                  )}
+                  {/* Small and away from the +1, so taking one back is never the tap that was meant for adding one. Always there
+                      (marked off at none, not disabled, so focus stays on it; a tap then says there's none to take back), so the +1
+                      doesn't move on the first tap and focus isn't lost taking back the last one. */}
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm signature-tally-undo"
+                    aria-disabled={st.signatures < 1}
+                    onClick={() => record({ kind: "undo_signature" }, { what: `Signature ${st.signatures} taken back`, batched: true })}
+                    aria-label="Take back 1 signature"
+                  >
+                    <Undo2 aria-hidden className="btn-icon" />
+                    Take back 1
+                  </button>
                 </div>
                 {/* The message names the running count ("Signature 18"), so each tap reads differently and is announced. */}
                 <button

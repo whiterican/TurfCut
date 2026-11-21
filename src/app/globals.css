@@ -4467,6 +4467,10 @@ html:has(.more-sheet[open])::view-transition {
 .coverage-map .coverage-zone {
   transition: fill-opacity var(--dur-slow) var(--ease-out);
 }
+/* A zone is a button only for people who may assign turf (CoverageMap marks the map then); for everyone else it is part of the map. */
+.coverage-map:not([data-pickable]) .coverage-zone {
+  cursor: inherit;
+}
 @keyframes tc-sheet-in {
   from { translate: 0 100%; }
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { assignTurfAction } from "@/app/field/actions";
 import { LocalTime } from "@/components/LocalTime";
 import { TurfMap } from "@/components/TurfMap";
+import { useTurfPick } from "@/components/staff/TurfPick";
 import { MAX_SHIFTS_PER_ASSIGNMENT } from "@/lib/turf-assign";
 
 export interface AssignableShift {
@@ -13,12 +14,16 @@ export interface AssignableShift {
   startsAt: string;
   endsAt: string;
   hasTurf: boolean;
+  /** The zone id of the shift's turf now (the map's and the cards' id), so a picked turf can say which shifts already have it. */
+  zoneId: string | null;
 }
 
 /**
  * Give turf to workers from the Field map (Caden, Nov 17): draw a zone, tick whose shifts get it, save.
  * Shifts that are over or cancelled are not offered. The server checks everything again and changes
  * all the ticked shifts or none. Nobody's position is involved: the zone is where the work is.
+ * A turf already on the map can be the start (a tap on its zone, or its card's button): the panel opens
+ * with that turf drawn, to give to more shifts as it is or with its corners changed.
  */
 export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null }) {
   const [open, setOpen] = useState(false);
@@ -28,6 +33,23 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const form = useRef<HTMLFormElement>(null);
+  const panel = useRef<HTMLElement>(null);
+  // A turf picked on the map or a card opens the panel starting from it; each pick counts, the same turf twice too.
+  const turfPick = useTurfPick();
+  const preset = turfPick?.picked ?? null;
+  const [seenPick, setSeenPick] = useState(preset?.nonce ?? 0);
+  if (preset && preset.nonce !== seenPick) {
+    setSeenPick(preset.nonce);
+    setOpen(true);
+    setMsg(null);
+  }
+  // The pick was made somewhere else on the page (the map above, a card beside it): bring the panel to it.
+  useEffect(() => {
+    if (preset && open) {
+      panel.current?.scrollIntoView({ block: "nearest" });
+      panel.current?.focus({ preventScroll: true });
+    }
+  }, [preset, open]);
 
   // A shift that finished or was cancelled while the panel was open leaves the list; it must leave the picks too,
   // or it would be counted, could not be unticked, and would fail the whole save.
@@ -78,18 +100,36 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
   const jobs = [...new Set(shifts.map((s) => s.jobTitle))];
   const tooMany = ids.length > MAX_SHIFTS_PER_ASSIGNMENT;
   return (
-    <section className="card space-y-4" aria-labelledby="assign-turf-heading">
-      <div className="flex items-start justify-between gap-3">
+    <section ref={panel} tabIndex={-1} className="card space-y-4 outline-none" aria-labelledby="assign-turf-heading">
+      {/* On a phone the two buttons sit under the words, not beside them: beside, they squeezed the hint to a few words a line. */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div>
-          <h3 id="assign-turf-heading" className="text-base font-semibold">Assign turf</h3>
-          <p className="text-hint">Draw the zone, then pick whose shifts get it. A worker sees it on their shift. Nobody&apos;s position is used.</p>
+          <h3 id="assign-turf-heading" className="text-base font-semibold">{preset ? `Assign ${preset.name}` : "Assign turf"}</h3>
+          <p className="text-hint">
+            {preset ? "This turf is drawn below: keep it, or change its corners. Then pick whose shifts get it." : "Draw the zone, then pick whose shifts get it."} A worker sees it on their shift. Nobody&apos;s position is used.
+          </p>
         </div>
-        <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
-          Close
-        </button>
+        <div className="flex shrink-0 flex-wrap gap-1 sm:justify-end">
+          {preset && (
+            <button type="button" className="btn-ghost btn-sm" onClick={() => turfPick?.clear()}>
+              Draw a new turf
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn-ghost btn-sm"
+            onClick={() => {
+              setOpen(false);
+              turfPick?.clear();
+            }}
+          >
+            Close
+          </button>
+        </div>
       </div>
       <form ref={form} onSubmit={(e) => e.preventDefault()} className="space-y-3">
-        <TurfMap editable allowStaging={false} center={startCenter} className="h-80" />
+        {/* Keyed by the pick: the map starts over from the picked turf, or blank again, instead of keeping the last drawing. */}
+        <TurfMap key={preset ? `${preset.id}:${preset.nonce}` : "new"} editable allowStaging={false} turf={preset?.turf ?? null} center={startCenter} className="h-80" />
       </form>
       <fieldset className="space-y-3">
         <legend className="label">Whose shifts get this turf</legend>
@@ -127,7 +167,7 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
                         <span className="font-semibold">{s.worker}</span>{" "}
                         <span className="text-sm text-subtle">
                           <LocalTime iso={s.startsAt} mode="short" /> – <LocalTime iso={s.endsAt} mode="time" from={s.startsAt} />
-                          {s.hasTurf && " · has turf (it will be replaced)"}
+                          {preset && s.zoneId === preset.id ? " · has this turf" : s.hasTurf && " · has turf (it will be replaced)"}
                         </span>
                       </span>
                     </label>

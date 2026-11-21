@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import type { LayerGroup, Map as LeafletMap, Polygon } from "leaflet";
 import { useFieldLive } from "@/components/staff/FieldLive";
+import { useTurfPick } from "@/components/staff/TurfPick";
 import { fillOpacity, zoneFill, type ZoneSummary } from "@/lib/field-live";
 
 const token = (name: string, fallback: string) => (typeof document === "undefined" ? fallback : getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
@@ -20,8 +21,15 @@ const tip = (z: ZoneSummary) => {
  * pins: who is where is not this map's business (decision 3). Zones come
  * from the live summary, so the fills move with the figures above.
  */
-export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSummary[]; className?: string }) {
+export function CoverageMap({ initial, className = "h-72", names = {} }: { initial: ZoneSummary[]; className?: string; /** Each turf's name as its card says it, by zone id: what the Assign panel calls a zone picked here. */ names?: Record<string, string> }) {
   const zones = useFieldLive()?.zones ?? initial;
+  // People who may assign turf can tap a zone to start the Assign panel from it (the card's button does the same for a keyboard).
+  const turfPick = useTurfPick();
+  const pickRef = useRef({ pick: turfPick?.pick, names, zones });
+  useEffect(() => {
+    pickRef.current = { pick: turfPick?.pick, names, zones };
+  });
+  const framed = useRef(false);
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletMap | null>(null);
   const layer = useRef<LayerGroup | null>(null);
@@ -70,6 +78,7 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
     const stroke = token("--link", "#5a3a8a");
     const fill = token("--map-fill", "#5a3b82");
     const keep = new Set<string>();
+    const added: Polygon[] = [];
     for (const z of zones) {
       keep.add(z.id);
       // Capped so the streets under a busy zone stay readable.
@@ -78,7 +87,14 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
       if (!p) {
         p = L.polygon(z.turf.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]), { color: stroke, weight: 2, fillColor: fill, fillOpacity: opacity, className: "coverage-zone" });
         p.bindTooltip(tip(z)).addTo(group);
+        // Read at tap time, so the handler set once always sees the zone and its name as they are now.
+        p.on("click", () => {
+          const now = pickRef.current;
+          const zone = now.zones.find((x) => x.id === z.id);
+          if (now.pick && zone) now.pick({ id: zone.id, name: now.names[zone.id] ?? "this turf", turf: zone.turf });
+        });
         drawn.current.set(z.id, p);
+        added.push(p);
       } else {
         p.setStyle({ color: stroke, fillColor: fill, fillOpacity: opacity });
         p.setTooltipContent(tip(z));
@@ -90,6 +106,15 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
         drawn.current.delete(id);
       }
     }
+    // The map is framed on the zones it opened with. A turf assigned since then may lie outside that view, with its
+    // card showing and nothing on the map: bring every zone into view then. Never when the new zone is already in
+    // view, so a view the organizer chose isn't taken from them for nothing.
+    const m = map.current;
+    if (m && framed.current && added.some((p) => !m.getBounds().contains(p.getBounds()))) {
+      const corners = zones.flatMap((z) => z.turf.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]));
+      if (corners.length) m.fitBounds(corners, { padding: [24, 24], maxZoom: 16 });
+    }
+    framed.current = true;
   }, [zones, ready]);
 
   const onGround = zones.reduce((n, z) => n + z.onGround, 0);
@@ -99,5 +124,5 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
     return <p className={`turf-map coverage-map flex w-full items-center justify-center rounded-[var(--radius-card)] border border-border p-4 text-center text-muted-sm ${className}`}>The map needs signal. {label.replace("Coverage map: ", "")}.</p>;
   }
   // A region, not an image: the map's zoom buttons and attribution link inside it must stay reachable.
-  return <div ref={el} className={`turf-map coverage-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label} />;
+  return <div ref={el} data-pickable={turfPick ? "" : undefined} className={`turf-map coverage-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label} />;
 }

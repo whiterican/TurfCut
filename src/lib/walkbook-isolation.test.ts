@@ -147,7 +147,7 @@ describe("imported columns stay where they are meant to", () => {
       expect(body(wd, "importAddressesInScope")).toMatch(/sourceData/);
     });
     it("walkbooks-data: the import tables are touched only by import, cut, the file list, the staff walkbook, the purge, and the one SQL fragment that skips repeats", () => {
-      const fns = ["importAddressesInScope", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImportInScope", "purgeOwnImport", "purgeDueImports", "failedCount"];
+      const fns = ["importAddressesInScope", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImportInScope", "deleteImportRows", "purgeOwnImport", "purgeDueImports", "failedCount"];
       const rest = outside(wd.replace(/\/\*[\s\S]*?\*\//g, ""), TABLES, fns);
       // Only notOnJob's join (a plain equality on addressId) is left outside those functions.
       const notOnJob = wd.slice(wd.indexOf("const notOnJob"), wd.indexOf("`;", wd.indexOf("const notOnJob")));

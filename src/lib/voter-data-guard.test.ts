@@ -78,6 +78,16 @@ describe("voter-data guard: raw SQL", () => {
       "COPY (SELECT 1) TO STDOUT",
       "SELECT pg_read_file('/etc/passwd')",
       "SELECT lo_import('/x')",
+      // Round 3: the planner's samples give the columns back without naming the table.
+      "SELECT most_common_vals::text FROM pg_stats WHERE tablename LIKE $1",
+      "SELECT * FROM pg_catalog.pg_statistic",
+      "SELECT * FROM pg_stats_ext",
+      "ANALYZE",
+      "VACUUM ANALYZE",
+      "CREATE TEMP VIEW zz_v AS SELECT 1",
+      "CREATE STATISTICS s ON a, b FROM t",
+      "SELECT * FROM pg_logical_slot_get_changes($1, NULL, NULL)",
+      "SELECT pg_create_logical_replication_slot($1, 'test_decoding')",
     ];
     for (const sql of opaque) {
       expect(rawQueryProblem(sql), sql).not.toBeNull();

@@ -186,9 +186,18 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   const stopIds = (await p.walkbookStop.findMany({ select: { id: true } })).map((x) => x.id);
   check("before deleting: the file's four addresses are stored", before.rows === 4, before);
   check("another organization can't delete the file's data, and a bad id is 'not found'", !(await purgeOwnImport({ profileId: OWNER, orgId: OTHER_ORG }, importId)).ok && !(await purgeOwnImport(owner, "nope")).ok);
+  // The planner's samples of the table (pg_stats) hold the file's values too, once the table is analyzed.
+  const sampled = () => inspect(() => p.$queryRawUnsafe<Array<{ v: string | null }>>(`SELECT concat(most_common_vals::text, ' ', histogram_bounds::text) AS v FROM pg_stats WHERE tablename = 'ImportedAddress'`)).then((r) => r.map((x) => x.v ?? "").join(" "));
+  await inspect(() => p.$executeRawUnsafe(`ANALYZE "public"."ImportedAddress"`));
+  check("the planner's samples of the table hold the file's names before it is deleted (so the purge has to clear them)", /Lovelace/.test(await sampled()));
+  check("…and reading them is refused outside the scope, though the query names no table", await Promise.resolve().then(() => p.$queryRaw`SELECT most_common_vals::text FROM pg_stats WHERE tablename LIKE ${"Imported%"}`).then(() => false, (e: Error) => e.name === "VoterDataGuardError"));
+  const lastAnalyzed = () => p.$queryRaw<Array<{ at: Date | null }>>`SELECT last_analyze AS at FROM pg_stat_user_tables WHERE relname = ${"Imported" + "Address"}`.then((r) => r[0]?.at?.getTime() ?? 0);
+  const purgeStarted = Date.now();
   const purged = await purgeOwnImport(owner, importId);
   check("the organization deletes a file's names and addresses on request: four addresses go", purged.ok && purged.addresses === 4 && !purged.already, purged);
   check("every address row of the file is gone, and with it every record ID and column", (await p.importedAddress.count({ where: { importId } })) === 0);
+  // Another file in this suite has the same names, so the proof is the refresh itself: analyzed after the purge began.
+  check("…and the planner's samples of them too: the purge refreshes the table's statistics", (await lastAnalyzed()) >= purgeStarted);
   const afterP = { stops: await p.walkbookStop.count(), outcomes: await p.stopOutcome.count() };
   check("the stops and their outcomes all stay (the stops' addresses are just empty)", afterP.stops === before.stops && afterP.outcomes === before.outcomes && (await p.walkbookStop.count({ where: { addressId: null } })) >= 4, afterP);
   const imp1 = await inspect(() => p.addressImport.findUniqueOrThrow({ where: { id: importId } }));

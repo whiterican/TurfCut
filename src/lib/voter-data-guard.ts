@@ -20,8 +20,10 @@ import { Prisma } from "@prisma/client";
  *   modules use for the queries that read addresses, pinned by walkbook-isolation.test.ts): checking SQL text for
  *   what it reads can't be done without parsing SQL, so the queries that may touch these tables are named instead;
  * - anywhere, SQL that can run SQL it can't see or spell a name it can't read: escaped identifiers and strings (U&,
- *   E''), the *_to_xml and ts_stat/ts_rewrite families, EXECUTE, DO, dblink, COPY, file and large-object reads, and
- *   creating functions, procedures, views, rules or triggers (the app runs no DDL of that kind).
+ *   E''), the *_to_xml and ts_stat/ts_rewrite families, EXECUTE, DO, dblink, COPY, file and large-object reads,
+ *   creating functions, procedures, views, rules, triggers or statistics (the app runs no DDL of that kind), the
+ *   planner's statistics (pg_stats and pg_statistic hold samples of every column's values) and ANALYZE or VACUUM,
+ *   and logical replication.
  *
  * It stops a developer (or agent) reading the data by mistake. It is not a wall against someone set on getting round
  * it from inside the app's own code: that needs the database to refuse the columns to the app's role.
@@ -33,7 +35,7 @@ const PROTECTED_RE = /\b(droppedColumns|sourceData|sourceRecordId)\b/;
 const TABLE_RE = /(ImportedAddress|AddressImport)/i;
 /** SQL that can run SQL the guard can't see, or spell a name it can't read: refused outside the scope, whatever it names. */
 const OPAQUE_RE =
-  /\bu&|(?<![\w$'])e'|\b(query|table|schema|database|cursor)_to_xml|\bxml(element|forest|agg|parse)\b|\bts_(stat|rewrite)\b|\bexecute\b|^\s*do\b|\bdblink|\bcopy\b|\blo_\w+|\bpg_(read|ls_dir|stat_file)|\b(create|alter)\s+(or\s+replace\s+)?(function|procedure|view|rule|trigger|materialized|aggregate|operator|cast)\b/i;
+  /\bu&|(?<![\w$'])e'|\b(query|table|schema|database|cursor)_to_xml|\bxml(element|forest|agg|parse)\b|\bts_(stat|rewrite)\b|\bexecute\b|^\s*do\b|\bdblink|\bcopy\b|\blo_\w+|\bpg_(read|ls_dir|stat_file)|\b(create|alter)\s+(or\s+replace\s+)?((temp|temporary)\s+)?(recursive\s+)?(function|procedure|view|rule|trigger|materialized|aggregate|operator|cast|statistics)\b|\bpg_stat(s|s_ext\w*|istic\w*)\b|\b(analyze|analyse|vacuum)\b|pg_logical_|replication_slot/i;
 
 /** Operations that return the model's rows (and so its columns, unless `select` says which). */
 const RETURNS_ROWS = new Set([
@@ -50,7 +52,15 @@ const RETURNS_ROWS = new Set([
   "delete",
 ]);
 
-const scope = new AsyncLocalStorage<{ why: string; open: boolean }>();
+/**
+ * The scope and the approved texts, once per process: kept on globalThis (as db.ts keeps the client), so a second copy
+ * of this module (a dev reload, another server bundle) shares them with the guard on the cached client.
+ */
+const shared = ((globalThis as Record<symbol, unknown>)[Symbol.for("turfcut.voterDataGuard")] ??= {
+  scope: new AsyncLocalStorage<{ why: string; open: boolean }>(),
+  approved: new Set<string>(),
+}) as { scope: AsyncLocalStorage<{ why: string; open: boolean }>; approved: Set<string> };
+const scope = shared.scope;
 
 /**
  * Runs `fn` where the protected columns may be read: the importer, the purge, the staff file list and the staff export
@@ -124,7 +134,7 @@ export function modelQueryProblem(model: string, operation: string, args: unknow
 }
 
 /** The static text of every query built with addressSql, as the guard sees it (parts joined by NUL). */
-const approved = new Set<string>();
+const approved = shared.approved;
 const key = (strings: readonly string[]) => strings.join("\u0000");
 
 /**

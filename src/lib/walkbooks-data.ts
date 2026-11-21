@@ -354,6 +354,17 @@ export function purgeImport(...a: Parameters<typeof purgeImportInScope>): Return
 }
 async function purgeImportInScope(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
+  const out = await deleteImportRows(importId, reason, actorId, now);
+  // Postgres keeps samples of a table's values for its planner (pg_statistic), names and record IDs included, until the
+  // table is next analyzed: refresh them now so the deleted rows don't live on there. Outside the transaction (ANALYZE
+  // can't run inside one). A failure here doesn't undo the purge; the next autovacuum refreshes them anyway.
+  if (out.ok && out.addresses > 0) {
+    await db().$executeRaw`ANALYZE "public"."ImportedAddress"`.catch((e) => console.error("[turfcut] statistics refresh after a purge failed", e));
+  }
+  return out;
+}
+
+async function deleteImportRows(importId: string, reason: PurgeReason, actorId: string | null, now: Date): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   return db().$transaction(
     async (tx) => {
     const imp = await tx.addressImport.findUnique({ where: { id: importId.toLowerCase() }, select: { id: true, purgedAt: true } });

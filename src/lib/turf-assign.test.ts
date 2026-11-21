@@ -52,11 +52,11 @@ describe("saveOutcome: what the panel does with a save's answer", () => {
     const late = saveOutcome(true, given);
     expect(late.clearTicks).toBe(false);
     expect(late.reopen).toBe(false);
-    expect(late.msg).toEqual({ ok: true, text: "The save you sent before changing turf went through." });
+    expect(late.msg).toEqual({ ok: true, text: "The save you sent a moment ago went through." });
     const lateRefused = saveOutcome(true, refused);
     expect(lateRefused.clearTicks).toBe(false);
     expect(lateRefused.msg.ok).toBe(false);
-    expect(lateRefused.msg.text).toBe("The save you sent before changing turf did not go through. That shift is over.");
+    expect(lateRefused.msg.text).toBe("The save you sent a moment ago did not go through. That shift is over.");
   });
   it("a failure is always told and brings a closed panel back, a call that never answered included", () => {
     for (const moved of [false, true]) {

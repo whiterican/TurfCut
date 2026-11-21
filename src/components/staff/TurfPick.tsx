@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useReducer, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useReducer, useState, type ReactNode } from "react";
 import type { TurfPolygon } from "@/lib/field-day";
 
 /**
@@ -36,6 +36,9 @@ interface TurfPick {
   picked: PickedTurf | null;
   pick: (zone: Zone) => void;
   clear: () => void;
+  /** A save is on its way: the pick buttons wait, so its answer always lands on the turf it was sent for, with the panel open to show it. */
+  saving: boolean;
+  setSaving: (saving: boolean) => void;
 }
 
 const Ctx = createContext<TurfPick | null>(null);
@@ -48,7 +51,8 @@ export function TurfPickProvider({ children, initial }: { children: ReactNode; i
   const [state, dispatch] = useReducer(pickReducer, initial, (z): PickState => (z ? { picked: { ...z, nonce: 1 }, count: 1 } : { picked: null, count: 0 }));
   const pick = useCallback((zone: Zone) => dispatch({ type: "pick", zone }), []);
   const clear = useCallback(() => dispatch({ type: "clear" }), []);
-  const value = useMemo(() => ({ picked: state.picked, pick, clear }), [state.picked, pick, clear]);
+  const [saving, setSaving] = useState(false);
+  const value = useMemo(() => ({ picked: state.picked, pick, clear, saving, setSaving }), [state.picked, pick, clear, saving]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
@@ -60,7 +64,7 @@ export function AssignThisTurfButton({ id, name, turf }: Zone & { /** As its car
   const ctx = useTurfPick();
   if (!ctx) return null;
   return (
-    <button type="button" className="btn-secondary btn-sm shrink-0" aria-label={name ? `Assign this turf: ${name}` : undefined} onClick={() => ctx.pick({ id, turf })}>
+    <button type="button" className="btn-secondary btn-sm shrink-0" aria-label={name ? `Assign this turf: ${name}` : undefined} disabled={ctx.saving} onClick={() => ctx.pick({ id, turf })}>
       Assign this turf
     </button>
   );

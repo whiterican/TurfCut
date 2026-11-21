@@ -26,6 +26,9 @@ describe("picking a turf that is already on the map", () => {
     expect(bare).toContain("Assign this turf");
     expect(bare).not.toContain("aria-label");
   });
+  it("the button is ready to press: only a save on its way holds it", () => {
+    expect(renderToStaticMarkup(<TurfPickProvider><AssignThisTurfButton id="z" name="Turf 1" turf={turf} /></TurfPickProvider>)).not.toContain("disabled");
+  });
   it("a card carries its own polygon, under the same id the map's zone has", () => {
     const state = { cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null };
     const row = { shiftId: "s", jobId: "j", jobTitle: "Job", staging: null, worker: "W", startsAt: new Date("2026-11-21T15:00:00Z"), endsAt: new Date("2026-11-21T18:00:00Z"), state, turf } as unknown as FieldRow;

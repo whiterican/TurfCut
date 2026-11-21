@@ -46,6 +46,13 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
   const [startCenter] = useState(center);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // While a save is on its way nothing here or on the cards can change the panel's turf or close it: an answer that
+  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick.
+  const setSaving = turfPick?.setSaving;
+  useEffect(() => {
+    setSaving?.(pending);
+    return () => setSaving?.(false);
+  }, [pending, setSaving]);
   const form = useRef<HTMLFormElement>(null);
   const panel = useRef<HTMLElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
@@ -135,13 +142,14 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
         </div>
         <div className="flex shrink-0 flex-wrap gap-1 sm:justify-end">
           {preset && (
-            <button type="button" className="btn-ghost btn-sm" onClick={() => turfPick?.clear()}>
+            <button type="button" className="btn-ghost btn-sm" disabled={pending} onClick={() => turfPick?.clear()}>
               Draw a new turf
             </button>
           )}
           <button
             type="button"
             className="btn-ghost btn-sm"
+            disabled={pending}
             onClick={() => {
               setOpen(false);
               turfPick?.clear();

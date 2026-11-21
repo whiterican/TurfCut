@@ -5,7 +5,7 @@ import { assignTurfAction } from "@/app/field/actions";
 import { LocalTime } from "@/components/LocalTime";
 import { TurfMap } from "@/components/TurfMap";
 import { useTurfPick } from "@/components/staff/TurfPick";
-import { MAX_SHIFTS_PER_ASSIGNMENT } from "@/lib/turf-assign";
+import { MAX_SHIFTS_PER_ASSIGNMENT, saveOutcome } from "@/lib/turf-assign";
 
 export interface AssignableShift {
   id: string;
@@ -103,21 +103,12 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
     }
     const sentAt = turfChanges.current;
     start(async () => {
-      // The answer belongs to the turf it was sent for. Once the panel is on another, "Turf given" would read as the
-      // new one's and clearing the ticks would undo ones made since, so a success says nothing. A failure must still
-      // be told: it says which save it was about.
-      const moved = () => turfChanges.current !== sentAt;
-      try {
-        const r = await assignTurfAction(ids, polygon);
-        if (moved()) {
-          if (!r.ok) setMsg({ ok: false, text: `The save you sent just before this one did not go through. ${r.message}` });
-          return;
-        }
-        setMsg({ ok: r.ok, text: r.message });
-        if (r.ok) setPicked(new Set());
-      } catch {
-        setMsg({ ok: false, text: moved() ? "The save you sent just before this one did not go through. Nothing was changed." : "Couldn't save the turf. Nothing was changed. Try again." });
-      }
+      // The answer belongs to the turf it was sent for; the panel may be on another by now, or closed (saveOutcome).
+      const result = await assignTurfAction(ids, polygon).catch(() => null);
+      const { msg: answer, clearTicks, reopen } = saveOutcome(turfChanges.current !== sentAt, result);
+      setMsg(answer);
+      if (clearTicks) setPicked(new Set());
+      if (reopen) setOpen(true);
     });
   }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_SHIFTS_PER_ASSIGNMENT, assignProblem, readAssignment } from "./turf-assign";
+import { MAX_SHIFTS_PER_ASSIGNMENT, assignProblem, readAssignment, saveOutcome } from "./turf-assign";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const square = { type: "Polygon", coordinates: [[[-104.9, 39.7], [-104.9, 39.71], [-104.89, 39.71], [-104.9, 39.7]]] };
@@ -38,5 +38,36 @@ describe("turf assignment", () => {
   it("folds ids to lower case", () => {
     const up = id(1).replace(/0/g, "A").toUpperCase();
     expect(readAssignment([up, up.toLowerCase()], null)).toMatchObject({ ok: true, shiftIds: [up.toLowerCase()] });
+  });
+});
+
+describe("saveOutcome: what the panel does with a save's answer", () => {
+  const given = { ok: true, message: "Turf given to 1 worker's shift." };
+  const refused = { ok: false, message: "That shift is over." };
+  it("on the turf it was sent for: the server's words, and the ticks cleared only when it worked", () => {
+    expect(saveOutcome(false, given)).toEqual({ msg: { ok: true, text: given.message }, clearTicks: true, reopen: false });
+    expect(saveOutcome(false, refused)).toEqual({ msg: { ok: false, text: refused.message }, clearTicks: false, reopen: true });
+  });
+  it("after the panel moved to another turf: never clears the new ticks, and says which save it was", () => {
+    const late = saveOutcome(true, given);
+    expect(late.clearTicks).toBe(false);
+    expect(late.reopen).toBe(false);
+    expect(late.msg).toEqual({ ok: true, text: "The save you sent before changing turf went through." });
+    const lateRefused = saveOutcome(true, refused);
+    expect(lateRefused.clearTicks).toBe(false);
+    expect(lateRefused.msg.ok).toBe(false);
+    expect(lateRefused.msg.text).toBe("The save you sent before changing turf did not go through. That shift is over.");
+  });
+  it("a failure is always told and brings a closed panel back, a call that never answered included", () => {
+    for (const moved of [false, true]) {
+      for (const result of [refused, null]) {
+        const o = saveOutcome(moved, result);
+        expect(o.msg.ok).toBe(false);
+        expect(o.msg.text).not.toBe("");
+        expect(o.reopen).toBe(true);
+        expect(o.clearTicks).toBe(false);
+      }
+    }
+    expect(saveOutcome(false, null).msg.text).toBe("Couldn't save the turf. Nothing was changed. Try again.");
   });
 });

@@ -159,7 +159,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
         {chosen ? (
           <>
             <p className="flex max-w-full min-w-0 gap-1">
-              <span className="truncate font-semibold text-fg">{chosenName || "This turf"}</span>{" "}
+              <span className="truncate font-semibold text-fg">{chosenName || "This turf"}</span>
               {/* The quantity is named, as on the cards (#113 review, P3). */}
               <span className="shrink-0">
                 · {chosen.onGround} of {chosen.total} {chosen.total === 1 ? "shift" : "shifts"} checked in now

@@ -44,6 +44,7 @@ const EVENT_LABELS: Record<string, string> = {
   PACKET_HELD: "Packet kept for next shift",
   SIGNATURE_SUBMITTED: "Signatures logged",
   SIGNATURE_UNDONE: "Signature taken back",
+  LOCATION_SHARING: "Area sharing",
   DOOR_KNOCK: "Doors logged",
   CONTACT: "Contacts logged",
   APP_COUNTS: "App totals entered",
@@ -74,7 +75,9 @@ function eventDetail(type: string, payload: unknown): string {
     case "SIGNATURE_SUBMITTED":
     case "DOOR_KNOCK":
     case "CONTACT":
-      return `+${p.count ?? 1}`;
+      return `+${p.count ?? 1}${p.area ? " · area shared" : ""}`;
+    case "LOCATION_SHARING":
+      return p.on === true ? "turned on by the worker" : "turned off by the worker";
     case "SIGNATURE_UNDONE":
       return `−${p.count ?? 1}`;
     case "APP_COUNTS":
@@ -103,6 +106,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
   const f = facts(s);
   const st = shiftState(f);
+  // The worker's shared area (F2, their choice): for the shift's staff while they're on shift, never after.
+  const sharedArea = !isWorker && st.sharingArea && st.area && st.checkedInAt && !st.checkedOutAt ? st.area : null;
   const pay = await shiftPay(s.id);
   // Amounts go to the worker and to the field team approving them.
   const seesPay = isWorker || canField;
@@ -281,7 +286,12 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
           ) : (
             <>
-              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} />
+              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} area={sharedArea && { lat: sharedArea.lat, lng: sharedArea.lng, label: "Worker's area (about 1 km)" }} />
+              {sharedArea && (
+                <p className="text-muted-sm">
+                  The worker shares their area on this shift: the dotted square, about 1 km across, from their latest signature at <LocalTime iso={sharedArea.at.toISOString()} mode="time" />.
+                </p>
+              )}
               {marks.pins.length > 0 && <PinLegend />}
             </>
           )}

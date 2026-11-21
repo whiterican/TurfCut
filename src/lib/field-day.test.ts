@@ -12,6 +12,8 @@ import {
   shiftProgress,
   shiftState,
   shiftStatusLabel,
+  snapArea,
+  AREA_CONSENT_VERSION,
   type ShiftState,
   supervisorAction,
   validateShift,
@@ -69,6 +71,43 @@ describe("worker actions", () => {
     expect(workerAction(shift([...two.events, ev("PAUSE_START", 8)]), undo, at(10)).ok).toBe(false);
     expect(workerAction(shift([...two.events, ev("CHECK_OUT", 8)]), undo, at(10)).ok).toBe(false);
     expect(workerAction(shift(two.events, { workType: "CANVASS" }), undo, at(10)).ok).toBe(false);
+  });
+
+  it("snaps a position to its ~1 km grid cell's centre: all a signature keeps", () => {
+    expect(snapArea({ lat: 39.73921, lng: -104.99034 })).toEqual({ lat: 39.735, lng: -104.995 });
+    // Anywhere in the same cell, the same area.
+    expect(snapArea({ lat: 39.7301, lng: -104.9999 })).toEqual(snapArea({ lat: 39.7399, lng: -104.9901 }));
+    // A cell's centre stays itself (the server snaps again what the phone snapped).
+    expect(snapArea(snapArea({ lat: 39.73921, lng: -104.99034 }))).toEqual({ lat: 39.735, lng: -104.995 });
+    expect(snapArea({ lat: 90, lng: 180 })).toEqual({ lat: 89.995, lng: 179.995 });
+    for (const bad of [null, "39,-104", { lat: "39", lng: -104 }, { lat: 91, lng: 0 }, { lat: 0, lng: 181 }, { lat: NaN, lng: 0 }, { lat: 1 }]) expect(snapArea(bad)).toBeNull();
+  });
+
+  it("area sharing is the worker's choice, on shift, one change at a time, each a consent record (Caden, Nov 21)", () => {
+    const on = shift([ev("CHECK_IN", 0)]);
+    expect(workerAction(on, { kind: "share_area", on: true }, at(5))).toEqual({ ok: true, event: { type: "LOCATION_SHARING", payload: { on: true, consent: AREA_CONSENT_VERSION } } });
+    expect(workerAction(on, { kind: "share_area", on: false }, at(5)).ok).toBe(false);
+    expect(workerAction(shift(), { kind: "share_area", on: true }, at(5)).ok).toBe(false);
+    expect(workerAction(shift([ev("CHECK_IN", 0), ev("CHECK_OUT", 9)]), { kind: "share_area", on: true }, at(10)).ok).toBe(false);
+    expect(workerAction(shift([ev("CHECK_IN", 0)], { workType: "CANVASS" }), { kind: "share_area", on: true }, at(5)).ok).toBe(false);
+    // Off by default: a signature sent with an area keeps none until sharing is on.
+    const precise = { lat: 39.73921, lng: -104.99034 };
+    expect(workerAction(on, { kind: "log", unit: "signatures", count: 1, area: precise }, at(6))).toEqual({ ok: true, event: { type: "SIGNATURE_SUBMITTED", payload: { count: 1 } } });
+    const sharing = shift([ev("CHECK_IN", 0), ev("LOCATION_SHARING", 5, { on: true, consent: 1 })]);
+    // On: the cell, never the position the phone sent.
+    expect(workerAction(sharing, { kind: "log", unit: "signatures", count: 1, area: precise }, at(6))).toEqual({ ok: true, event: { type: "SIGNATURE_SUBMITTED", payload: { count: 1, area: { lat: 39.735, lng: -104.995 } } } });
+    expect(workerAction(sharing, { kind: "log", unit: "signatures", count: 1 }, at(6))).toEqual({ ok: true, event: { type: "SIGNATURE_SUBMITTED", payload: { count: 1 } } });
+  });
+
+  it("the shift shows the latest shared area, and none once sharing is off", () => {
+    const tap = (min: number, lat: number) => ev("SIGNATURE_SUBMITTED", min, { count: 1, area: { lat, lng: -104.995 } });
+    const base = [ev("CHECK_IN", 0), ev("LOCATION_SHARING", 5, { on: true, consent: 1 }), tap(10, 39.735), tap(20, 39.745)];
+    expect(shiftState(shift(base))).toMatchObject({ sharingArea: true, area: { lat: 39.745, lng: -104.995, at: at(20) } });
+    const off = [...base, ev("LOCATION_SHARING", 30, { on: false, consent: 1 })];
+    expect(shiftState(shift(off))).toMatchObject({ sharingArea: false, area: null });
+    // An area on a signature from before sharing was on (or after it went off) isn't shown.
+    expect(shiftState(shift([ev("CHECK_IN", 0), tap(3, 39.735)])).area).toBeNull();
+    expect(shiftState(shift([...off, tap(40, 39.755)])).area).toBeNull();
   });
 
   it("a take-back never makes the count negative, even when review later drops the +1 it followed", () => {

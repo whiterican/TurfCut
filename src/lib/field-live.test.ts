@@ -8,7 +8,7 @@ const turfA = { type: "Polygon" as const, coordinates: [[[-73.9, 40.7], [-73.8, 
 const turfB = { type: "Polygon" as const, coordinates: [[[-74.1, 40.6], [-74.0, 40.6], [-74.0, 40.7], [-74.1, 40.6]]] as [number, number][][] };
 
 const st = (s: Partial<ShiftState> = {}): ShiftState => ({
-  cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null, ...s,
+  cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null, sharingArea: false, area: null, ...s,
 });
 
 const row = (id: string, o: Partial<LiveRow> & { s?: Partial<ShiftState> } = {}): LiveRow => {
@@ -84,10 +84,17 @@ describe("summarizeField", () => {
   });
 
   it("carries no names, shift ids or worker positions over the wire", () => {
-    const rows = [row("shift-secret-id", { turf: turfA, s: { checkedInAt: inAt } }), row("other-id", { staging: "Library steps" })];
+    // A worker sharing their area (F2): the area stays on the shift's page, never in the summary.
+    const sharing = { sharingArea: true, area: { lat: 39.745, lng: -104.985, at: inAt } };
+    const rows = [row("shift-secret-id", { turf: turfA, s: { checkedInAt: inAt, ...sharing } }), row("other-id", { staging: "Library steps" })];
     const json = JSON.stringify(summarizeField(rows, now));
     expect(json).not.toMatch(/Zed|Worker|secret-id|other-id|displayName|lat"|lng"|position/);
     expect(Object.keys(JSON.parse(json)).sort()).toEqual(["at", "groups", "today", "version", "zones"]);
+  });
+
+  it("changes its version when a worker turns area sharing on or off, so the board's \"area shared\" follows", () => {
+    const on = summarizeField([row("a", { s: { checkedInAt: inAt, sharingArea: true } })], now).version;
+    expect(summarizeField([row("a", { s: { checkedInAt: inAt } })], now).version).not.toBe(on);
   });
 
   it("changes its version when a shift's turf changes, so other open pages refresh", () => {

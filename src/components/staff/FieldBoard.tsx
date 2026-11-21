@@ -37,6 +37,10 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                         <LocalTime iso={r.startsAt.toISOString()} mode="time" /> – <LocalTime iso={r.endsAt.toISOString()} mode="time" from={r.startsAt.toISOString()} />
                         {r.state.packetsOut.length > 0 && ` · ${r.state.packetsOut.length} out`}
                         {r.state.packetsHeld.length > 0 && ` · ${r.state.packetsHeld.length} kept`}
+                        {/* The worker's shared area (F2, their choice), while on shift: when, here; where, on the shift's page. */}
+                        {r.state.sharingArea && r.state.area && r.state.checkedInAt && !r.state.checkedOutAt && (
+                          <> · area shared <LocalTime iso={r.state.area.at.toISOString()} mode="time" /></>
+                        )}
                       </span>
                     </span>
                     {/* The worker's signatures this shift, where a supervisor's eye goes first. It follows their +1 taps: the

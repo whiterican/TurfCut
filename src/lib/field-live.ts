@@ -106,11 +106,12 @@ export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
   }
 
   // Sorted by id so the same facts always hash the same way, whatever order the rows came in. Whether a shift
-  // is due yet is a fact too: the clock moving one into "under way" changes the words around the figures.
+  // is due yet is a fact too: the clock moving one into "under way" changes the words around the figures. So is
+  // whether the worker shares their area (F2): turning it off takes "area shared" off the board. Only that yes/no, hashed.
   const facts = live
     .map(
       (r) =>
-        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}:${r.turf ? zoneId(r.turf) : "-"}`
+        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}${r.state.sharingArea ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}:${r.turf ? zoneId(r.turf) : "-"}`
     )
     .sort();
 

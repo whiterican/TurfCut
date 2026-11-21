@@ -89,6 +89,27 @@ export interface ShiftState {
   appCounts: { app: string; doors: number; contacts: number } | null;
   closeout: FieldValidation | null;
   atStaging: boolean | null;
+  /** The worker shares their area on this shift (F2, opt-in, off by default): the latest LOCATION_SHARING says on. */
+  sharingArea: boolean;
+  /** The area of the latest signature recorded while sharing (a ~1 km grid cell's centre); none once sharing is off. */
+  area: { lat: number; lng: number; at: Date } | null;
+}
+
+/** The grid an area is snapped to: 0.01° (about 1.1 km north–south, less east–west away from the equator). */
+export const AREA_CELL_DEG = 0.01;
+/** The version of the words a worker agrees to when they turn area sharing on (stored with each LOCATION_SHARING). */
+export const AREA_CONSENT_VERSION = 1;
+
+/**
+ * A position snapped to the centre of its grid cell: all a signature keeps, never the phone's position.
+ * Anything that isn't a position on the earth is no area.
+ */
+export function snapArea(v: unknown): { lat: number; lng: number } | null {
+  if (!v || typeof v !== "object") return null;
+  const { lat, lng } = v as Record<string, unknown>;
+  if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  const centre = (x: number) => Number(((Math.floor(x / AREA_CELL_DEG) + 0.5) * AREA_CELL_DEG).toFixed(3));
+  return { lat: centre(Math.min(lat, 89.999)), lng: centre(Math.min(lng, 179.999)) };
 }
 
 export function shiftState(s: ShiftFacts): ShiftState {
@@ -108,6 +129,8 @@ export function shiftState(s: ShiftFacts): ShiftState {
     appCounts: null,
     closeout: null,
     atStaging: null,
+    sharingArea: false,
+    area: null,
   };
   const out = new Set<string>();
   const held = new Set<string>();
@@ -141,8 +164,16 @@ export function shiftState(s: ShiftFacts): ShiftState {
       case "PACKET_HELD":
         if (typeof p.packetId === "string" && out.delete(p.packetId)) held.add(p.packetId);
         break;
-      case "SIGNATURE_SUBMITTED":
+      case "SIGNATURE_SUBMITTED": {
         st.signatures += num(p.count) || 1;
+        const area = st.sharingArea ? snapArea(p.area) : null;
+        if (area) st.area = { ...area, at: e.createdAt };
+        break;
+      }
+      case "LOCATION_SHARING":
+        st.sharingArea = p.on === true;
+        // Turning it off takes the last area off the manager's screen too.
+        if (!st.sharingArea) st.area = null;
         break;
       case "SIGNATURE_UNDONE":
         // The worker took back one signature (a mis-tap): never below none, whatever review later drops.
@@ -355,8 +386,9 @@ export type WorkerAction =
   | { kind: "check_in"; location: LocationCheck }
   | { kind: "pause" }
   | { kind: "resume" }
-  | { kind: "log"; unit: "signatures" | "doors" | "contacts"; count: number }
+  | { kind: "log"; unit: "signatures" | "doors" | "contacts"; count: number; area?: { lat: number; lng: number } }
   | { kind: "undo_signature" }
+  | { kind: "share_area"; on: boolean }
   | { kind: "return_packet"; packetId: string; sheetsReturned: number; signatures: number }
   | { kind: "hold_packet"; packetId: string }
   | { kind: "app_counts"; app: CanvassApp; doors: number; contacts: number }
@@ -405,8 +437,16 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       if (a.unit === "signatures" && s.workType !== "PETITION") return no("This isn't a petition shift.");
       if (a.unit !== "signatures" && s.workType !== "CANVASS") return no("This isn't a canvass shift.");
       const type = a.unit === "signatures" ? "SIGNATURE_SUBMITTED" : a.unit === "doors" ? "DOOR_KNOCK" : "CONTACT";
-      return { ok: true, event: { type, payload: { count: a.count } } };
+      // The area rides along only while the worker shares it, snapped to its grid cell (whatever the phone sent).
+      const area = a.unit === "signatures" && st.sharingArea ? snapArea(a.area) : null;
+      return { ok: true, event: { type, payload: area ? { count: a.count, area } : { count: a.count } } };
     }
+    case "share_area":
+      // Opt-in, one shift at a time (Caden, Nov 21). Each change is its own event: the record of consent.
+      if (!st.checkedInAt || st.checkedOutAt) return no("Area sharing is for while you're on shift.");
+      if (s.workType !== "PETITION") return no("Area sharing is for petition shifts.");
+      if (a.on === st.sharingArea) return no(a.on ? "You're already sharing your area." : "You're not sharing your area.");
+      return { ok: true, event: { type: "LOCATION_SHARING", payload: { on: a.on, consent: AREA_CONSENT_VERSION } } };
     case "undo_signature":
       // Takes one signature off the counter, as a new entry: the +1s themselves stay in the record.
       if (!active) return no("Check in before changing your count.");

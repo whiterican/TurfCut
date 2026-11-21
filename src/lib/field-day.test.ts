@@ -13,6 +13,7 @@ import {
   shiftState,
   shiftStatusLabel,
   snapArea,
+  visibleArea,
   AREA_CONSENT_VERSION,
   type ShiftState,
   supervisorAction,
@@ -80,16 +81,26 @@ describe("worker actions", () => {
     // A cell's centre stays itself (the server snaps again what the phone snapped).
     expect(snapArea(snapArea({ lat: 39.73921, lng: -104.99034 }))).toEqual({ lat: 39.735, lng: -104.995 });
     expect(snapArea({ lat: 90, lng: 180 })).toEqual({ lat: 89.995, lng: 179.995 });
+    // An exact edge belongs to the cell it starts, not the one below by rounding error; negatives snap the same way.
+    expect(snapArea({ lat: 0.29, lng: -0.29 })).toEqual({ lat: 0.295, lng: -0.285 });
+    expect(snapArea({ lat: -33.86882, lng: 151.20929 })).toEqual({ lat: -33.865, lng: 151.205 });
     for (const bad of [null, "39,-104", { lat: "39", lng: -104 }, { lat: 91, lng: 0 }, { lat: 0, lng: 181 }, { lat: NaN, lng: 0 }, { lat: 1 }]) expect(snapArea(bad)).toBeNull();
   });
 
   it("area sharing is the worker's choice, on shift, one change at a time, each a consent record (Caden, Nov 21)", () => {
     const on = shift([ev("CHECK_IN", 0)]);
-    expect(workerAction(on, { kind: "share_area", on: true }, at(5))).toEqual({ ok: true, event: { type: "LOCATION_SHARING", payload: { on: true, consent: AREA_CONSENT_VERSION } } });
+    const turnOn = { kind: "share_area" as const, on: true, consent: AREA_CONSENT_VERSION };
+    expect(workerAction(on, turnOn, at(5))).toEqual({ ok: true, event: { type: "LOCATION_SHARING", payload: { on: true, consent: AREA_CONSENT_VERSION } } });
+    // Only to the words the worker read: none sent, or an older version (a page saved offline), is refused.
+    expect(workerAction(on, { kind: "share_area", on: true }, at(5))).toMatchObject({ ok: false, reason: /changed/ });
+    expect(workerAction(on, { ...turnOn, consent: AREA_CONSENT_VERSION - 1 }, at(5))).toMatchObject({ ok: false, reason: /changed/ });
     expect(workerAction(on, { kind: "share_area", on: false }, at(5)).ok).toBe(false);
-    expect(workerAction(shift(), { kind: "share_area", on: true }, at(5)).ok).toBe(false);
-    expect(workerAction(shift([ev("CHECK_IN", 0), ev("CHECK_OUT", 9)]), { kind: "share_area", on: true }, at(10)).ok).toBe(false);
-    expect(workerAction(shift([ev("CHECK_IN", 0)], { workType: "CANVASS" }), { kind: "share_area", on: true }, at(5)).ok).toBe(false);
+    expect(workerAction(shift(), turnOn, at(5)).ok).toBe(false);
+    expect(workerAction(shift([ev("CHECK_IN", 0), ev("CHECK_OUT", 9)]), turnOn, at(10)).ok).toBe(false);
+    expect(workerAction(shift([ev("CHECK_IN", 0)], { workType: "CANVASS" }), turnOn, at(5)).ok).toBe(false);
+    // Turning it off needs no words, and works on a break ("turn it off any time").
+    const onBreak = shift([ev("CHECK_IN", 0), ev("LOCATION_SHARING", 5, { on: true, consent: 1 }), ev("PAUSE_START", 6)]);
+    expect(workerAction(onBreak, { kind: "share_area", on: false }, at(7))).toMatchObject({ ok: true, event: { type: "LOCATION_SHARING" } });
     // Off by default: a signature sent with an area keeps none until sharing is on.
     const precise = { lat: 39.73921, lng: -104.99034 };
     expect(workerAction(on, { kind: "log", unit: "signatures", count: 1, area: precise }, at(6))).toEqual({ ok: true, event: { type: "SIGNATURE_SUBMITTED", payload: { count: 1 } } });
@@ -108,6 +119,19 @@ describe("worker actions", () => {
     // An area on a signature from before sharing was on (or after it went off) isn't shown.
     expect(shiftState(shift([ev("CHECK_IN", 0), tap(3, 39.735)])).area).toBeNull();
     expect(shiftState(shift([...off, tap(40, 39.755)])).area).toBeNull();
+  });
+
+  it("field staff see the area only while sharing is on and the worker is on shift, up to two hours past its end", () => {
+    const area = { lat: 39.735, lng: -104.995, at: at(20) };
+    const st = { sharingArea: true, area, checkedInAt: at(0), checkedOutAt: null };
+    const ends = at(8 * 60);
+    expect(visibleArea(st, ends, at(30))).toEqual(area);
+    expect(visibleArea(st, ends, at(8 * 60 + 120))).toEqual(area);
+    // A forgotten check-out doesn't keep it up for days.
+    expect(visibleArea(st, ends, at(8 * 60 + 121))).toBeNull();
+    expect(visibleArea({ ...st, checkedOutAt: at(100) }, ends, at(101))).toBeNull();
+    expect(visibleArea({ ...st, sharingArea: false }, ends, at(30))).toBeNull();
+    expect(visibleArea({ ...st, checkedInAt: null }, ends, at(30))).toBeNull();
   });
 
   it("a take-back never makes the count negative, even when review later drops the +1 it followed", () => {

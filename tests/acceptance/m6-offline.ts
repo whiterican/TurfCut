@@ -166,7 +166,7 @@ const w1 = { workerId: W1, profileId: W1 };
   const precise = { lat: 39.73921, lng: -104.99034 };
   const ar = await sync(s7.id, [
     backdated(12, { kind: "log", unit: "signatures", count: 1, area: precise }), // before sharing: no area kept
-    backdated(11, { kind: "share_area", on: true }),
+    backdated(11, { kind: "share_area", on: true, consent: 1 }),
     backdated(10, { kind: "log", unit: "signatures", count: 1, area: precise }),
     backdated(9, { kind: "share_area", on: false }),
     backdated(8, { kind: "log", unit: "signatures", count: 1, area: precise }), // after: none again

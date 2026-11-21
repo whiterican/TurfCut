@@ -99,6 +99,18 @@ export interface ShiftState {
 export const AREA_CELL_DEG = 0.01;
 /** The version of the words a worker agrees to when they turn area sharing on (stored with each LOCATION_SHARING). */
 export const AREA_CONSENT_VERSION = 1;
+/** How long after a shift's scheduled end a shared area still shows when the worker never checked out. */
+export const AREA_SHOWN_PAST_END_MS = 2 * 3_600_000;
+
+/**
+ * The worker's shared area as their field staff may see it, or none: only while sharing is on and the worker is
+ * on shift, and never more than a couple of hours past the shift's end (a forgotten check-out doesn't keep it up).
+ * The one rule the shift page and the field board both use.
+ */
+export function visibleArea(st: Pick<ShiftState, "sharingArea" | "area" | "checkedInAt" | "checkedOutAt">, endsAt: Date, now: Date): ShiftState["area"] {
+  if (!st.sharingArea || !st.area || !st.checkedInAt || st.checkedOutAt) return null;
+  return now.getTime() <= endsAt.getTime() + AREA_SHOWN_PAST_END_MS ? st.area : null;
+}
 
 /**
  * A position snapped to the centre of its grid cell: all a signature keeps, never the phone's position.
@@ -108,7 +120,8 @@ export function snapArea(v: unknown): { lat: number; lng: number } | null {
   if (!v || typeof v !== "object") return null;
   const { lat, lng } = v as Record<string, unknown>;
   if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-  const centre = (x: number) => Number(((Math.floor(x / AREA_CELL_DEG) + 0.5) * AREA_CELL_DEG).toFixed(3));
+  // On whole millionths, so an exact cell edge (0.29) lands in its own cell, not the one below by rounding error.
+  const centre = (x: number) => Number(((Math.floor(Math.round(x * 1e6) / (AREA_CELL_DEG * 1e6)) + 0.5) * AREA_CELL_DEG).toFixed(3));
   return { lat: centre(Math.min(lat, 89.999)), lng: centre(Math.min(lng, 179.999)) };
 }
 
@@ -167,6 +180,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
       case "SIGNATURE_SUBMITTED": {
         st.signatures += num(p.count) || 1;
         const area = st.sharingArea ? snapArea(p.area) : null;
+        // A take-back later doesn't move it: the worker was there.
         if (area) st.area = { ...area, at: e.createdAt };
         break;
       }
@@ -388,7 +402,8 @@ export type WorkerAction =
   | { kind: "resume" }
   | { kind: "log"; unit: "signatures" | "doors" | "contacts"; count: number; area?: { lat: number; lng: number } }
   | { kind: "undo_signature" }
-  | { kind: "share_area"; on: boolean }
+  /** `consent`: the version of the words the worker saw when turning it on (a page saved offline may show older ones). */
+  | { kind: "share_area"; on: boolean; consent?: number }
   | { kind: "return_packet"; packetId: string; sheetsReturned: number; signatures: number }
   | { kind: "hold_packet"; packetId: string }
   | { kind: "app_counts"; app: CanvassApp; doors: number; contacts: number }
@@ -446,6 +461,8 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       if (!st.checkedInAt || st.checkedOutAt) return no("Area sharing is for while you're on shift.");
       if (s.workType !== "PETITION") return no("Area sharing is for petition shifts.");
       if (a.on === st.sharingArea) return no(a.on ? "You're already sharing your area." : "You're not sharing your area.");
+      // Agreeing is to the words the worker read: a page showing older ones (saved for offline) can't record the new version.
+      if (a.on && a.consent !== AREA_CONSENT_VERSION) return no("The words about sharing your area have changed. Reload the page to read them, then turn it on.");
       return { ok: true, event: { type: "LOCATION_SHARING", payload: { on: a.on, consent: AREA_CONSENT_VERSION } } };
     case "undo_signature":
       // Takes one signature off the counter, as a new entry: the +1s themselves stay in the record.
@@ -643,6 +660,8 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (e.type === "SIGNATURE_SUBMITTED" && s.workType !== "PETITION") return "Signatures are for petition shifts.";
         if (e.type !== "SIGNATURE_SUBMITTED" && s.workType !== "CANVASS") return "Doors and contacts are for canvass shifts.";
         break;
+      // LOCATION_SHARING isn't checked here on purpose: it isn't work, and what staff see depends only on whether a
+      // check-out exists (visibleArea), so a corrected time can't show more; refusing would only block real corrections.
       case "SIGNATURE_UNDONE":
         // A worker's take-back has to stay on shift (whether it still has a signature before it is takeBacksThatCount's).
         if (!checkIn || checkOut) return "Work has to be logged while on shift.";

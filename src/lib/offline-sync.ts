@@ -99,7 +99,7 @@ export function readQueued(raw: unknown): QueuedAction | null {
       break;
     case "share_area":
       if (typeof a.on !== "boolean") return null;
-      action = { kind: "share_area", on: a.on };
+      action = Number.isInteger(a.consent) ? { kind: "share_area", on: a.on, consent: a.consent as number } : { kind: "share_area", on: a.on };
       break;
     case "return_packet":
       if (typeof a.packetId !== "string" || a.packetId.length > 40) return null;

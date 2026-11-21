@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, Plus, RefreshCw, Smartphone, Undo2, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { shiftState, snapArea, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
+import { AREA_CONSENT_VERSION, shiftState, snapArea, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
 import { ConnectionPill } from "@/components/Moments";
 import { entryMessage, pillState, pillText, sendState } from "@/lib/moments";
@@ -315,7 +315,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   // and each signature takes that cell if it's recent. The position itself is never stored or sent.
   const cell = useRef<{ lat: number; lng: number; at: number } | null>(null);
   const [areaProblem, setAreaProblem] = useState<string | null>(null);
-  const sharing = petition && live && st.sharingArea;
+  // Not watched on a break: no signature can be added then, so there is nothing to note an area for.
+  const sharing = petition && live && st.sharingArea && !st.paused;
   useEffect(() => {
     cell.current = null;
     if (!sharing || !navigator.geolocation) return;
@@ -327,7 +328,11 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       },
       (err) => {
         cell.current = null;
-        setAreaProblem(err.code === err.PERMISSION_DENIED ? "Your phone isn't letting Turfcut see its location, so signatures are counted without an area. You can allow it in the phone's settings." : null);
+        setAreaProblem(
+          err.code === err.PERMISSION_DENIED
+            ? "Your phone isn't letting Turfcut see its location, so signatures are counted without an area. You can allow it in the phone's settings."
+            : "Can't find your area right now. Signatures are counted without one until it's found."
+        );
       },
       { enableHighAccuracy: false, maximumAge: 60_000, timeout: 30_000 }
     );
@@ -335,6 +340,29 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   }, [sharing]);
   // Only after hydration: the server has no navigator.
   const areaNote = !mounted || !sharing ? null : (areaProblem ?? (!("geolocation" in navigator) ? "This phone can't share its area. Signatures are counted without one." : null));
+  // The switch, on a break too ("turn it off any time"). Opt-in, this shift only, off by default (Caden, Nov 21).
+  // These words are version AREA_CONSENT_VERSION, sent with the choice: change them, raise it.
+  const areaSwitch = petition && live && (
+    <div className="space-y-1.5">
+      <label className="toggle">
+        <input
+          type="checkbox"
+          role="switch"
+          switch=""
+          checked={st.sharingArea}
+          aria-describedby="area-sharing-hint"
+          onChange={(e) => record({ kind: "share_area", on: e.target.checked, consent: AREA_CONSENT_VERSION })}
+        />
+        Share my area with my manager
+      </label>
+      <p id="area-sharing-hint" className="text-hint">
+        {st.sharingArea ? "On for this shift. " : "Off. If you turn it on, just for this shift: "}
+        each signature you add notes the area you&apos;re in, a square about 1 km across, never your exact spot. Each one&apos;s area is kept in the
+        shift&apos;s record, and your manager and the campaign&apos;s field staff see the latest while you&apos;re on shift. Turn it off any time.
+      </p>
+      {areaNote && <p className="text-hint">{areaNote}</p>}
+    </div>
+  );
   /** The area a signature takes now: the cell from the last five minutes, or none. */
   const areaNow = () => (sharing && cell.current && Date.now() - cell.current.at < 5 * 60_000 ? { lat: cell.current.lat, lng: cell.current.lng } : undefined);
   // The app's totals for the shift (C4.4): entered once the day's work is
@@ -444,10 +472,13 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           {appForm}
         </div>
       ) : st.paused ? (
-        <button type="button" className="btn-primary" onClick={() => record({ kind: "resume" })}>
-          <Play aria-hidden className="btn-icon" />
-          End break
-        </button>
+        <div className="space-y-5">
+          <button type="button" className="btn-primary" onClick={() => record({ kind: "resume" })}>
+            <Play aria-hidden className="btn-icon" />
+            End break
+          </button>
+          {areaSwitch}
+        </div>
       ) : (
         <div className="space-y-5">
           {petition ? (
@@ -485,19 +516,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                   <Plus aria-hidden className="size-7" />1
                 </button>
               </div>
-              {/* Opt-in, this shift only, off by default (Caden, Nov 21). The words are version AREA_CONSENT_VERSION: change them, raise it. */}
-              <div className="space-y-1.5">
-                <label className="toggle">
-                  <input type="checkbox" role="switch" checked={st.sharingArea} onChange={(e) => record({ kind: "share_area", on: e.target.checked })} />
-                  Share my area with my manager
-                </label>
-                <p className="text-hint">
-                  {st.sharingArea
-                    ? "On for this shift. Each signature you add notes the area you're in, to about 1 km, never your exact spot. Your manager sees the latest while you're on shift. Turn it off any time."
-                    : "Off. If you turn it on, each signature you add notes the area you're in, to about 1 km, never your exact spot, and your manager sees the latest while you're on shift. Just this shift; turn it off any time."}
-                </p>
-                {areaNote && <p className="text-hint">{areaNote}</p>}
-              </div>
+              {areaSwitch}
               <form onSubmit={(e) => submit((fd) => ({ kind: "log", unit: "signatures", count: num(fd, "count"), area: areaNow() }))(e)} className="flex flex-wrap items-end gap-3">
                 <label className="w-32 space-y-1.5">
                   <span className="label">Several at once</span>

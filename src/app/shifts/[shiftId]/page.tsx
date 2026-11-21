@@ -9,7 +9,7 @@ import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canUse } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, shiftStatusLabel, turfMarks, turfMarksClosed } from "@/lib/field-day";
+import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, shiftStatusLabel, turfMarks, turfMarksClosed, visibleArea } from "@/lib/field-day";
 import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
@@ -106,8 +106,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
   const f = facts(s);
   const st = shiftState(f);
-  // The worker's shared area (F2, their choice): for the shift's staff while they're on shift, never after.
-  const sharedArea = !isWorker && st.sharingArea && st.area && st.checkedInAt && !st.checkedOutAt ? st.area : null;
+  // The worker's shared area (F2, their choice): for the field staff (not recruiters, like pins), while on shift.
+  const sharedArea = canField ? visibleArea(st, s.endsAt, new Date()) : null;
   const pay = await shiftPay(s.id);
   // Amounts go to the worker and to the field team approving them.
   const seesPay = isWorker || canField;
@@ -269,7 +269,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       </Masthead>
     </>
   );
-  const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen);
+  const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen || sharedArea);
   const turfSection = (
     <>
       {hasTurf && (

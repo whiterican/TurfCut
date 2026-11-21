@@ -121,7 +121,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
         </section>
         <section className="section" aria-labelledby="shifts-heading">
           <h2 id="shifts-heading" className="section-title">Shifts</h2>
-          <FieldBoard rows={rows} empty={job ? "No shifts on this job in the last 12 hours or the next 24." : "No shifts in the last 12 hours or the next 24."} />
+          <FieldBoard showArea={canUse(session, "field")} rows={rows} empty={job ? "No shifts on this job in the last 12 hours or the next 24." : "No shifts in the last 12 hours or the next 24."} />
         </section>
       </WorkspacePage>
     </FieldLiveProvider>

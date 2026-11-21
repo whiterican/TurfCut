@@ -9,7 +9,8 @@ describe("readQueued", () => {
     expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 5 } })).toEqual({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 5 } });
     expect(readQueued({ clientId: id, at, action: { kind: "pause" } })?.action).toEqual({ kind: "pause" });
     expect(readQueued({ clientId: id, at, action: { kind: "undo_signature", count: 40 } })?.action).toEqual({ kind: "undo_signature" });
-    expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: true } })?.action).toEqual({ kind: "share_area", on: true });
+    expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: true, consent: 1 } })?.action).toEqual({ kind: "share_area", on: true, consent: 1 });
+    expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: true, consent: "1" } })?.action).toEqual({ kind: "share_area", on: true });
     expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: "yes" } })).toBeNull();
     // A signature's area is snapped on arrival; a malformed one is dropped, not the signature; doors never carry one.
     expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 1, area: { lat: 39.73921, lng: -104.99034 } } })?.action).toEqual({ kind: "log", unit: "signatures", count: 1, area: { lat: 39.735, lng: -104.995 } });

@@ -448,6 +448,8 @@ describe("supervisor corrections (M7)", () => {
     const s = shift([evId("ci", "CHECK_IN", 0), { ...evId("e5", "SIGNATURE_SUBMITTED", 30, { count: 5, enteredBy: "sup", reason: "x" }), actorId: "sup" }]);
     expect(workerAction(s, { kind: "undo_signature" }, at(20))).toEqual({ ok: false, reason: "There's no signature to take back." });
     expect(workerAction(s, { kind: "undo_signature" }, at(31))).toMatchObject({ ok: true });
+    // The worker's own +1, stored at the server's time a little after the phone's clock: still there to take back.
+    expect(workerAction(shift([evId("ci", "CHECK_IN", 0), evId("s1", "SIGNATURE_SUBMITTED", 10, { count: 1 })]), { kind: "undo_signature" }, at(9))).toMatchObject({ ok: true });
   });
 
   it("refuses corrections that make an impossible timeline, or change nothing", () => {

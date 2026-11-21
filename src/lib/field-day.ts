@@ -412,8 +412,9 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       if (!active) return no("Check in before changing your count.");
       if (st.paused) return no("End your break before changing your count.");
       if (s.workType !== "PETITION") return no("This isn't a petition shift.");
-      // Only what the shift had by the take-back's own time: an entry dated later (a supervisor's) isn't before it.
-      if (shiftState({ ...s, events: s.events.filter((e) => e.createdAt <= now) }).signatures < 1) return no("There's no signature to take back.");
+      // A supervisor's entry dated after the take-back's own time isn't before it. The worker's own entries always are
+      // (sync places a take-back after them), so a phone clock behind the server's never refuses one the screen shows.
+      if (shiftState({ ...s, events: s.events.filter((e) => e.createdAt <= now || !((e.payload ?? {}) as Record<string, unknown>).enteredBy) }).signatures < 1) return no("There's no signature to take back.");
       return { ok: true, event: { type: "SIGNATURE_UNDONE", payload: { count: 1 } } };
     case "return_packet": {
       if (!st.checkedInAt) return no("Check in first.");

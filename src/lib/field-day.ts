@@ -412,7 +412,8 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       if (!active) return no("Check in before changing your count.");
       if (st.paused) return no("End your break before changing your count.");
       if (s.workType !== "PETITION") return no("This isn't a petition shift.");
-      if (st.signatures < 1) return no("There's no signature to take back.");
+      // Only what the shift had by the take-back's own time: an entry dated later (a supervisor's) isn't before it.
+      if (shiftState({ ...s, events: s.events.filter((e) => e.createdAt <= now) }).signatures < 1) return no("There's no signature to take back.");
       return { ok: true, event: { type: "SIGNATURE_UNDONE", payload: { count: 1 } } };
     case "return_packet": {
       if (!st.checkedInAt) return no("Check in first.");
@@ -509,6 +510,33 @@ export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutE
   }
 }
 
+/**
+ * How many of the worker's take-backs take a signature, read in time order with the tally's never-below-none rule
+ * (shiftState): a take-back with no signature before it takes nothing.
+ */
+export function takeBacksThatCount(events: Array<Pick<FieldEvent, "type" | "payload" | "createdAt">>): number {
+  let signatures = 0;
+  let taking = 0;
+  for (const e of [...events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
+    const n = num(((e.payload ?? {}) as Record<string, unknown>).count) || 1;
+    if (e.type === "SIGNATURE_SUBMITTED") signatures += n;
+    else if (e.type === "SIGNATURE_UNDONE" && signatures > 0) {
+      signatures = Math.max(0, signatures - n);
+      taking++;
+    }
+  }
+  return taking;
+}
+
+/**
+ * A correction that would leave one of the worker's take-backs with nothing to take back (a +1 moved after it, or the
+ * count it followed lowered) would quietly bring that signature back. Judged before and after, so a shift whose record
+ * already has such a take-back can still be corrected otherwise.
+ */
+function takeBackProblem(before: FieldEvent[], after: FieldEvent[]): string | null {
+  return takeBacksThatCount(after) < takeBacksThatCount(before) ? "The worker took a signature back after this; it would have nothing left to take back." : null;
+}
+
 // ---------------------------------------------------------------------------
 // Supervisor corrections (M7) — new events that supersede, never edits
 // ---------------------------------------------------------------------------
@@ -541,7 +569,6 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
   let checkIn: Date | null = null;
   let checkOut: Date | null = null;
   let paused = false;
-  let signatures = 0;
   const out = new Set<string>();
   const held = new Set<string>();
   for (const e of sorted) {
@@ -574,15 +601,11 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (!intIn(p.count, 1, 500)) return "Counts are whole numbers from 1 to 500.";
         if (e.type === "SIGNATURE_SUBMITTED" && s.workType !== "PETITION") return "Signatures are for petition shifts.";
         if (e.type !== "SIGNATURE_SUBMITTED" && s.workType !== "CANVASS") return "Doors and contacts are for canvass shifts.";
-        if (e.type === "SIGNATURE_SUBMITTED") signatures += p.count as number;
         break;
       case "SIGNATURE_UNDONE":
-        // A worker's take-back has to stay on shift and still have a signature before it to take back: a correction
-        // that moved a +1 after it, or lowered the count it followed, would quietly bring that signature back.
+        // A worker's take-back has to stay on shift (whether it still has a signature before it is takeBacksThatCount's).
         if (!checkIn || checkOut) return "Work has to be logged while on shift.";
         if (s.workType !== "PETITION") return "Signatures are for petition shifts.";
-        if (signatures < 1) return "A signature the worker took back would have nothing before it to take back.";
-        signatures -= 1;
         break;
       case "APP_COUNTS":
         if (!checkIn) return "App totals need a shift that started.";
@@ -665,7 +688,7 @@ export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: s
     const changed = (!a.at || a.at.getTime() === current.createdAt.getTime()) && Object.entries(fields).every(([k, v]) => ((current.payload ?? {}) as Record<string, unknown>)[k] === v);
     if (changed) return noC("That's what the entry already says.");
     const replay = base.map((e) => (e.id === a.eventId ? { ...e, createdAt: a.at ?? e.createdAt, payload: { ...((e.payload ?? {}) as Record<string, unknown>), ...fields } } : e));
-    const problem = timelineProblem(replay, s);
+    const problem = timelineProblem(replay, s) ?? takeBackProblem(base, replay);
     if (problem) return noC(problem);
     return { ok: true, event: { type: "CORRECTION", payload: { supersedesEventId: a.eventId, signedBy, reason, ...(a.at ? { at: a.at.toISOString() } : {}), ...fields }, createdAt: now } };
   }
@@ -683,7 +706,7 @@ export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: s
   }
   if (a.type === "CHECK_IN") payload.locationChecked = false;
   const entered: FieldEvent = { type: a.type, payload, actorId: signedBy, createdAt: a.at };
-  const problem = timelineProblem([...base, entered], s);
+  const problem = timelineProblem([...base, entered], s) ?? takeBackProblem(base, [...base, entered]);
   if (problem) return noC(problem);
   return { ok: true, event: { type: a.type, payload, createdAt: a.at } };
 }

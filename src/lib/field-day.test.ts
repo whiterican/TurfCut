@@ -71,20 +71,6 @@ describe("worker actions", () => {
     expect(workerAction(shift(two.events, { workType: "CANVASS" }), undo, at(10)).ok).toBe(false);
   });
 
-  it("a supervisor's correction can't leave a take-back outside the shift or with nothing before it to take back", () => {
-    const base = [ev("CHECK_IN", 0), ev("SIGNATURE_SUBMITTED", 5, { count: 1 }), ev("SIGNATURE_UNDONE", 6, { count: 1 }), ev("CHECK_OUT", 60)];
-    const facts = shift(base);
-    expect(timelineProblem(base, facts)).toBeNull();
-    // The +1 moved after the take-back: that signature would quietly come back.
-    expect(timelineProblem([base[0], ev("SIGNATURE_SUBMITTED", 7, { count: 1 }), base[2], base[3]], facts)).toMatch(/nothing before it to take back/);
-    // Check-out moved before the take-back.
-    expect(timelineProblem([base[0], base[1], base[2], ev("CHECK_OUT", 5.5)], facts)).toMatch(/while on shift/);
-    // A +5 lowered under the take-backs that followed it.
-    const five = [ev("CHECK_IN", 0), ev("SIGNATURE_SUBMITTED", 5, { count: 5 }), ev("SIGNATURE_UNDONE", 6, { count: 1 }), ev("SIGNATURE_UNDONE", 7, { count: 1 })];
-    expect(timelineProblem(five, shift(five))).toBeNull();
-    expect(timelineProblem([five[0], ev("SIGNATURE_SUBMITTED", 5, { count: 1 }), five[2], five[3]], shift(five))).toMatch(/nothing before it/);
-  });
-
   it("a take-back never makes the count negative, even when review later drops the +1 it followed", () => {
     // An undo recorded first (as a review rejecting the +1 would leave it; nothing in the app writes per-entry rejections today, only the seed) counts as nothing.
     expect(shiftState(shift([ev("CHECK_IN", 0), ev("SIGNATURE_UNDONE", 5, { count: 1 }), ev("SIGNATURE_SUBMITTED", 6, { count: 3 })])).signatures).toBe(3);
@@ -429,6 +415,39 @@ describe("supervisor corrections (M7)", () => {
     s.events.push({ id: "c1", type: "CORRECTION", payload: out.event.payload, actorId: "sup", createdAt: now });
     expect(shiftState(s).checkedOutAt).toEqual(at(300));
     expect(activeTime(s, now).ms).toBe((300 - 30) * 60_000);
+  });
+
+  it("refuses a correction that would leave a worker's take-back with nothing to take back, or outside the shift", () => {
+    const base = shift([evId("ci", "CHECK_IN", 0), evId("s1", "SIGNATURE_SUBMITTED", 5, { count: 1 }), evId("u1", "SIGNATURE_UNDONE", 6, { count: 1 }), evId("co", "CHECK_OUT", 60)], { status: "COMPLETED" });
+    const why = (s: ShiftFacts, a: Parameters<typeof correctionAction>[1]) => {
+      const r = correctionAction(s, a, "sup", now);
+      return r.ok ? "ok" : r.reason;
+    };
+    // The +1 moved after its take-back: that signature would quietly come back.
+    expect(why(base, { kind: "correct_event", eventId: "s1", at: at(7), reason: "typed the wrong time" })).toMatch(/nothing left to take back/);
+    // Check-out moved before the take-back.
+    expect(why(base, { kind: "correct_event", eventId: "co", at: at(5.5), reason: "typed the wrong time" })).toMatch(/while on shift/);
+    // A +5 lowered under the two take-backs that followed it.
+    const five = shift([evId("ci", "CHECK_IN", 0), evId("s5", "SIGNATURE_SUBMITTED", 5, { count: 5 }), evId("u1", "SIGNATURE_UNDONE", 6, { count: 1 }), evId("u2", "SIGNATURE_UNDONE", 7, { count: 1 })]);
+    expect(why(five, { kind: "correct_event", eventId: "s5", count: 1, reason: "only one was collected" })).toMatch(/nothing left/);
+    expect(why(five, { kind: "correct_event", eventId: "s5", count: 2, reason: "only two were collected" })).toBe("ok");
+    // Other corrections around a take-back go through.
+    expect(why(base, { kind: "correct_event", eventId: "ci", at: at(-10), reason: "checked in early, phone was off" })).toBe("ok");
+    expect(why(base, { kind: "enter_event", type: "SIGNATURE_SUBMITTED", at: at(20), count: 3, reason: "a sheet logged on paper" })).toBe("ok");
+  });
+
+  it("a shift whose record already has a take-back with nothing before it can still be corrected", () => {
+    // A take-back that took nothing (the +1 it followed rejected at review, say): fixing the rest isn't blocked by it.
+    const s = shift([evId("ci", "CHECK_IN", 0), evId("u1", "SIGNATURE_UNDONE", 5, { count: 1 }), evId("s1", "SIGNATURE_SUBMITTED", 10, { count: 4 })], { status: "ACTIVE" });
+    expect(correctionAction(s, { kind: "enter_event", type: "CHECK_OUT", at: at(200), reason: "forgot to check out at the end" }, "sup", now)).toMatchObject({ ok: true });
+    expect(correctionAction(s, { kind: "correct_event", eventId: "ci", at: at(-5), reason: "checked in early, phone was off" }, "sup", now)).toMatchObject({ ok: true });
+  });
+
+  it("a worker's take-back counts only the signatures the shift had by its own time", () => {
+    // A supervisor entered +5 at 10:30; a take-back dated 10:20 has nothing before it.
+    const s = shift([evId("ci", "CHECK_IN", 0), { ...evId("e5", "SIGNATURE_SUBMITTED", 30, { count: 5, enteredBy: "sup", reason: "x" }), actorId: "sup" }]);
+    expect(workerAction(s, { kind: "undo_signature" }, at(20))).toEqual({ ok: false, reason: "There's no signature to take back." });
+    expect(workerAction(s, { kind: "undo_signature" }, at(31))).toMatchObject({ ok: true });
   });
 
   it("refuses corrections that make an impossible timeline, or change nothing", () => {

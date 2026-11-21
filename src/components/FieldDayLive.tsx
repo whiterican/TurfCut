@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, Plus, RefreshCw, Smartphone, UserCheck } from "lucide-react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, Plus, RefreshCw, Smartphone, Undo2, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
@@ -92,6 +92,8 @@ function describe(a: Action): string {
       return "Check-out";
     case "log":
       return `+${a.count} ${a.count === 1 ? ONE[a.unit] : a.unit}`;
+    case "undo_signature":
+      return "1 signature taken back";
     case "return_packet":
       return `Packet ${a.packetId} returned`;
     case "hold_packet":
@@ -423,12 +425,27 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           {petition ? (
             <>
               {/* The tally (Caden, Nov 17): one tap per signature, counted on this phone first, so it works without signal.
-                  Each tap is its own entry in the shift's record; a tap too many is corrected by the supervisor, like any count. */}
+                  Each tap is its own entry in the shift's record. A tap too many is taken back with a new entry (Caden, Nov 21):
+                  the +1 stays in the record, and the supervisor still corrects any count at review. */}
               <div className="signature-tally">
-                <p className="min-w-0">
-                  <span className="label block">Signatures this shift</span>
-                  <span className="signature-tally-figure">{st.signatures}</span>
-                </p>
+                <div className="min-w-0">
+                  <p>
+                    <span className="label block">Signatures this shift</span>
+                    <span className="signature-tally-figure">{st.signatures}</span>
+                  </p>
+                  {/* Small and away from the +1, so taking one back is never the tap that was meant for adding one. */}
+                  {st.signatures > 0 && (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm signature-tally-undo"
+                      onClick={() => record({ kind: "undo_signature" }, { what: `Signature ${st.signatures} taken back`, batched: true })}
+                      aria-label="Take back 1 signature"
+                    >
+                      <Undo2 aria-hidden className="btn-icon" />
+                      Take back 1
+                    </button>
+                  )}
+                </div>
                 {/* The message names the running count ("Signature 18"), so each tap reads differently and is announced. */}
                 <button
                   type="button"

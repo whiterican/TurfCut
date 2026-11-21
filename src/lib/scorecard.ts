@@ -17,6 +17,8 @@
  *
  * Event conventions:
  * - DOOR_KNOCK / CONTACT / SIGNATURE_SUBMITTED: payload.count (default 1).
+ * - SIGNATURE_UNDONE: the worker took back payload.count (default 1) of
+ *   their signatures (a mis-tap on the counter); never below none.
  * - BATCH_COUNT: supervisor reconciliation — payload.reviewed, .accepted,
  *   .rejected (reviewed defaults to accepted + rejected). A recount
  *   supersedes: the latest valid count is the shift's count.
@@ -255,6 +257,10 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
         break;
       case "SIGNATURE_SUBMITTED":
         f.submitted += count;
+        break;
+      case "SIGNATURE_UNDONE":
+        // The worker took back a +1 (a mis-tap): the same never-below-none rule as the shift page (lib/field-day).
+        f.submitted = Math.max(0, f.submitted - count);
         break;
       case "BATCH_COUNT": {
         const accepted = num(p.accepted);

@@ -53,6 +53,29 @@ describe("worker actions", () => {
     expect(workerAction(shift([ev("CHECK_IN", 0), ev("PAUSE_START", 5)]), { kind: "log", unit: "signatures", count: 1 }, at(10)).ok).toBe(false);
   });
 
+  it("takes back the latest +1 as a new entry, never below none, only on shift (Caden, Nov 21)", () => {
+    const undo = { kind: "undo_signature" as const };
+    const two = shift([ev("CHECK_IN", 0), ev("SIGNATURE_SUBMITTED", 5, { count: 1 }), ev("SIGNATURE_SUBMITTED", 6, { count: 1 })]);
+    expect(workerAction(two, undo, at(10))).toEqual({ ok: true, event: { type: "SIGNATURE_UNDONE", payload: { count: 1 } } });
+    // The +1s stay in the record; the tally reads them less the one taken back.
+    const one = shift([...two.events, ev("SIGNATURE_UNDONE", 7, { count: 1 })]);
+    expect(shiftState(one).signatures).toBe(1);
+    expect(one.events.filter((e) => e.type === "SIGNATURE_SUBMITTED")).toHaveLength(2);
+    const none = shift([...one.events, ev("SIGNATURE_UNDONE", 8, { count: 1 })]);
+    expect(shiftState(none).signatures).toBe(0);
+    expect(workerAction(none, undo, at(10))).toEqual({ ok: false, reason: "There's no signature to take back." });
+    // Not before check-in, not on a break, not after check-out, not on a canvass shift.
+    expect(workerAction(shift(), undo, at(10)).ok).toBe(false);
+    expect(workerAction(shift([...two.events, ev("PAUSE_START", 8)]), undo, at(10)).ok).toBe(false);
+    expect(workerAction(shift([...two.events, ev("CHECK_OUT", 8)]), undo, at(10)).ok).toBe(false);
+    expect(workerAction(shift(two.events, { workType: "CANVASS" }), undo, at(10)).ok).toBe(false);
+  });
+
+  it("a take-back never makes the count negative, even when review later drops the +1 it followed", () => {
+    // An undo recorded first (as a supervisor's rejection of the +1 would leave it) counts as nothing.
+    expect(shiftState(shift([ev("CHECK_IN", 0), ev("SIGNATURE_UNDONE", 5, { count: 1 }), ev("SIGNATURE_SUBMITTED", 6, { count: 3 })])).signatures).toBe(3);
+  });
+
   it("takes the canvassing app's totals once on shift, for the job's own app, and lets the newest replace hand logging (C4.4)", () => {
     const canvass = (events: FieldEvent[]) => shift(events, { workType: "CANVASS", canvassApp: "MINIVAN" });
     const totals = { kind: "app_counts" as const, app: "MINIVAN" as const, doors: 42, contacts: 7 };

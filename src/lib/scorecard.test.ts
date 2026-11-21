@@ -144,6 +144,16 @@ describe("spec formulas and verification rules", () => {
     expect(s.segments[0].signaturesSubmitted).toBe(30);
   });
 
+  it("counts a taken-back signature out of submitted, never below none (Caden, Nov 21)", () => {
+    const s = computeScorecard(
+      [shift([["CHECK_IN", 0], ["SIGNATURE_SUBMITTED", 10, { count: 30 }], ["SIGNATURE_UNDONE", 11, { count: 1 }], ["CHECK_OUT", 60]])],
+      { now }
+    );
+    expect(s.segments[0].signaturesSubmitted).toBe(29);
+    const early = computeScorecard([shift([["CHECK_IN", 0], ["SIGNATURE_UNDONE", 5, { count: 1 }], ["SIGNATURE_SUBMITTED", 10, { count: 2 }], ["CHECK_OUT", 60]])], { now });
+    expect(early.segments[0].signaturesSubmitted).toBe(2);
+  });
+
   it("divides doors by completed door shifts only", () => {
     const s = computeScorecard(
       [

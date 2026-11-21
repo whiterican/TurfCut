@@ -144,6 +144,10 @@ export function shiftState(s: ShiftFacts): ShiftState {
       case "SIGNATURE_SUBMITTED":
         st.signatures += num(p.count) || 1;
         break;
+      case "SIGNATURE_UNDONE":
+        // The worker took back their latest +1 (a mis-tap): never below none, whatever review later drops.
+        st.signatures = Math.max(0, st.signatures - (num(p.count) || 1));
+        break;
       case "DOOR_KNOCK":
         st.doors += num(p.count) || 1;
         break;
@@ -352,6 +356,7 @@ export type WorkerAction =
   | { kind: "pause" }
   | { kind: "resume" }
   | { kind: "log"; unit: "signatures" | "doors" | "contacts"; count: number }
+  | { kind: "undo_signature" }
   | { kind: "return_packet"; packetId: string; sheetsReturned: number; signatures: number }
   | { kind: "hold_packet"; packetId: string }
   | { kind: "app_counts"; app: CanvassApp; doors: number; contacts: number }
@@ -402,6 +407,13 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       const type = a.unit === "signatures" ? "SIGNATURE_SUBMITTED" : a.unit === "doors" ? "DOOR_KNOCK" : "CONTACT";
       return { ok: true, event: { type, payload: { count: a.count } } };
     }
+    case "undo_signature":
+      // Takes back the latest +1 on the counter, as a new event: the +1 itself stays in the record.
+      if (!active) return no("Check in before changing your count.");
+      if (st.paused) return no("End your break before changing your count.");
+      if (s.workType !== "PETITION") return no("This isn't a petition shift.");
+      if (st.signatures < 1) return no("There's no signature to take back.");
+      return { ok: true, event: { type: "SIGNATURE_UNDONE", payload: { count: 1 } } };
     case "return_packet": {
       if (!st.checkedInAt) return no("Check in first.");
       // Packet IDs match regardless of case ("18a" is packet 18A). A packet kept for the next shift can still be returned here (that undoes the keep).

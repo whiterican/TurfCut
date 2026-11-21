@@ -17,9 +17,10 @@ import { describe, expect, it } from "vitest";
  * raw SELECT *, a key assembled from pieces, any spelling of an import path, a
  * quoted relation key, an unsafe raw query) and pins the allowed files down to
  * the functions that may read. What it can't see: a select object built
- * elsewhere and passed in, or a key computed at run time. Those need a runtime
- * guard (a Prisma extension that refuses import-table reads outside the staff
- * modules, or a database role for worker code), a design change not made here.
+ * elsewhere and passed in, or a key computed at run time. The runtime guard
+ * covers those: src/lib/voter-data-guard.ts, a Prisma extension on db() that
+ * refuses reads of these columns outside withVoterData (the importer, the
+ * purge, the staff file list and the staff export).
  */
 const NAMES = /\b(sourceData|sourceRecordId|droppedColumns)\b/;
 /** The import tables, by their Prisma accessor, model or SQL name. */
@@ -32,6 +33,7 @@ const ALLOWED = [
   /^src\/lib\/walkbooks-import-failure\.test\.ts$/,
   /^src\/lib\/stop-console(-data)?(\.test)?\.ts$/, // the staff export (record ID only)
   /^src\/lib\/walkbook-isolation\.test\.ts$/,
+  /^src\/lib\/voter-data-guard(\.test)?\.ts$/, // the runtime guard, which names the columns to refuse them
   /^src\/instrumentation\.test\.ts$/, // checks the error scrubber redacts a DB message naming them
   /^src\/components\/staff\/WalkbookImport\.tsx$/, // the uploader's own browser, previewing the file they chose
   /^src\/app\/jobs\/\[jobId\]\/walkbooks\/(page|actions)\.tsx?$/, // staff: the import form's action, and the file list
@@ -121,11 +123,12 @@ describe("imported columns stay where they are meant to", () => {
   describe("inside the allowed files, only the functions meant to read them do", () => {
     const wd = get("src/lib/walkbooks-data.ts");
     it("walkbooks-data: the stored columns are written by importAddresses and nowhere else; the record ID likewise", () => {
-      expect(outside(wd, /\b(sourceData|sourceRecordId)\b/, ["importAddresses"])).toEqual([]);
-      expect(body(wd, "importAddresses")).toMatch(/sourceData/);
+      // importAddresses is a wrapper that runs importAddressesInScope inside the runtime guard's scope (voter-data-guard).
+      expect(outside(wd, /\b(sourceData|sourceRecordId)\b/, ["importAddressesInScope"])).toEqual([]);
+      expect(body(wd, "importAddressesInScope")).toMatch(/sourceData/);
     });
     it("walkbooks-data: the import tables are touched only by import, cut, the file list, the staff walkbook, the purge, and the one SQL fragment that skips repeats", () => {
-      const fns = ["importAddresses", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImport", "purgeOwnImport", "purgeDueImports", "failedCount"];
+      const fns = ["importAddressesInScope", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImportInScope", "purgeOwnImport", "purgeDueImports", "failedCount"];
       const rest = outside(wd.replace(/\/\*[\s\S]*?\*\//g, ""), TABLES, fns);
       // Only notOnJob's join (a plain equality on addressId) is left outside those functions.
       const notOnJob = wd.slice(wd.indexOf("const notOnJob"), wd.indexOf("`;", wd.indexOf("const notOnJob")));

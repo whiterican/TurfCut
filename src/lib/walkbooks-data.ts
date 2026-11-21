@@ -16,6 +16,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { withVoterData } from "@/lib/voter-data-guard";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
 import { flat, HIRED, holders, STOP_SELECT } from "@/lib/walkbook-shared";
@@ -47,7 +48,11 @@ const IMPORTS_SHOWN = 50;
  * file came from, what it is for, its license, and that they are authorized
  * to use it. The names and addresses are deleted 30 days later, or sooner.
  */
-export async function importAddresses(actor: Staff, meta: Record<string, unknown>, text: string, now = new Date()): Promise<{ ok: true; importId: string; kept: number; skipped: number } | Fail> {
+/** The importer writes every column of the file: it is one of the three places allowed to touch them (voter-data-guard). */
+export function importAddresses(...a: Parameters<typeof importAddressesInScope>): ReturnType<typeof importAddressesInScope> {
+  return withVoterData("importer", () => importAddressesInScope(...a));
+}
+async function importAddressesInScope(actor: Staff, meta: Record<string, unknown>, text: string, now = new Date()): Promise<{ ok: true; importId: string; kept: number; skipped: number } | Fail> {
   const m = validateImportMeta(meta);
   if (!m.ok) return { ok: false, reason: "Fix the highlighted fields.", errors: m.errors };
   const read = readAddressFile(text);
@@ -236,7 +241,8 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
       orderBy: { number: "asc" },
       select: { id: true, number: true, name: true, createdAt: true, importId: true, _count: { select: { stops: true } } },
     }),
-    db().addressImport.findMany({
+    // The file list shows the dropped headers' count to the staff who imported it (the header names, not data).
+    withVoterData("staff file list", () => db().addressImport.findMany({
       where: { orgId },
       orderBy: { createdAt: "desc" },
       take: IMPORTS_SHOWN,
@@ -254,7 +260,7 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
         purgedAt: true,
         createdAt: true,
       },
-    }),
+    })),
     db().engagement.findMany({
       where: { jobId, status: { in: [...HIRED] }, worker: { closedAt: null } },
       orderBy: { createdAt: "asc" },
@@ -342,7 +348,11 @@ export const CLOSED_GRACE_DAYS = 7;
  * the three ways in (the organization's button, the 30 days running out,
  * every job it was cut for closing) all come through here. Safe to call twice.
  */
-export async function purgeImport(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
+/** The purge deletes the file's rows and marks it purged: the second place allowed (voter-data-guard). */
+export function purgeImport(...a: Parameters<typeof purgeImportInScope>): ReturnType<typeof purgeImportInScope> {
+  return withVoterData("purge", () => purgeImportInScope(...a));
+}
+async function purgeImportInScope(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
   return db().$transaction(
     async (tx) => {

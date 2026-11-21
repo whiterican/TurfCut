@@ -6,6 +6,7 @@
  */
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { withVoterData } from "@/lib/voter-data-guard";
 import { UUID_RE } from "@/lib/jobs";
 import { CONSOLE_MAP_PINS, CONSOLE_PAGE_SIZE, EXPORT_MAX_ROWS, type ConsoleQuery, type ExportRow, type PollColumn } from "@/lib/stop-console";
 import { UNVISITED, type OutcomeKind, type StopState } from "@/lib/stop-outcomes";
@@ -260,7 +261,8 @@ export async function loadExportRows(orgId: string, jobId: string, q: Pick<Conso
   const filter = where(q);
   const job = { id: jobId.toLowerCase() };
   // The source record ID goes out with the export (so a return file can be matched, inside the 30 days) and nowhere else on this page.
-  const raw = await db().$queryRaw<Raw[]>`${SELECT}, ia."sourceRecordId" ${base} ${filter} ORDER BY w."number", s."stopNumber"`;
+  // The export returns each door's source record ID to the staff who imported the file: the third place allowed (voter-data-guard).
+  const raw = await withVoterData("staff export", () => db().$queryRaw<Raw[]>`${SELECT}, ia."sourceRecordId" ${base} ${filter} ORDER BY w."number", s."stopNumber"`);
   const stops = await withAnswers(raw);
   const recordIds = new Map(raw.map((r) => [r.id, r.sourceRecordId ?? null]));
   const names = await holderNames(stops.map((s) => s.holderEngagementId).filter((x): x is string => !!x));

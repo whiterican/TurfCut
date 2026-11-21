@@ -1,5 +1,6 @@
 /* W1 acceptance checks: file-to-walkbook on real Postgres. Every column and the record ID are kept (names, party, vote history: never shown to a worker or staff screen), a few risk columns never are, and the names and addresses are deleted after 30 days, on request, or when the jobs close (stops and outcomes stay); cutting numbers books and never puts an address on two of a job's books; only hired workers hold books; holding is append-only history; the jurisdiction hard stop freezes handing out work; workers see only what they hold now (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
+import { withVoterData } from "@/lib/voter-data-guard";
 import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
@@ -16,6 +17,8 @@ const OWNER = "00000000-0000-0000-0000-0000000000aa";
 const W = ["00000000-0000-0000-0000-000000000101", "00000000-0000-0000-0000-000000000102", "00000000-0000-0000-0000-000000000103"];
 const JOB = "00000000-0000-0000-0000-000000000011";
 let fails = 0;
+/** A check that looks at what was stored: allowed to read the import's columns, like the importer (voter-data-guard). */
+const inspect = <T,>(fn: () => PromiseLike<T>) => withVoterData("acceptance check", fn);
 const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS ${l}`); else { fails++; console.log(`FAIL ${l}`, d ?? ""); } };
 
 const FILE = [
@@ -53,13 +56,13 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   const imp = await importAddresses(owner, META, FILE);
   check("an authorized file imports: four addresses kept, one row skipped", imp.ok && imp.kept === 4 && imp.skipped === 1, imp);
   const importId = imp.ok ? imp.importId : "";
-  const stored = await p.importedAddress.findMany({ where: { importId } });
+  const stored = await inspect(() => p.importedAddress.findMany({ where: { importId } }));
   const addrOnly = JSON.stringify(stored.map((a) => ({ line1: a.line1, unit: a.unit, city: a.city, state: a.state, zip: a.zip, lat: a.lat, lng: a.lng })));
   check("the address fields carry no name, party or ID: those live in the row's own data", !/Ada|Lovelace|Turing|Hopper|DEM|REP|UNA|LIB|V1|V2|123-45/.test(addrOnly), addrOnly);
   const ada = stored.find((r) => r.line1 === "12 Elm St")!;
   check("the source record ID is kept, and every other column with it (names, party, vote history)", ada.sourceRecordId === "V1" && JSON.stringify(Object.entries(ada.sourceData as Record<string, string>).sort()) === JSON.stringify(Object.entries({ "First Name": "Ada", "Last Name": "Lovelace", Party: "DEM", "2024 General": "Y" }).sort()), ada);
-  check("a government ID column is never stored: the SSN is nowhere in the database", !JSON.stringify(stored).includes("123-45") && (await p.$queryRawUnsafe<Array<{ n: number }>>(`SELECT count(*)::int AS n FROM "ImportedAddress" WHERE "sourceData"::text LIKE '%-45-%' OR "sourceData"::text LIKE '%SSN%'`))[0].n === 0);
-  const rec = await p.addressImport.findUniqueOrThrow({ where: { id: importId } });
+  check("a government ID column is never stored: the SSN is nowhere in the database", !JSON.stringify(stored).includes("123-45") && (await inspect(() => p.$queryRawUnsafe<Array<{ n: number }>>(`SELECT count(*)::int AS n FROM "ImportedAddress" WHERE "sourceData"::text LIKE '%-45-%' OR "sourceData"::text LIKE '%SSN%'`)))[0].n === 0);
+  const rec = await inspect(() => p.addressImport.findUniqueOrThrow({ where: { id: importId } }));
   check("the import says what it left out by name: just the SSN column", JSON.stringify(rec.droppedColumns) === JSON.stringify(["SSN"]), rec.droppedColumns);
   check("it will be deleted in 30 days, and nothing has been deleted yet", rec.purgedAt === null && Math.abs(rec.deleteAfter.getTime() - rec.createdAt.getTime() - 30 * 86_400_000) < 1000, [rec.deleteAfter, rec.createdAt]);
   check("the point is kept only where the file gave it", stored.filter((s) => s.lat !== null).length === 1);
@@ -188,7 +191,7 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("every address row of the file is gone, and with it every record ID and column", (await p.importedAddress.count({ where: { importId } })) === 0);
   const afterP = { stops: await p.walkbookStop.count(), outcomes: await p.stopOutcome.count() };
   check("the stops and their outcomes all stay (the stops' addresses are just empty)", afterP.stops === before.stops && afterP.outcomes === before.outcomes && (await p.walkbookStop.count({ where: { addressId: null } })) >= 4, afterP);
-  const imp1 = await p.addressImport.findUniqueOrThrow({ where: { id: importId } });
+  const imp1 = await inspect(() => p.addressImport.findUniqueOrThrow({ where: { id: importId } }));
   check("the file says when its data was deleted", imp1.purgedAt !== null);
   const pa = await p.auditEvent.findFirst({ where: { entityId: importId, action: "address_import.purged" } });
   check("the deletion is audited with its reason and the count, never what was in it", !!pa && (pa.metadata as { reason?: string; addresses?: number }).reason === "requested" && (pa.metadata as { addresses?: number }).addresses === 4 && !NAMES.test(JSON.stringify(pa.metadata)), pa?.metadata);
@@ -206,9 +209,9 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
 
   // --- The 30 days running out, and the jobs closing ---
   const old = imp2.ok ? imp2.importId : "";
-  await p.addressImport.update({ where: { id: old }, data: { createdAt: new Date(Date.now() - 31 * 86_400_000), deleteAfter: new Date(Date.now() - 86_400_000) } });
+  await p.addressImport.update({ select: { id: true }, where: { id: old }, data: { createdAt: new Date(Date.now() - 31 * 86_400_000), deleteAfter: new Date(Date.now() - 86_400_000) } });
   const due1 = await purgeDueImports();
-  check("an import whose 30 days are up is deleted by the daily run (and only that one: the job is still open)", due1.purged === 1 && (await p.importedAddress.count({ where: { importId: old } })) === 0 && (await p.addressImport.findUniqueOrThrow({ where: { id: old } })).purgedAt !== null && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) > 0, due1);
+  check("an import whose 30 days are up is deleted by the daily run (and only that one: the job is still open)", due1.purged === 1 && (await p.importedAddress.count({ where: { importId: old } })) === 0 && (await p.addressImport.findUniqueOrThrow({ where: { id: old }, select: { purgedAt: true } })).purgedAt !== null && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) > 0, due1);
   const expiredAudit = await p.auditEvent.findFirst({ where: { entityId: old, action: "address_import.purged" } });
   check("…audited as expired, with no user", (expiredAudit?.metadata as { reason?: string })?.reason === "expired" && expiredAudit?.actorId === null);
   check("running it again finds nothing", (await purgeDueImports()).purged === 0);
@@ -220,6 +223,16 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("when every job a file was cut for has closed, its data goes at the next run", due2.purged >= 1 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) === 0 && (closedAudit?.metadata as { reason?: string })?.reason === "jobs_closed", due2);
   check("a file that was never cut for a job keeps its 30 days (the Arizona file was only imported)", (await p.addressImport.count({ where: { purgedAt: null, walkbooks: { none: {} } } })) >= 1);
   check("through all of it no stop and no outcome was deleted", (await p.walkbookStop.count({ where: { id: { in: stopIds } } })) === stopIds.length && (await p.stopOutcome.count()) === before.outcomes);
+
+  // --- The runtime guard (voter-data-guard): through db() itself, not a scan of source text ---
+  const refused = (q: () => PromiseLike<unknown>) => Promise.resolve().then(q).then(() => false, (e: Error) => e.name === "VoterDataGuardError");
+  const built = { select: { id: true, sourceData: true } }; // a select built elsewhere and passed in
+  check("the guard refuses a select built elsewhere, outside the importer, purge and export", await refused(() => p.importedAddress.findMany(built)));
+  check("…a key computed at run time", await refused(() => p.importedAddress.findFirst({ select: { [["source", "RecordId"].join("")]: true } as never })));
+  check("…a whole row, at the top or through a relation", (await refused(() => p.importedAddress.findFirst({}))) && (await refused(() => p.walkbookStop.findFirst({ include: { address: true } }))));
+  check("…raw SQL naming a column or reading the table whole, inside a transaction too", (await refused(() => p.$queryRaw`SELECT ia."sourceRecordId" FROM "ImportedAddress" ia LIMIT 1`)) && (await refused(() => p.$transaction(async (tx) => tx.$queryRaw`SELECT * FROM "ImportedAddress" LIMIT 1`))));
+  check("…while the address itself (what a walkbook is for) still reads", !(await refused(() => p.walkbookStop.findFirst({ select: { address: { select: { line1: true, zip: true } } } }))));
+  check("inside withVoterData the same reads go through, a lazy query and a transaction included", !(await refused(() => withVoterData("acceptance check", () => p.importedAddress.findMany(built)))) && !(await refused(() => withVoterData("acceptance check", () => p.$transaction(async (tx) => tx.$queryRaw`SELECT ia."sourceRecordId" FROM "ImportedAddress" ia LIMIT 1`)))));
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

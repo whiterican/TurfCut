@@ -21,6 +21,11 @@ describe("picking a turf that is already on the map", () => {
     // The spoken name starts with the visible words (voice control: "click Assign this turf").
     expect(html).toContain('aria-label="Assign this turf: Turf 1"');
   });
+  it("the button's spoken name is left to its words when the turf has no name", () => {
+    const bare = renderToStaticMarkup(<TurfPickProvider><AssignThisTurfButton id="z" name="" turf={turf} /></TurfPickProvider>);
+    expect(bare).toContain("Assign this turf");
+    expect(bare).not.toContain("aria-label");
+  });
   it("a card carries its own polygon, under the same id the map's zone has", () => {
     const state = { cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null };
     const row = { shiftId: "s", jobId: "j", jobTitle: "Job", staging: null, worker: "W", startsAt: new Date("2026-11-21T15:00:00Z"), endsAt: new Date("2026-11-21T18:00:00Z"), state, turf } as unknown as FieldRow;
@@ -44,7 +49,7 @@ describe("picking a turf that is already on the map", () => {
 });
 
 describe("the pick's number", () => {
-  const zone = { id: "a", name: "Turf 1", turf };
+  const zone = { id: "a", turf };
   const start: PickState = { picked: null, count: 0 };
   it("goes up on every pick, the same turf again too", () => {
     const one = pickReducer(start, { type: "pick", zone });
@@ -69,8 +74,8 @@ describe("the Assign panel starting from a picked turf", () => {
   const shift = (over: Partial<AssignableShift>): AssignableShift => ({ id: "s1", worker: "Fixture Worker", jobTitle: "Fixture job", startsAt: "2026-11-21T15:00:00Z", endsAt: "2026-11-21T18:00:00Z", hasTurf: false, zoneId: null, ...over });
   const shifts = [shift({ id: "s1", worker: "Has It", hasTurf: true, zoneId: id }), shift({ id: "s2", worker: "Has Another", hasTurf: true, zoneId: "other" }), shift({ id: "s3", worker: "Has None" })];
   const html = renderToStaticMarkup(
-    <TurfPickProvider initial={{ id, name: "Turf 1", turf }}>
-      <AssignTurfPanel shifts={shifts} center={null} />
+    <TurfPickProvider initial={{ id, turf }}>
+      <AssignTurfPanel shifts={shifts} center={null} names={{ [id]: "Turf 1", other: "Turf 2" }} />
     </TurfPickProvider>,
   );
   it("is open, named for the turf, with the turf on its map and a way back to a blank one", () => {
@@ -85,29 +90,25 @@ describe("the Assign panel starting from a picked turf", () => {
     expect(html.match(/already has Turf 1/g)).toHaveLength(1);
     expect(html.match(/it will be replaced/g)).toHaveLength(1);
   });
-  it("calls the turf what its card calls it now, not what it was called when picked", () => {
-    // Unnamed turfs are numbered by position: after a save removes "Turf 1", the picked "Turf 2" is the card "Turf 1".
+  it("calls the turf what its card calls it now, and nothing kept from when it was picked", () => {
+    // Unnamed turfs are numbered by position: once a save removes "Turf 1", the turf picked as "Turf 2" is the card "Turf 1".
     const renamed = renderToStaticMarkup(
-      <TurfPickProvider initial={{ id, name: "Turf 2", turf }}>
-        <AssignTurfPanel shifts={shifts} center={null} names={{ [id]: "Turf 1", other: "Turf 2" }} />
+      <TurfPickProvider initial={{ id, turf }}>
+        <AssignTurfPanel shifts={shifts} center={null} names={{ [id]: "Turf 9" }} />
       </TurfPickProvider>,
     );
-    expect(renamed).toContain("Assign Turf 1");
-    expect(renamed).toContain("already has Turf 1");
-    expect(renamed).not.toContain("already has Turf 2");
-    // A zone picked before any card names it is "this turf", never an empty name.
-    const unnamed = renderToStaticMarkup(
-      <TurfPickProvider initial={{ id, name: "", turf }}>
-        <AssignTurfPanel shifts={shifts} center={null} />
+    expect(renamed).toContain("Assign Turf 9");
+    expect(renamed).toContain("already has Turf 9");
+    // A picked turf no card shows (not named yet, or its last shift was given other turf, when another card may have
+    // taken its old number) is "this turf", never a name that now belongs to another card.
+    const gone = renderToStaticMarkup(
+      <TurfPickProvider initial={{ id, turf }}>
+        <AssignTurfPanel shifts={shifts} center={null} names={{ other: "Turf 1" }} />
       </TurfPickProvider>,
     );
-    expect(unnamed).toContain("Assign this turf");
-    expect(unnamed).toContain("already has this turf");
-  });
-  it("the button's spoken name is left to its words when the turf has no name", () => {
-    const html = renderToStaticMarkup(<TurfPickProvider><AssignThisTurfButton id="z" name="" turf={turf} /></TurfPickProvider>);
-    expect(html).toContain("Assign this turf");
-    expect(html).not.toContain("aria-label");
+    expect(gone).toContain("Assign this turf");
+    expect(gone).toContain("already has this turf");
+    expect(gone).not.toContain("Turf 1");
   });
   it("ticks nobody for the organizer", () => {
     expect(html).not.toContain("checked=");

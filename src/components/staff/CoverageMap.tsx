@@ -21,7 +21,7 @@ const tip = (z: ZoneSummary) => {
  * pins: who is where is not this map's business (decision 3). Zones come
  * from the live summary, so the fills move with the figures above.
  */
-export function CoverageMap({ initial, className = "h-72", names = {} }: { initial: ZoneSummary[]; className?: string; /** Each turf's name as its card says it, by zone id: what the Assign panel calls a zone picked here. */ names?: Record<string, string> }) {
+export function CoverageMap({ initial, className = "h-72", names = {} }: { initial: ZoneSummary[]; className?: string; /** Each turf's name as its card says it, by zone id: what the line under the map calls a zone chosen here. */ names?: Record<string, string> }) {
   const zones = useFieldLive()?.zones ?? initial;
   // People who may assign turf can tap a zone to choose it: it is named under the map, with the button that starts the
   // Assign panel from it. The tap itself changes nothing else, so a double-tap to zoom or a stray touch costs nothing.
@@ -153,12 +153,13 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
     <div className="min-w-0 space-y-2">
       {region}
       {/* Always there and always the same height (two rows on a phone, one from sm), with a long name cut short: choosing a
-          zone moves nothing on the page. The cards' buttons do the same from a keyboard. */}
-      <div className="flex min-h-16 flex-col items-start justify-center gap-1 text-sm text-subtle sm:min-h-11 sm:flex-row sm:items-center sm:justify-start sm:gap-3" data-chosen-turf={chosen?.id}>
+          zone moves nothing on the page. The phone's height holds Sunlight's taller button (44px) under a line of text.
+          The cards' buttons do the same from a keyboard. */}
+      <div className="flex min-h-17 flex-col items-start justify-center gap-1 text-sm text-subtle sm:min-h-11 sm:flex-row sm:items-center sm:justify-start sm:gap-3" data-chosen-turf={chosen?.id}>
         {chosen ? (
           <>
             <p className="flex max-w-full min-w-0 gap-1">
-              <span className="truncate font-semibold text-fg">{chosenName || "This turf"}</span>
+              <span className="truncate font-semibold text-fg">{chosenName || "This turf"}</span>{" "}
               {/* The quantity is named, as on the cards (#113 review, P3). */}
               <span className="shrink-0">
                 · {chosen.onGround} of {chosen.total} {chosen.total === 1 ? "shift" : "shifts"} checked in now

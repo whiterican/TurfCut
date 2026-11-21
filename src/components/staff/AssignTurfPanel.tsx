@@ -25,19 +25,21 @@ export interface AssignableShift {
  * A turf already on the map can be the start (its card's button, or the one under the map for a tapped zone):
  * the panel opens with that turf drawn, to give to more shifts as it is or with its corners changed.
  * `names` is each turf's name on its card now, by zone id. Unnamed turfs are numbered by position, so a name
- * kept from the moment of the pick could come to mean another card after a save.
+ * kept from the moment of the pick could come to mean another card after a save. A picked turf that no card
+ * shows any more (its last shift was given other turf) is "this turf".
  */
 export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null; names?: Record<string, string> }) {
   // A turf picked on the map or a card opens the panel starting from it.
   const turfPick = useTurfPick();
   const preset = turfPick?.picked ?? null;
   const turfId = preset?.id ?? null;
-  const presetName = preset ? names[preset.id] || preset.name || "this turf" : "";
-  // What the panel is on now, for a save that comes back after the organizer has moved to another turf.
-  const turfNow = useRef(turfId);
+  const presetName = preset ? names[preset.id] || "this turf" : "";
+  // Counts the panel's changes of turf, for a save that comes back after the organizer has moved on (to another turf,
+  // or away and back to the same one).
+  const turfChanges = useRef(0);
   useEffect(() => {
-    turfNow.current = turfId;
-  });
+    turfChanges.current += 1;
+  }, [turfId]);
   const [open, setOpen] = useState(preset !== null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Where the map first looked: it must not jump while the organizer draws, whatever zones appear meanwhile.
@@ -99,18 +101,22 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
         return setMsg({ ok: false, text: "Couldn't read the turf. Clear it and draw it again." });
       }
     }
-    const sentFor = turfId;
+    const sentAt = turfChanges.current;
     start(async () => {
-      // The answer belongs to the turf it was sent for: under another turf's heading it would read as that one's,
-      // and clearing the ticks would undo ones made since.
-      const here = () => turfNow.current === sentFor;
+      // The answer belongs to the turf it was sent for. Once the panel is on another, "Turf given" would read as the
+      // new one's and clearing the ticks would undo ones made since, so a success says nothing. A failure must still
+      // be told: it says which save it was about.
+      const moved = () => turfChanges.current !== sentAt;
       try {
         const r = await assignTurfAction(ids, polygon);
-        if (!here()) return;
+        if (moved()) {
+          if (!r.ok) setMsg({ ok: false, text: `The save you sent just before this one did not go through. ${r.message}` });
+          return;
+        }
         setMsg({ ok: r.ok, text: r.message });
         if (r.ok) setPicked(new Set());
       } catch {
-        if (here()) setMsg({ ok: false, text: "Couldn't save the turf. Nothing was changed. Try again." });
+        setMsg({ ok: false, text: moved() ? "The save you sent just before this one did not go through. Nothing was changed." : "Couldn't save the turf. Nothing was changed. Try again." });
       }
     });
   }
@@ -158,7 +164,8 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
         {/* Keyed by the turf: the map starts over from a newly picked turf, or blank again, instead of keeping the last drawing. */}
         <TurfMap key={turfId ?? "new"} editable allowStaging={false} turf={preset?.turf ?? null} center={startCenter} className="h-80" />
       </form>
-      <fieldset className="space-y-3">
+      {/* Held still while a save is on its way: ticks made then would be cleared when it lands. */}
+      <fieldset className="space-y-3" disabled={pending}>
         <legend className="label">Whose shifts get this turf</legend>
         {jobs.map((job) => {
           const ofJob = shifts.filter((s) => s.jobTitle === job);

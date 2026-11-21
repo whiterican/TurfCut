@@ -10,15 +10,14 @@ import type { TurfPolygon } from "@/lib/field-day";
  * turf: without the provider the map's zones are not tappable and there is no button.
  */
 export interface PickedTurf {
+  /** The zone's id. Its name is not kept: unnamed turfs are numbered by position, so the panel asks the page what the id is called now. */
   id: string;
-  /** As its card named it when picked, or "" for a zone no card names yet. The panel asks the page for the name as it is now. */
-  name: string;
   turf: TurfPolygon;
   /** Goes up on every pick and never back, so any pick (the same turf again, or the first after Close) opens the panel. */
   nonce: number;
 }
 
-type Zone = { id: string; name: string; turf: TurfPolygon };
+type Zone = { id: string; turf: TurfPolygon };
 
 /** The picked turf and how many picks there have been. The count outlives a clear: a pick after Close must not reuse the last pick's number. */
 export interface PickState {
@@ -57,11 +56,11 @@ export function TurfPickProvider({ children, initial }: { children: ReactNode; i
  * Open the Assign panel starting from this turf. On each turf's card, and under the map for the zone tapped there.
  * The spoken name starts with the words on the button, so "click Assign this turf" works for voice control.
  */
-export function AssignThisTurfButton({ id, name, turf }: Zone) {
+export function AssignThisTurfButton({ id, name, turf }: Zone & { /** As its card names it, or "" for a zone no card names yet. */ name: string }) {
   const ctx = useTurfPick();
   if (!ctx) return null;
   return (
-    <button type="button" className="btn-secondary btn-sm shrink-0" aria-label={name ? `Assign this turf: ${name}` : undefined} onClick={() => ctx.pick({ id, name, turf })}>
+    <button type="button" className="btn-secondary btn-sm shrink-0" aria-label={name ? `Assign this turf: ${name}` : undefined} onClick={() => ctx.pick({ id, turf })}>
       Assign this turf
     </button>
   );

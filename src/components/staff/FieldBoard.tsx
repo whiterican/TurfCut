@@ -1,14 +1,15 @@
 import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
-import { shiftStatusLabel } from "@/lib/field-day";
+import { shiftStatusLabel, visibleArea } from "@/lib/field-day";
 import { groupField, type FieldRow } from "@/lib/field-view";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveGroupFigure } from "@/components/staff/FieldLive";
 import { groupKey } from "@/lib/field-live";
 
 /** Shifts grouped by job and staging point, each with its state, packets out and signatures. */
-export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string }) {
+export function FieldBoard({ rows, empty, showArea = false }: { rows: FieldRow[]; empty: string; showArea?: boolean }) {
   const groups = groupField(rows);
+  const now = new Date();
   if (groups.length === 0) return <p className="text-muted-sm">{empty}</p>;
   return (
     <div className="space-y-6">
@@ -37,6 +38,12 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                         <LocalTime iso={r.startsAt.toISOString()} mode="time" /> – <LocalTime iso={r.endsAt.toISOString()} mode="time" from={r.startsAt.toISOString()} />
                         {r.state.packetsOut.length > 0 && ` · ${r.state.packetsOut.length} out`}
                         {r.state.packetsHeld.length > 0 && ` · ${r.state.packetsHeld.length} kept`}
+                        {/* The worker's shared area (F2, their choice), to field staff with full access only (like pins), while on shift:
+                            when, here; where, on the shift's page. */}
+                        {showArea && (() => {
+                          const area = visibleArea(r.state, r.endsAt, now);
+                          return area && <> · area shared <LocalTime iso={area.at.toISOString()} mode="time" /></>;
+                        })()}
                       </span>
                     </span>
                     {/* The worker's signatures this shift, where a supervisor's eye goes first. It follows their +1 taps: the

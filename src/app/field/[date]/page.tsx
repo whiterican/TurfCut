@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
+import { canUse } from "@/lib/access";
 import { loadFieldWindow } from "@/lib/field-day-data";
 import { dayWindow, shiftDay } from "@/lib/field-view";
 import { Masthead } from "@/components/staff/Masthead";
@@ -22,7 +23,7 @@ export default async function FieldDayPage({ params }: { params: Promise<{ date:
         <Link href="/field" className="btn-secondary btn-sm">Now</Link>
         <Link href={`/field/${shiftDay(date, 1)}`} className="btn-ghost btn-sm" aria-label="Next day"><ChevronRight aria-hidden className="size-4 shrink-0" /></Link>
       </Masthead>}>
-      <FieldBoard rows={rows} empty="No shifts this day." />
+      <FieldBoard showArea={canUse(session, "field")} rows={rows} empty="No shifts this day." />
     </WorkspacePage>
   );
 }

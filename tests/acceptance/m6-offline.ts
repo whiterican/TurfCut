@@ -160,6 +160,24 @@ const w1 = { workerId: W1, profileId: W1 };
   check("…the +1s are still in the record, each take-back its own entry", tbEvs.filter((e) => e.type === "SIGNATURE_SUBMITTED").length === 2 && tbEvs.filter((e) => e.type === "SIGNATURE_UNDONE").length === 2, tbEvs.map((e) => e.type));
   check("…and the shift's submitted count is none", verifiedWork(tbEvs, []).submitted === 0);
 
+  // --- Area sharing (Caden, Nov 21): opt-in, a consent record, the grid cell only, never the position ---
+  const s7 = await p.shift.create({ data: { engagementId: ENG, startsAt: new Date(Date.now() - H), endsAt: new Date(Date.now() + 3 * H), status: "ACTIVE", checkInAt: new Date(Date.now() - 50 * M) } });
+  await p.workEvent.create({ data: { shiftId: s7.id, type: "CHECK_IN", payload: {}, actorId: W1, createdAt: new Date(Date.now() - 50 * M) } });
+  const precise = { lat: 39.73921, lng: -104.99034 };
+  const ar = await sync(s7.id, [
+    backdated(12, { kind: "log", unit: "signatures", count: 1, area: precise }), // before sharing: no area kept
+    backdated(11, { kind: "share_area", on: true, consent: 1 }),
+    backdated(10, { kind: "log", unit: "signatures", count: 1, area: precise }),
+    backdated(9, { kind: "share_area", on: false }),
+    backdated(8, { kind: "log", unit: "signatures", count: 1, area: precise }), // after: none again
+  ]);
+  check("area sharing syncs in order", ar.ok && ar.results.every((x) => x.status === "saved"), ar);
+  const arEvs = await p.workEvent.findMany({ where: { shiftId: s7.id }, orderBy: { createdAt: "asc" } });
+  const sigs = arEvs.filter((e) => e.type === "SIGNATURE_SUBMITTED").map((e) => e.payload as Record<string, unknown>);
+  check("…only the signature made while sharing keeps an area, and only its grid cell", !sigs[0].area && JSON.stringify(sigs[1].area) === JSON.stringify({ lat: 39.735, lng: -104.995 }) && !sigs[2].area, sigs);
+  check("…the phone's position is stored nowhere", !JSON.stringify(arEvs.map((e) => e.payload)).includes("39.73921") && !JSON.stringify(arEvs.map((e) => e.payload)).includes("104.99034"));
+  check("…each on and off is its own consent record", JSON.stringify(arEvs.filter((e) => e.type === "LOCATION_SHARING").map((e) => e.payload)) === JSON.stringify([{ on: true, consent: 1 }, { on: false, consent: 1 }]), arEvs.filter((e) => e.type === "LOCATION_SHARING"));
+
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

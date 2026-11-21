@@ -147,6 +147,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
      retrying, the +1s with it. It adds an enum value, so run it as its
      own paste. Safe to run again. Once take-backs exist, don't roll the
      code back past it: the older build can't read those shifts.
+   - Then `prisma/f2-location-sharing.sql` (the counter's opt-in "Share my
+     area"), the same way: its own paste, before the build that records it,
+     and no rolling back past it once a worker has turned sharing on.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app

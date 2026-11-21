@@ -14,7 +14,7 @@
  *   and a rough distance band are ever sent. The position itself is never
  *   saved, not even while waiting to sync.
  */
-import { locationCheck, type LocationCheck, type WorkerAction } from "@/lib/field-day";
+import { locationCheck, snapArea, type LocationCheck, type WorkerAction } from "@/lib/field-day";
 import { isCanvassApp } from "@/lib/job-tools";
 import { MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/job-launch";
 
@@ -91,7 +91,15 @@ export function readQueued(raw: unknown): QueuedAction | null {
       break;
     case "log":
       if (a.unit !== "signatures" && a.unit !== "doors" && a.unit !== "contacts") return null;
-      action = { kind: "log", unit: a.unit, count: int(a.count) };
+      {
+        // A malformed area is dropped, not the signature: the count matters more than where.
+        const area = a.unit === "signatures" ? snapArea(a.area) : null;
+        action = area ? { kind: "log", unit: a.unit, count: int(a.count), area } : { kind: "log", unit: a.unit, count: int(a.count) };
+      }
+      break;
+    case "share_area":
+      if (typeof a.on !== "boolean") return null;
+      action = Number.isInteger(a.consent) ? { kind: "share_area", on: a.on, consent: a.consent as number } : { kind: "share_area", on: a.on };
       break;
     case "return_packet":
       if (typeof a.packetId !== "string" || a.packetId.length > 40) return null;

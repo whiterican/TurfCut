@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import type { LatLngExpression, LayerGroup, Map as LeafletMap } from "leaflet";
-import type { TurfPolygon } from "@/lib/field-day";
+import { AREA_CELL_DEG, type TurfPolygon } from "@/lib/field-day";
 
 type Point = { lat: number; lng: number };
 export interface MapPin {
@@ -40,6 +40,9 @@ const toTurf = (pts: Point[]): TurfPolygon | null =>
  * organizer draw the turf (tap to add corners) and place the staging point.
  * Map tiles come from OpenStreetMap. Nobody's location is tracked: "Use my
  * location" only centres the organizer's own view and is never sent anywhere.
+ * `area` is the one exception, and only by the worker's choice: the ~1 km
+ * grid cell of their latest signature while they share it (F2), drawn as
+ * that whole square, never a point.
  */
 export function TurfMap({
   turf = null,
@@ -48,6 +51,7 @@ export function TurfMap({
   allowStaging = true,
   dayTurf = null,
   pins = [],
+  area = null,
   onPick,
   onStagingChange,
   dayTurfLabel = "Your turf today",
@@ -62,6 +66,8 @@ export function TurfMap({
   /** The worker's own turf for the day, drawn dashed. */
   dayTurf?: TurfPolygon | null;
   pins?: MapPin[];
+  /** A shared area (F2): the centre of a grid cell, drawn as the whole cell, with its label. */
+  area?: { lat: number; lng: number; label: string } | null;
   /** Tap-to-pin: called with the tapped point instead of editing. */
   onPick?: (p: Point) => void;
   /** With `editable`: called whenever the staging pin is placed, moved or cleared. */
@@ -104,7 +110,7 @@ export function TurfMap({
     changeRef.current?.(stage);
   }, [stage]);
   // Nothing drawn or pinned yet: only then does `center` move the view (it never pulls the view off the work).
-  const empty = pins.length === 0 && points.length === 0 && !stage && !turf && !dayTurf;
+  const empty = pins.length === 0 && points.length === 0 && !stage && !turf && !dayTurf && !area;
   const emptyRef = useRef(empty);
   const centerRef = useRef(center);
   useEffect(() => {
@@ -140,7 +146,7 @@ export function TurfMap({
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(m);
       layer.current = L.layerGroup().addTo(m);
-      const bounds = [...fromTurf(turf), ...fromTurf(dayTurf), ...(staging ? [staging] : []), ...pins].map((p) => [p.lat, p.lng] as [number, number]);
+      const bounds = [...fromTurf(turf), ...fromTurf(dayTurf), ...(staging ? [staging] : []), ...pins, ...(area ? [area] : [])].map((p) => [p.lat, p.lng] as [number, number]);
       if (bounds.length > 1) m.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
       else if (bounds.length === 1) m.setView(bounds[0], 16);
       else if (centerRef.current) m.setView([centerRef.current.lat, centerRef.current.lng], 12);
@@ -207,13 +213,25 @@ export function TurfMap({
         .bindTooltip(tip("Staging"))
         .addTo(layer.current);
     }
+    if (area) {
+      const h = AREA_CELL_DEG / 2;
+      L.rectangle(
+        [
+          [area.lat - h, area.lng - h],
+          [area.lat + h, area.lng + h],
+        ],
+        { color: INK, weight: 2, dashArray: "2 6", fillColor: FILL, fillOpacity: 0.12, interactive: !editable }
+      )
+        .bindTooltip(tip(area.label))
+        .addTo(layer.current);
+    }
     for (const pin of pins) {
       // bubblingMouseEvents: tapping a pin shows its label, it doesn't drop another pin.
       L.circleMarker([pin.lat, pin.lng], { radius: 8, color: "#ffffff", weight: 2, fillColor: pin.color, fillOpacity: 1, bubblingMouseEvents: false, interactive: !editable })
         .bindTooltip(tip(pin.label))
         .addTo(layer.current);
     }
-  }, [points, stage, ready, editable, dayTurf, pins, dayTurfLabel]);
+  }, [points, stage, ready, editable, dayTurf, pins, dayTurfLabel, area]);
 
   const turfJson = toTurf(points);
 

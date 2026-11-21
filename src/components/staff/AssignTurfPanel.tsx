@@ -26,7 +26,11 @@ export interface AssignableShift {
  * with that turf drawn, to give to more shifts as it is or with its corners changed.
  */
 export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null }) {
-  const [open, setOpen] = useState(false);
+  // A turf picked on the map or a card opens the panel starting from it.
+  const turfPick = useTurfPick();
+  const preset = turfPick?.picked ?? null;
+  const turfId = preset?.id ?? null;
+  const [open, setOpen] = useState(preset !== null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Where the map first looked: it must not jump while the organizer draws, whatever zones appear meanwhile.
   const [startCenter] = useState(center);
@@ -34,22 +38,32 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
   const [pending, start] = useTransition();
   const form = useRef<HTMLFormElement>(null);
   const panel = useRef<HTMLElement>(null);
-  // A turf picked on the map or a card opens the panel starting from it; each pick counts, the same turf twice too.
-  const turfPick = useTurfPick();
-  const preset = turfPick?.picked ?? null;
-  const [seenPick, setSeenPick] = useState(preset?.nonce ?? 0);
-  if (preset && preset.nonce !== seenPick) {
-    setSeenPick(preset.nonce);
+  const opener = useRef<HTMLButtonElement>(null);
+  // Every pick opens the panel, the same turf again and the first pick after Close too.
+  const [seenNonce, setSeenNonce] = useState(preset?.nonce ?? 0);
+  if (preset && preset.nonce !== seenNonce) {
+    setSeenNonce(preset.nonce);
     setOpen(true);
+  }
+  // A different turf (or back to a blank map) starts over: the ticks and the last message were for the turf before.
+  // Picking the same turf again keeps them, and keeps corners already moved.
+  const [seenTurf, setSeenTurf] = useState(turfId);
+  if (turfId !== seenTurf) {
+    setSeenTurf(turfId);
+    setPicked(new Set());
     setMsg(null);
   }
-  // The pick was made somewhere else on the page (the map above, a card beside it): bring the panel to it.
+  // Focus follows the panel: to it when it opens or its turf changes (the button pressed is elsewhere on the page, or
+  // has just gone), and back to "Assign turf" when it closes. Only a pick scrolls: it was made at the map or a card.
+  const nonce = preset?.nonce ?? 0;
+  const wasOpen = useRef(open);
   useEffect(() => {
-    if (preset && open) {
-      panel.current?.scrollIntoView({ block: "nearest" });
+    if (open) {
+      if (nonce) panel.current?.scrollIntoView({ block: "nearest" });
       panel.current?.focus({ preventScroll: true });
-    }
-  }, [preset, open]);
+    } else if (wasOpen.current) opener.current?.focus();
+    wasOpen.current = open;
+  }, [nonce, turfId, open]);
 
   // A shift that finished or was cancelled while the panel was open leaves the list; it must leave the picks too,
   // or it would be counted, could not be unticked, and would fail the whole save.
@@ -91,7 +105,7 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
   if (!open) {
     return (
       <div>
-        <button type="button" className="btn-secondary" onClick={() => setOpen(true)}>
+        <button ref={opener} type="button" className="btn-secondary" onClick={() => setOpen(true)}>
           Assign turf
         </button>
       </div>
@@ -106,7 +120,7 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
         <div>
           <h3 id="assign-turf-heading" className="text-base font-semibold">{preset ? `Assign ${preset.name}` : "Assign turf"}</h3>
           <p className="text-hint">
-            {preset ? "This turf is drawn below: keep it, or change its corners. Then pick whose shifts get it." : "Draw the zone, then pick whose shifts get it."} A worker sees it on their shift. Nobody&apos;s position is used.
+            {preset ? "This turf is drawn below: keep it, or change its corners. Then tick whose shifts get it. Only the shifts you tick change." : "Draw the zone, then pick whose shifts get it."} A worker sees it on their shift. Nobody&apos;s position is used.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-1 sm:justify-end">
@@ -128,8 +142,8 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
         </div>
       </div>
       <form ref={form} onSubmit={(e) => e.preventDefault()} className="space-y-3">
-        {/* Keyed by the pick: the map starts over from the picked turf, or blank again, instead of keeping the last drawing. */}
-        <TurfMap key={preset ? `${preset.id}:${preset.nonce}` : "new"} editable allowStaging={false} turf={preset?.turf ?? null} center={startCenter} className="h-80" />
+        {/* Keyed by the turf: the map starts over from a newly picked turf, or blank again, instead of keeping the last drawing. */}
+        <TurfMap key={turfId ?? "new"} editable allowStaging={false} turf={preset?.turf ?? null} center={startCenter} className="h-80" />
       </form>
       <fieldset className="space-y-3">
         <legend className="label">Whose shifts get this turf</legend>
@@ -167,7 +181,8 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
                         <span className="font-semibold">{s.worker}</span>{" "}
                         <span className="text-sm text-subtle">
                           <LocalTime iso={s.startsAt} mode="short" /> – <LocalTime iso={s.endsAt} mode="time" from={s.startsAt} />
-                          {preset && s.zoneId === preset.id ? " · has this turf" : s.hasTurf && " · has turf (it will be replaced)"}
+                          {/* What the shift has now, by the turf's name: true whatever is drawn above, corners moved or not. */}
+                          {preset && s.zoneId === preset.id ? ` · already has ${preset.name}` : s.hasTurf && " · has turf (it will be replaced)"}
                         </span>
                       </span>
                     </label>

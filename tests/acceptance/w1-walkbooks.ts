@@ -234,6 +234,15 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("…while the address itself (what a walkbook is for) still reads", !(await refused(() => p.walkbookStop.findFirst({ select: { address: { select: { line1: true, zip: true } } } }))));
   check("inside withVoterData the same reads go through, a lazy query and a transaction included", !(await refused(() => withVoterData("acceptance check", () => p.importedAddress.findMany(built)))) && !(await refused(() => withVoterData("acceptance check", () => p.$transaction(async (tx) => tx.$queryRaw`SELECT ia."sourceRecordId" FROM "ImportedAddress" ia LIMIT 1`)))));
 
+  // Work started inside the scope that runs after it closes (a timer) is refused: the scope ends with its query.
+  const later = await new Promise<boolean>((resolve) => {
+    void withVoterData("acceptance check", async () => {
+      setTimeout(() => void refused(() => p.importedAddress.findFirst({})).then(resolve), 20);
+    });
+  });
+  check("…and closes when its work is done: a timer it started is refused later", later);
+  check("…raw SQL that names nothing protected but reads a row whole is refused too", (await refused(() => p.$queryRaw`SELECT concat(ia) AS r FROM "ImportedAddress" ia LIMIT 1`)) && (await refused(() => p.$queryRaw`SELECT query_to_xml(${'SELECT 1'}, true, false, '')::text AS x`)));
+
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -49,10 +49,55 @@ describe("voter-data guard: raw SQL", () => {
     expect(rawQueryProblem('SELECT row_to_json(x) FROM "AddressImport" x')).not.toBeNull();
     expect(rawQueryProblem('SELECT ia::text FROM "ImportedAddress" ia')).not.toBeNull();
   });
+  it("refuses every way round the reviewer found (Nov 21): a whole row however it is spelled, cast or wrapped", () => {
+    const bypasses = [
+      'SELECT DISTINCT ON (ia."importId") * FROM "ImportedAddress" ia',
+      'SELECT*FROM "ImportedAddress"',
+      'SELECT/**/* FROM "ImportedAddress"',
+      'SELECT ALL * FROM "ImportedAddress"',
+      'TABLE "ImportedAddress"',
+      'TABLE public."AddressImport"',
+      'SELECT (ia).* FROM "ImportedAddress" ia',
+      'SELECT json_build_array(ia) FROM "ImportedAddress" ia',
+      "SELECT jsonb_build_object('r', ia) FROM \"ImportedAddress\" ia",
+      'SELECT jsonb_object_agg(ia."id", ia) FROM "ImportedAddress" ia',
+      'SELECT array_to_json(ARRAY[ia]) FROM "ImportedAddress" ia',
+      'SELECT CAST(ia AS text) FROM "ImportedAddress" ia',
+      'SELECT ia::varchar FROM "ImportedAddress" ia',
+      'SELECT ia::"text" FROM "ImportedAddress" AS ia',
+      "SELECT format('%s', ia) FROM \"ImportedAddress\" ia",
+      'SELECT concat(ia) FROM "public"."ImportedAddress" ia',
+      'SELECT x FROM "ImportedAddress" x',
+      'SELECT "ImportedAddress" FROM "ImportedAddress"',
+      'SELECT s."id", "IA" FROM "WalkbookStop" s JOIN "ImportedAddress" "IA" ON "IA"."id" = s."addressId"',
+      "SELECT table_to_xml('public.\"ImportedAddress\"', true, false, '')",
+      'SELECT U&"sourc\\0065Data" FROM U&"Imported\\0041ddress"',
+      "SELECT query_to_xml($1, true, false, '')::text",
+      "SELECT query_to_xml('sel'||'ect * fr'||'om \"Imported'||'Address\"', true, false, '')",
+      'CREATE VIEW v AS SELECT * FROM "ImportedAddress"',
+      'ALTER TABLE "ImportedAddress" RENAME TO x',
+      "DO $$ BEGIN PERFORM 1; END $$",
+      'SELECT ia."droppedColumns" FROM "AddressImport" ia',
+      'SELECT "ImportedAddress"."sourceData" FROM "ImportedAddress"',
+    ];
+    for (const sql of bypasses) expect(rawQueryProblem(sql), sql).not.toBeNull();
+  });
+
+  it("lets through the raw SQL the app runs: the cut, the counts and the console's join", () => {
+    const cut = 'SELECT a."id", a."line1", a."unit", a."zip" FROM "public"."ImportedAddress" a WHERE a."importId" = ::uuid AND NOT EXISTS ( SELECT 1 FROM "public"."WalkbookStop" s JOIN "public"."Walkbook" w ON w."id" = s."walkbookId" JOIN "public"."ImportedAddress" b ON b."id" = s."addressId" WHERE w."jobId" = ::uuid AND b."zip" = a."zip" AND upper(b."line1") = upper(a."line1") AND upper(coalesce(b."unit", \'\')) = upper(coalesce(a."unit", \'\')))';
+    expect(rawQueryProblem(cut)).toBeNull();
+    expect(rawQueryProblem('SELECT a."importId", count(*)::int AS n FROM "public"."ImportedAddress" a WHERE a."importId" = ANY( ::uuid[]) GROUP BY a."importId"')).toBeNull();
+    const console = 'SELECT s."id", ia."line1", ia."lat", ia."lng" FROM "public"."WalkbookStop" s JOIN "public"."Walkbook" w ON w."id" = s."walkbookId" LEFT JOIN "public"."ImportedAddress" ia ON ia."id" = s."addressId" LEFT JOIN LATERAL ( SELECT a."engagementId" FROM "public"."WalkbookAssignment" a WHERE a."walkbookId" = w."id" LIMIT 1 ) h ON true WHERE ia."lat" IS NOT NULL';
+    expect(rawQueryProblem(console)).toBeNull();
+  });
+
   it("lets through the address columns, counts and everything that doesn't touch the import tables", () => {
     expect(rawQueryProblem('SELECT ia."line1", ia."zip"::text, count(*)::int AS n FROM "ImportedAddress" ia GROUP BY 1, 2')).toBeNull();
     expect(rawQueryProblem("SELECT pg_advisory_xact_lock(hashtext($1))")).toBeNull();
     expect(rawQueryProblem('SELECT * FROM "Shift" s WHERE s."id" = $1')).toBeNull();
     expect(rawQueryProblem("SET LOCAL ROLE authenticated")).toBeNull();
+    // DDL and upserts elsewhere in the app (the rate limiter's counter) are not the guard's business.
+    expect(rawQueryProblem('ALTER TABLE "RateLimitCounter" RENAME TO "RateLimitCounter_away"')).toBeNull();
+    expect(rawQueryProblem('INSERT INTO "RateLimitCounter" ("bucket") VALUES ($1) ON CONFLICT ("bucket") DO UPDATE SET "count" = 1')).toBeNull();
   });
 });

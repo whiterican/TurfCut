@@ -99,6 +99,20 @@ describe("imported columns stay where they are meant to", () => {
     expect(strays, `these reach the import tables: ${strays.join(", ")}`).toEqual([]);
   });
 
+  it("only the importer, the purge, the file list and the export open the runtime guard's scope", () => {
+    // withVoterData unlocks the guard (src/lib/voter-data-guard.ts): who may call it is pinned like who may name the columns.
+    const opens = all.filter((f) => !isTest(f.path) && /\bwithVoterData\b/.test(code(f.text))).map((f) => f.path).sort();
+    expect(opens).toEqual(["src/lib/stop-console-data.ts", "src/lib/voter-data-guard.ts", "src/lib/walkbooks-data.ts"]);
+    const wd = code(get("src/lib/walkbooks-data.ts"));
+    expect(wd.match(/withVoterData\("[^"]+"/g)).toEqual(['withVoterData("importer"', 'withVoterData("staff file list"', 'withVoterData("purge"']);
+    expect(body(wd, "importAddresses")).toMatch(/withVoterData\("importer"/);
+    expect(body(wd, "purgeImport")).toMatch(/withVoterData\("purge"/);
+    expect(body(wd, "loadJobWalkbooks")).toMatch(/withVoterData\("staff file list"/);
+    const sc = code(get("src/lib/stop-console-data.ts"));
+    expect(sc.match(/withVoterData\("[^"]+"/g)).toEqual(['withVoterData("staff export"']);
+    expect(body(sc, "loadExportRows")).toMatch(/withVoterData\("staff export"/);
+  });
+
   it("no file builds a stored column's name from pieces or reads it by a computed key", () => {
     const hits = all.filter((f) => !isTest(f.path) && ASSEMBLED.test(f.text)).map((f) => f.path);
     expect(hits, `computed access to source columns: ${hits.join(", ")}`).toEqual([]);

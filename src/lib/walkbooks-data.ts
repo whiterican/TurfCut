@@ -352,16 +352,38 @@ export const CLOSED_GRACE_DAYS = 7;
 export function purgeImport(...a: Parameters<typeof purgeImportInScope>): ReturnType<typeof purgeImportInScope> {
   return withVoterData("purge", () => purgeImportInScope(...a));
 }
-async function purgeImportInScope(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
+async function purgeImportInScope(importId: string, reason: PurgeReason, actorId: string | null, now = new Date(), refresh = true): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
   const out = await deleteImportRows(importId, reason, actorId, now);
-  // Postgres keeps samples of a table's values for its planner (pg_statistic), names and record IDs included, until the
-  // table is next analyzed: refresh them now so the deleted rows don't live on there. Outside the transaction (ANALYZE
-  // can't run inside one). A failure here doesn't undo the purge; the next autovacuum refreshes them anyway.
-  if (out.ok && out.addresses > 0) {
-    await db().$executeRaw`ANALYZE "public"."ImportedAddress"`.catch((e) => console.error("[turfcut] statistics refresh after a purge failed", e));
-  }
+  if (refresh && out.ok && out.addresses > 0) await refreshStatisticsInScope();
   return out;
+}
+
+/** After a run of purges (the daily one), the statistics refresh once rather than once per file. */
+export function refreshImportStatistics(): Promise<void> {
+  return withVoterData("purge", refreshStatisticsInScope);
+}
+
+/**
+ * Postgres keeps samples of a table's values for its planner (pg_statistic), names and record IDs included. ANALYZE
+ * replaces them with samples of the rows left, so after a purge the deleted rows' values go from there too, but only
+ * while rows are left: when the table ends up empty, Postgres keeps the old samples (WALKBOOKS.md, Known limits). Only
+ * a schema change clears those: turning off statistics on the stored columns, which is Caden's to approve. ANALYZE
+ * runs outside the purge's transaction (it can't run inside one), and a failure doesn't undo the purge. Without owning
+ * the table Postgres skips it with only a warning, so that is checked and said.
+ */
+async function refreshStatisticsInScope(): Promise<void> {
+  try {
+    const [own] = await db().$queryRaw<Array<{ owns: boolean }>>`
+      SELECT pg_has_role(current_user, c.relowner, 'USAGE') AS owns FROM pg_class c WHERE c.oid = '"public"."ImportedAddress"'::regclass`;
+    if (!own?.owns) {
+      console.error("[turfcut] statistics refresh after a purge skipped: the app's database role doesn't own ImportedAddress");
+      return;
+    }
+    await db().$executeRaw`ANALYZE "public"."ImportedAddress"`;
+  } catch (e) {
+    console.error("[turfcut] statistics refresh after a purge failed", (e as { code?: unknown })?.code ?? "error");
+  }
 }
 
 async function deleteImportRows(importId: string, reason: PurgeReason, actorId: string | null, now: Date): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
@@ -424,7 +446,7 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
     for (const d of due) {
       if (Date.now() - started > budgetMs) break;
       try {
-        const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
+        const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now, false);
         if (r.ok && !r.already) {
           purged++;
           addresses += r.addresses;
@@ -435,6 +457,7 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
       }
     }
   }
+  if (addresses > 0) await refreshImportStatistics();
   return { purged, addresses, failed: skip.length ? await failedCount(skip) : 0 };
 }
 

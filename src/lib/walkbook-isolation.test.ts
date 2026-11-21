@@ -104,9 +104,10 @@ describe("imported columns stay where they are meant to", () => {
     const opens = all.filter((f) => !isTest(f.path) && /\bwithVoterData\b/.test(code(f.text))).map((f) => f.path).sort();
     expect(opens).toEqual(["src/lib/stop-console-data.ts", "src/lib/voter-data-guard.ts", "src/lib/walkbooks-data.ts"]);
     const wd = code(get("src/lib/walkbooks-data.ts"));
-    expect(wd.match(/withVoterData\("[^"]+"/g)).toEqual(['withVoterData("importer"', 'withVoterData("staff file list"', 'withVoterData("purge"']);
+    expect(wd.match(/withVoterData\("[^"]+"/g)).toEqual(['withVoterData("importer"', 'withVoterData("staff file list"', 'withVoterData("purge"', 'withVoterData("purge"']);
     expect(body(wd, "importAddresses")).toMatch(/withVoterData\("importer"/);
     expect(body(wd, "purgeImport")).toMatch(/withVoterData\("purge"/);
+    expect(body(wd, "refreshImportStatistics")).toMatch(/withVoterData\("purge", refreshStatisticsInScope\)/);
     expect(body(wd, "loadJobWalkbooks")).toMatch(/withVoterData\("staff file list"/);
     const sc = code(get("src/lib/stop-console-data.ts"));
     expect(sc.match(/withVoterData\("[^"]+"/g)).toEqual(['withVoterData("staff export"']);
@@ -147,7 +148,7 @@ describe("imported columns stay where they are meant to", () => {
       expect(body(wd, "importAddressesInScope")).toMatch(/sourceData/);
     });
     it("walkbooks-data: the import tables are touched only by import, cut, the file list, the staff walkbook, the purge, and the one SQL fragment that skips repeats", () => {
-      const fns = ["importAddressesInScope", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImportInScope", "deleteImportRows", "purgeOwnImport", "purgeDueImports", "failedCount"];
+      const fns = ["importAddressesInScope", "cutWalkbooks", "loadJobWalkbooks", "loadWalkbookForStaff", "purgeImportInScope", "deleteImportRows", "refreshStatisticsInScope", "purgeOwnImport", "purgeDueImports", "failedCount"];
       const rest = outside(wd.replace(/\/\*[\s\S]*?\*\//g, ""), TABLES, fns);
       // Only notOnJob's join (a plain equality on addressId) is left outside those functions.
       const notOnJob = wd.slice(wd.indexOf("const notOnJob"), wd.indexOf("`;", wd.indexOf("const notOnJob")));

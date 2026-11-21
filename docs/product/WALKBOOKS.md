@@ -183,6 +183,28 @@ the organization deletes the job's data. Schema approved.
 
 ## Known limits
 
+- **The planner's samples can outlast a purge.** Postgres keeps samples of
+  each column's values for its query planner (`pg_statistic`), the stored
+  columns included: names, party, record IDs. After a purge the app
+  re-analyzes the table, which replaces the samples with ones from the rows
+  left, but when no rows are left (an organization's only file, or every
+  file the daily run purges) Postgres keeps the old samples, through every
+  later ANALYZE. The app refuses to read them (`src/lib/voter-data-guard.ts`),
+  but they are in the database. Closing this needs a migration, which needs
+  Caden's approval: `ALTER TABLE "ImportedAddress" ALTER COLUMN "sourceData"
+  SET STATISTICS 0`, the same for `sourceRecordId` and
+  `"AddressImport"."droppedColumns"`, so they are never sampled, and one
+  same-type `ALTER COLUMN … TYPE` on each to clear what is there now.
+
+- **The runtime guard is against mistakes, not a determined insider.**
+  `src/lib/voter-data-guard.ts` refuses reads of the stored columns outside
+  the importer, the purge, the file list and the export: by Prisma query,
+  through a relation, and in raw SQL (which may name an import table only
+  through `addressSql`). Code inside the app could still get round it on
+  purpose; only database grants stop that (the app's role without SELECT on
+  the three columns, the four allowed paths on a role that has it). Also
+  Caden's call.
+
 - **A purged file can't tell which of its doors were already worked.** The
   "already on this job's walkbooks" check compares a new file's addresses with
   the stops' addresses, which live in the imported file. After that file's 30

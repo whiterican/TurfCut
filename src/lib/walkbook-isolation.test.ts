@@ -113,6 +113,11 @@ describe("imported columns stay where they are meant to", () => {
     expect(body(sc, "loadExportRows")).toMatch(/withVoterData\("staff export"/);
   });
 
+  it("only the two walkbook data modules tag raw SQL as reading addresses (addressSql)", () => {
+    const tags = all.filter((f) => !isTest(f.path) && /\baddressSql\b/.test(code(f.text))).map((f) => f.path).sort();
+    expect(tags).toEqual(["src/lib/stop-console-data.ts", "src/lib/voter-data-guard.ts", "src/lib/walkbooks-data.ts"]);
+  });
+
   it("no file builds a stored column's name from pieces or reads it by a computed key", () => {
     const hits = all.filter((f) => !isTest(f.path) && ASSEMBLED.test(f.text)).map((f) => f.path);
     expect(hits, `computed access to source columns: ${hits.join(", ")}`).toEqual([]);

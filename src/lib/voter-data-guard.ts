@@ -15,10 +15,13 @@ import { Prisma } from "@prisma/client";
  * Refused outside the scope:
  * - any query naming a protected column anywhere in its arguments (select, include, omit, where, orderBy, by...);
  * - a whole-row read or write-and-return of a protected model (no `select`), at the top or through a relation;
- * - raw SQL that names a protected column, or that touches an import table in any way but naming one of its other
- *   columns (`ia."line1"`): a star, a bare table or alias (a whole row, however it is then cast, formatted or turned
- *   into JSON or XML), TABLE, DDL naming the table, or anything that runs SQL it can't see (U& escapes, the *_to_xml
- *   functions, EXECUTE, DO, dblink, COPY).
+ * - raw SQL that names a protected column;
+ * - raw SQL that names an import table at all, unless it was built with `addressSql` (the tag the two walkbook data
+ *   modules use for the queries that read addresses, pinned by walkbook-isolation.test.ts): checking SQL text for
+ *   what it reads can't be done without parsing SQL, so the queries that may touch these tables are named instead;
+ * - anywhere, SQL that can run SQL it can't see or spell a name it can't read: escaped identifiers and strings (U&,
+ *   E''), the *_to_xml and ts_stat/ts_rewrite families, EXECUTE, DO, dblink, COPY, file and large-object reads, and
+ *   creating functions, procedures, views, rules or triggers (the app runs no DDL of that kind).
  *
  * It stops a developer (or agent) reading the data by mistake. It is not a wall against someone set on getting round
  * it from inside the app's own code: that needs the database to refuse the columns to the app's role.
@@ -27,16 +30,10 @@ import { Prisma } from "@prisma/client";
 const PROTECTED = new Set<string>(["droppedColumns", "sourceData", "sourceRecordId"]);
 const PROTECTED_MODELS = new Set(["ImportedAddress", "AddressImport"]);
 const PROTECTED_RE = /\b(droppedColumns|sourceData|sourceRecordId)\b/;
-const TABLE_RE = /\b(ImportedAddress|AddressImport)\b/i;
-/**
- * SQL that can run SQL the guard can't see, or spell a name it can't read: refused outside the scope, whatever it names.
- * (DDL is left to the rules below: a view or a rename can only reach an import table by naming it, or through U&.)
- */
-const OPAQUE_RE = /\bU&|_to_xml\s*\(|\bxmlelement\b|\bexecute\b|^\s*do\b|\bdblink|\bcopy\b|\blo_\w+\s*\(|\bpg_read/i;
-/** Words that can follow a table in FROM or JOIN and are not its alias. */
-const NOT_ALIAS = new Set(
-  "on where join left right inner outer full cross natural group order limit offset fetch using set and or union except intersect window having for returning lateral tablesample".split(" ")
-);
+const TABLE_RE = /(ImportedAddress|AddressImport)/i;
+/** SQL that can run SQL the guard can't see, or spell a name it can't read: refused outside the scope, whatever it names. */
+const OPAQUE_RE =
+  /\bu&|(?<![\w$'])e'|\b(query|table|schema|database|cursor)_to_xml|\bxml(element|forest|agg|parse)\b|\bts_(stat|rewrite)\b|\bexecute\b|^\s*do\b|\bdblink|\bcopy\b|\blo_\w+|\bpg_(read|ls_dir|stat_file)|\b(create|alter)\s+(or\s+replace\s+)?(function|procedure|view|rule|trigger|materialized|aggregate|operator|cast)\b/i;
 
 /** Operations that return the model's rows (and so its columns, unless `select` says which). */
 const RETURNS_ROWS = new Set([
@@ -126,73 +123,45 @@ export function modelQueryProblem(model: string, operation: string, args: unknow
   return through && `${model}.${operation} through ${through}`;
 }
 
-let columns: Map<string, Set<string>> | null = null;
-/** An import table's columns that may be read anywhere: all of its own but the protected ones. */
-function readableColumns(model: string): Set<string> {
-  if (!columns) {
-    columns = new Map(
-      Prisma.dmmf.datamodel.models
-        .filter((m) => PROTECTED_MODELS.has(m.name))
-        .map((m) => [m.name, new Set((m.fields as readonly Field[]).filter((f) => f.kind !== "object" && !PROTECTED.has(f.name)).map((f) => f.name))])
-    );
-  }
-  return columns.get(model) ?? new Set();
-}
-
-const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** The static text of every query built with addressSql, as the guard sees it (parts joined by NUL). */
+const approved = new Set<string>();
+const key = (strings: readonly string[]) => strings.join("\u0000");
 
 /**
- * Why raw SQL would read protected data, or null (its static text only: a value is a parameter, and SQL that could
- * run a parameter as SQL is refused). Where it touches an import table, every mention of the table or its alias has
- * to name one of the table's other columns, or be the table in a FROM or JOIN.
+ * The tag for a raw query that reads addresses from an import table (never the protected columns): the cut, the
+ * counts and the staff console. Use it as `db().$queryRaw(addressSql\`…\`)`. Only walkbooks-data and stop-console-data
+ * may (walkbook-isolation.test.ts); what the query reads is for their review, not this file's regexes.
  */
-export function rawQueryProblem(sql: string): string | null {
-  if (PROTECTED_RE.test(sql)) return "raw SQL naming a protected column";
-  if (OPAQUE_RE.test(sql)) return "raw SQL the guard can't read through (U&, *_to_xml, EXECUTE, DO, dblink, COPY)";
-  if (!TABLE_RE.test(sql)) return null;
-  if (/\btable\s+("?public"?\s*\.\s*)?"?(ImportedAddress|AddressImport)\b/i.test(sql)) return "raw SQL reading an import table whole (TABLE)";
-  if (/\*/.test(sql.replace(/\bcount\s*\(\s*\*\s*\)/gi, ""))) return "raw SQL with a star near an import table";
-  // Where each import table is named: in FROM or JOIN with or without an alias, or as a column's qualifier.
-  const named = /(?:"?public"?\s*\.\s*)?"?(ImportedAddress|AddressImport)"?/gi;
-  const aliases: Array<{ name: string; quoted: boolean; model: string }> = [];
-  for (let m; (m = named.exec(sql)); ) {
-    const model = /^importedaddress$/i.test(m[1]) ? "ImportedAddress" : "AddressImport";
-    const before = sql.slice(0, m.index);
-    const after = sql.slice(m.index + m[0].length);
-    const qualified = /^\s*\.\s*(?:"([^"]+)"|([a-z_][\w$]*))/.exec(after);
-    if (qualified) {
-      const col = qualified[1] ?? qualified[2];
-      if (!readableColumns(model).has(col)) return `raw SQL reading ${model}.${col}`;
-      continue;
-    }
-    if (!/\b(from|join)\s+(only\s+)?$/i.test(before)) return `raw SQL using ${model} other than in FROM or JOIN`;
-    const alias = /^\s+(?:as\s+)?(?:"([^"]+)"|([a-z_][\w$]*))/i.exec(after);
-    const name = alias?.[1] ?? alias?.[2];
-    if (name && !NOT_ALIAS.has(name.toLowerCase())) aliases.push({ name, quoted: !!alias?.[1], model });
-  }
-  // Every use of an alias names one of the table's other columns (a bare alias is the whole row).
-  for (const a of aliases) {
-    const use = new RegExp(a.quoted ? `"${esc(a.name)}"` : `(?<![\\w$".])${esc(a.name)}(?![\\w$"])`, a.quoted ? "g" : "gi");
-    let bound = false;
-    for (let m; (m = use.exec(sql)); ) {
-      const after = sql.slice(m.index + m[0].length);
-      const col = /^\s*\.\s*(?:"([^"]+)"|([a-z_][\w$]*))/.exec(after);
-      if (col) {
-        const name = col[1] ?? col[2];
-        if (!readableColumns(a.model).has(name)) return `raw SQL reading ${a.model}.${name}`;
-        continue;
-      }
-      // The alias where it is given (right after the table) is the one bare mention allowed.
-      if (!bound && /(ImportedAddress|AddressImport)"?\s+(as\s+)?$/i.test(sql.slice(0, m.index))) {
-        bound = true;
-        continue;
-      }
-      return `raw SQL using ${a.model} whole (${a.name})`;
-    }
+export function addressSql(strings: TemplateStringsArray, ...values: unknown[]): Prisma.Sql {
+  const sql = Prisma.sql(strings, ...values);
+  approved.add(key(sql.strings));
+  return sql;
+}
+
+/** Comments out (each one a space, as Postgres reads it), so a comment can't split a word the checks look for. */
+const uncommented = (sql: string) => sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
+
+/**
+ * Why raw SQL would read protected data, or null. `fromAddressSql`: the query was built with addressSql. Checked on
+ * the text as written and with its comments out, so neither spelling gets past.
+ */
+export function rawQueryProblem(sql: string, fromAddressSql = false): string | null {
+  for (const text of [sql, uncommented(sql)]) {
+    if (PROTECTED_RE.test(text)) return "raw SQL naming a protected column";
+    if (OPAQUE_RE.test(text)) return "raw SQL the guard can't read through (escapes, *_to_xml, ts_stat, EXECUTE, DO, dblink, COPY, DDL…)";
+    if (!fromAddressSql && TABLE_RE.test(text)) return "raw SQL naming an import table outside addressSql";
   }
   return null;
 }
 
+const strings = (args: unknown): readonly string[] | null => {
+  const st = (args as { strings?: unknown })?.strings;
+  return Array.isArray(st) && st.every((x) => typeof x === "string") ? (st as string[]) : null;
+};
+const fromAddressSql = (args: unknown) => {
+  const st = strings(args);
+  return !!st && approved.has(key(st));
+};
 const sqlText = (args: unknown): string => {
   if (Array.isArray(args)) return typeof args[0] === "string" ? args[0] : ""; // $queryRawUnsafe(sql, ...values)
   const strings = (args as { strings?: unknown })?.strings;
@@ -215,12 +184,12 @@ export const voterDataGuard = Prisma.defineExtension({
       },
     },
     async $queryRaw({ args, query }) {
-      const problem = !inScope() && rawQueryProblem(sqlText(args));
+      const problem = !inScope() && rawQueryProblem(sqlText(args), fromAddressSql(args));
       if (problem) throw new VoterDataGuardError(problem);
       return query(args);
     },
     async $executeRaw({ args, query }) {
-      const problem = !inScope() && rawQueryProblem(sqlText(args));
+      const problem = !inScope() && rawQueryProblem(sqlText(args), fromAddressSql(args));
       if (problem) throw new VoterDataGuardError(problem);
       return query(args);
     },

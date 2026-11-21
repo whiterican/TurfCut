@@ -41,61 +41,59 @@ describe("voter-data guard: model queries", () => {
 });
 
 describe("voter-data guard: raw SQL", () => {
-  it("refuses a protected column, or an import table read whole", () => {
-    expect(rawQueryProblem('SELECT ia."sourceRecordId" FROM "ImportedAddress" ia')).not.toBeNull();
-    expect(rawQueryProblem('SELECT * FROM "ImportedAddress"')).not.toBeNull();
-    expect(rawQueryProblem('SELECT ia.* FROM "WalkbookStop" s JOIN "ImportedAddress" ia ON ia."id" = s."addressId"')).not.toBeNull();
-    expect(rawQueryProblem('SELECT to_jsonb(ia) FROM "ImportedAddress" ia')).not.toBeNull();
-    expect(rawQueryProblem('SELECT row_to_json(x) FROM "AddressImport" x')).not.toBeNull();
-    expect(rawQueryProblem('SELECT ia::text FROM "ImportedAddress" ia')).not.toBeNull();
-  });
-  it("refuses every way round the reviewer found (Nov 21): a whole row however it is spelled, cast or wrapped", () => {
-    const bypasses = [
-      'SELECT DISTINCT ON (ia."importId") * FROM "ImportedAddress" ia',
-      'SELECT*FROM "ImportedAddress"',
-      'SELECT/**/* FROM "ImportedAddress"',
-      'SELECT ALL * FROM "ImportedAddress"',
+  it("refuses a protected column, and any import table outside addressSql, however it is spelled", () => {
+    const outside = [
+      'SELECT ia."sourceRecordId" FROM "ImportedAddress" ia',
+      'SELECT ia."line1" FROM "ImportedAddress" ia', // even readable columns: the tag names which queries may
+      'SELECT * FROM "ImportedAddress"',
       'TABLE "ImportedAddress"',
-      'TABLE public."AddressImport"',
-      'SELECT (ia).* FROM "ImportedAddress" ia',
-      'SELECT json_build_array(ia) FROM "ImportedAddress" ia',
-      "SELECT jsonb_build_object('r', ia) FROM \"ImportedAddress\" ia",
-      'SELECT jsonb_object_agg(ia."id", ia) FROM "ImportedAddress" ia',
-      'SELECT array_to_json(ARRAY[ia]) FROM "ImportedAddress" ia',
-      'SELECT CAST(ia AS text) FROM "ImportedAddress" ia',
-      'SELECT ia::varchar FROM "ImportedAddress" ia',
-      'SELECT ia::"text" FROM "ImportedAddress" AS ia',
-      "SELECT format('%s', ia) FROM \"ImportedAddress\" ia",
-      'SELECT concat(ia) FROM "public"."ImportedAddress" ia',
-      'SELECT x FROM "ImportedAddress" x',
-      'SELECT "ImportedAddress" FROM "ImportedAddress"',
-      'SELECT s."id", "IA" FROM "WalkbookStop" s JOIN "ImportedAddress" "IA" ON "IA"."id" = s."addressId"',
-      "SELECT table_to_xml('public.\"ImportedAddress\"', true, false, '')",
+      'SELECT c11, c12 FROM "ImportedAddress" t(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)',
+      'SELECT to_jsonb("ia") FROM "ImportedAddress" ia',
+      'SELECT to_jsonb("on") FROM "ImportedAddress" AS "on"',
+      'SELECT to_jsonb(ia) FROM "ImportedAddress"ia',
+      "SELECT to_jsonb(ia) FROM \"ImportedAddress\" --x\n ia",
+      'SELECT 1 FROM public.importedaddress',
+      "SELECT 'ImportedAddress'",
+      'SELECT x."importId" FROM "AddressImport" x',
+    ];
+    for (const sql of outside) expect(rawQueryProblem(sql), sql).not.toBeNull();
+  });
+
+  it("refuses, even inside addressSql, SQL that can run or spell SQL the guard can't read (every way the reviewer found)", () => {
+    const opaque = [
       'SELECT U&"sourc\\0065Data" FROM U&"Imported\\0041ddress"',
       "SELECT query_to_xml($1, true, false, '')::text",
-      "SELECT query_to_xml('sel'||'ect * fr'||'om \"Imported'||'Address\"', true, false, '')",
-      'CREATE VIEW v AS SELECT * FROM "ImportedAddress"',
-      'ALTER TABLE "ImportedAddress" RENAME TO x',
+      'SELECT "query_to_xml"($1, true, false, \'\')',
+      "SELECT query_to_xml_and_xmlschema($1, true, false, '')",
+      "SELECT pg_catalog.query_to_xml/**/($1, true, false, '')",
+      "SELECT schema_to_xml_and_xmlschema('public', true, false, '')",
+      "SELECT table_to_xml('x', true, false, '')",
+      "SELECT word FROM ts_stat($1)",
+      "SELECT ts_rewrite($1, $2)",
+      "CREATE FUNCTION f() RETURNS SETOF jsonb LANGUAGE sql AS E'SELECT 1'",
+      "SELECT E'\\x49'",
+      "CREATE OR REPLACE VIEW v AS SELECT 1",
       "DO $$ BEGIN PERFORM 1; END $$",
-      'SELECT ia."droppedColumns" FROM "AddressImport" ia',
-      'SELECT "ImportedAddress"."sourceData" FROM "ImportedAddress"',
+      "SELECT 1; EXECUTE p",
+      "COPY (SELECT 1) TO STDOUT",
+      "SELECT pg_read_file('/etc/passwd')",
+      "SELECT lo_import('/x')",
     ];
-    for (const sql of bypasses) expect(rawQueryProblem(sql), sql).not.toBeNull();
+    for (const sql of opaque) {
+      expect(rawQueryProblem(sql), sql).not.toBeNull();
+      expect(rawQueryProblem(sql, true), sql).not.toBeNull();
+    }
+    expect(rawQueryProblem('SELECT ia."sourceData" FROM "ImportedAddress" ia', true)).not.toBeNull();
   });
 
-  it("lets through the raw SQL the app runs: the cut, the counts and the console's join", () => {
-    const cut = 'SELECT a."id", a."line1", a."unit", a."zip" FROM "public"."ImportedAddress" a WHERE a."importId" = ::uuid AND NOT EXISTS ( SELECT 1 FROM "public"."WalkbookStop" s JOIN "public"."Walkbook" w ON w."id" = s."walkbookId" JOIN "public"."ImportedAddress" b ON b."id" = s."addressId" WHERE w."jobId" = ::uuid AND b."zip" = a."zip" AND upper(b."line1") = upper(a."line1") AND upper(coalesce(b."unit", \'\')) = upper(coalesce(a."unit", \'\')))';
-    expect(rawQueryProblem(cut)).toBeNull();
-    expect(rawQueryProblem('SELECT a."importId", count(*)::int AS n FROM "public"."ImportedAddress" a WHERE a."importId" = ANY( ::uuid[]) GROUP BY a."importId"')).toBeNull();
-    const console = 'SELECT s."id", ia."line1", ia."lat", ia."lng" FROM "public"."WalkbookStop" s JOIN "public"."Walkbook" w ON w."id" = s."walkbookId" LEFT JOIN "public"."ImportedAddress" ia ON ia."id" = s."addressId" LEFT JOIN LATERAL ( SELECT a."engagementId" FROM "public"."WalkbookAssignment" a WHERE a."walkbookId" = w."id" LIMIT 1 ) h ON true WHERE ia."lat" IS NOT NULL';
-    expect(rawQueryProblem(console)).toBeNull();
-  });
-
-  it("lets through the address columns, counts and everything that doesn't touch the import tables", () => {
-    expect(rawQueryProblem('SELECT ia."line1", ia."zip"::text, count(*)::int AS n FROM "ImportedAddress" ia GROUP BY 1, 2')).toBeNull();
+  it("lets through addressSql's queries, and everything that doesn't touch the import tables", () => {
+    const cut = 'SELECT a."id", a."line1", a."unit", a."zip" FROM "public"."ImportedAddress" a WHERE a."importId" = ::uuid AND NOT EXISTS ( SELECT 1 FROM "public"."WalkbookStop" s JOIN "public"."ImportedAddress" b ON b."id" = s."addressId" WHERE b."zip" = a."zip" AND upper(coalesce(b."unit", \'\')) = upper(coalesce(a."unit", \'\')))';
+    expect(rawQueryProblem(cut, true)).toBeNull();
+    expect(rawQueryProblem(cut)).not.toBeNull();
     expect(rawQueryProblem("SELECT pg_advisory_xact_lock(hashtext($1))")).toBeNull();
     expect(rawQueryProblem('SELECT * FROM "Shift" s WHERE s."id" = $1')).toBeNull();
     expect(rawQueryProblem("SET LOCAL ROLE authenticated")).toBeNull();
+    expect(rawQueryProblem(`SELECT count(*) FILTER (WHERE o."outcome" <> 'COME_BACK')::int, 'none' AS x FROM "StopOutcome" o`)).toBeNull();
     // DDL and upserts elsewhere in the app (the rate limiter's counter) are not the guard's business.
     expect(rawQueryProblem('ALTER TABLE "RateLimitCounter" RENAME TO "RateLimitCounter_away"')).toBeNull();
     expect(rawQueryProblem('INSERT INTO "RateLimitCounter" ("bucket") VALUES ($1) ON CONFLICT ("bucket") DO UPDATE SET "count" = 1')).toBeNull();

@@ -16,7 +16,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { withVoterData } from "@/lib/voter-data-guard";
+import { addressSql, withVoterData } from "@/lib/voter-data-guard";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
 import { flat, HIRED, holders, STOP_SELECT } from "@/lib/walkbook-shared";
@@ -159,9 +159,9 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       if (fresh?.purgedAt) return { ok: false as const, reason: "This file's data has been deleted. Its doors already on this job can't be told apart from new ones any more, so don't import it again for this job while its walkbooks are in use." };
       await lock(tx, `walkbooks:${job.id}`);
       // One rule, in SQL, for what is left to cut (and for the count the page shows): not on one of the job's books already, by id or as the same door from another file.
-      const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>`
+      const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>(addressSql`
         SELECT a."id", a."line1", a."unit", a."zip" FROM "public"."ImportedAddress" a
-        WHERE a."importId" = ${imp.id}::uuid AND ${notOnJob(job.id)}`;
+        WHERE a."importId" = ${imp.id}::uuid AND ${notOnJob(job.id)}`);
       const unused = await tx.importedAddress.count({ where: { importId: imp.id, stops: { none: { walkbook: { jobId: job.id } } } } });
       const repeats = unused - free.length;
       if (!free.length) return { ok: false as const, reason: "Every address in this file is already on one of this job's walkbooks." };
@@ -268,10 +268,10 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
     }),
   ]);
   const left = imports.length
-    ? await db().$queryRaw<Array<{ importId: string; n: number }>>`
+    ? await db().$queryRaw<Array<{ importId: string; n: number }>>(addressSql`
         SELECT a."importId", count(*)::int AS n FROM "public"."ImportedAddress" a
         WHERE a."importId" = ANY(${imports.map((i) => i.id)}::uuid[]) AND ${notOnJob(job.id)}
-        GROUP BY a."importId"`
+        GROUP BY a."importId"`)
     : [];
   const leftBy = new Map(left.map((r) => [r.importId, r.n]));
   const progress = await loadJobProgress(job.id, new Map(books.map((b) => [b.id, b._count.stops])));

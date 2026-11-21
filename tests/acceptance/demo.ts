@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
+import { withVoterData } from "@/lib/voter-data-guard";
 import { DEMO_ONLY_NOTES, DEMO_STATEWIDE_EXPIRY_DAYS, STATEWIDE_CO_ID, projectRefFromDatabaseUrl, projectRefFromSupabaseUrl } from "@/lib/demo-seed-guard";
 import { jobRulesLabel, jurisdictionLocalityProblem } from "@/lib/jobs";
 
@@ -55,7 +56,8 @@ const DENVER = "00000000-0000-0000-0000-000000000021";
       SELECT schemaname, tablename FROM pg_tables WHERE schemaname IN ('public', 'auth') ORDER BY 1, 2`;
     const out: Record<string, number> = {};
     for (const t of tables) {
-      const [{ n }] = await p.$queryRawUnsafe<{ n: bigint }[]>(`SELECT count(*) AS n FROM "${t.schemaname}"."${t.tablename}"`);
+      // A count of every table names the import tables too: a test's own look, allowed like the importer (voter-data-guard).
+      const [{ n }] = await withVoterData("acceptance check", () => p.$queryRawUnsafe<{ n: bigint }[]>(`SELECT count(*) AS n FROM "${t.schemaname}"."${t.tablename}"`));
       out[`${t.schemaname}.${t.tablename}`] = Number(n);
     }
     return out;

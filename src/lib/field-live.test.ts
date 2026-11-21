@@ -92,9 +92,13 @@ describe("summarizeField", () => {
     expect(Object.keys(JSON.parse(json)).sort()).toEqual(["at", "groups", "today", "version", "zones"]);
   });
 
-  it("changes its version when a worker turns area sharing on or off, so the board's \"area shared\" follows", () => {
-    const on = summarizeField([row("a", { s: { checkedInAt: inAt, sharingArea: true } })], now).version;
+  it("changes its version when a worker's shared area shows or stops showing, so the board's \"area shared\" follows", () => {
+    const sharing = { checkedInAt: inAt, sharingArea: true, area: { lat: 39.745, lng: -104.985, at: inAt } };
+    const on = summarizeField([row("a", { s: sharing })], now).version;
     expect(summarizeField([row("a", { s: { checkedInAt: inAt } })], now).version).not.toBe(on);
+    // Past the shift's end plus two hours, a forgotten check-out stops showing it: an open board refreshes then too.
+    const late = new Date("2026-10-25T00:01:00Z");
+    expect(summarizeField([row("a", { s: sharing })], late).version).toBe(summarizeField([row("a", { s: { checkedInAt: inAt } })], late).version);
   });
 
   it("changes its version when a shift's turf changes, so other open pages refresh", () => {

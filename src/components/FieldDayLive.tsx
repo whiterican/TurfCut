@@ -356,8 +356,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
         Share my area with my manager
       </label>
       <p id="area-sharing-hint" className="text-hint">
-        {st.sharingArea ? "On for this shift. " : "Off. If you turn it on, just for this shift: "}
-        each signature you add notes the area you&apos;re in, a square about 1 km across, never your exact spot. Each one&apos;s area is kept in the
+        {st.sharingArea ? "On for this shift. Each" : "Off. If you turn it on, just for this shift, each"} signature you add notes the area you&apos;re in, a square about 1 km across, never your exact spot. Each one&apos;s area is kept in the
         shift&apos;s record, and your manager and the campaign&apos;s field staff see the latest while you&apos;re on shift. Turn it off any time.
       </p>
       {areaNote && <p className="text-hint">{areaNote}</p>}

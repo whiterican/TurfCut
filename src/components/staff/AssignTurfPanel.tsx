@@ -22,14 +22,22 @@ export interface AssignableShift {
  * Give turf to workers from the Field map (Caden, Nov 17): draw a zone, tick whose shifts get it, save.
  * Shifts that are over or cancelled are not offered. The server checks everything again and changes
  * all the ticked shifts or none. Nobody's position is involved: the zone is where the work is.
- * A turf already on the map can be the start (a tap on its zone, or its card's button): the panel opens
- * with that turf drawn, to give to more shifts as it is or with its corners changed.
+ * A turf already on the map can be the start (its card's button, or the one under the map for a tapped zone):
+ * the panel opens with that turf drawn, to give to more shifts as it is or with its corners changed.
+ * `names` is each turf's name on its card now, by zone id. Unnamed turfs are numbered by position, so a name
+ * kept from the moment of the pick could come to mean another card after a save.
  */
-export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null }) {
+export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null; names?: Record<string, string> }) {
   // A turf picked on the map or a card opens the panel starting from it.
   const turfPick = useTurfPick();
   const preset = turfPick?.picked ?? null;
   const turfId = preset?.id ?? null;
+  const presetName = preset ? names[preset.id] || preset.name || "this turf" : "";
+  // What the panel is on now, for a save that comes back after the organizer has moved to another turf.
+  const turfNow = useRef(turfId);
+  useEffect(() => {
+    turfNow.current = turfId;
+  });
   const [open, setOpen] = useState(preset !== null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   // Where the map first looked: it must not jump while the organizer draws, whatever zones appear meanwhile.
@@ -91,13 +99,18 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
         return setMsg({ ok: false, text: "Couldn't read the turf. Clear it and draw it again." });
       }
     }
+    const sentFor = turfId;
     start(async () => {
+      // The answer belongs to the turf it was sent for: under another turf's heading it would read as that one's,
+      // and clearing the ticks would undo ones made since.
+      const here = () => turfNow.current === sentFor;
       try {
         const r = await assignTurfAction(ids, polygon);
+        if (!here()) return;
         setMsg({ ok: r.ok, text: r.message });
         if (r.ok) setPicked(new Set());
       } catch {
-        setMsg({ ok: false, text: "Couldn't save the turf. Nothing was changed. Try again." });
+        if (here()) setMsg({ ok: false, text: "Couldn't save the turf. Nothing was changed. Try again." });
       }
     });
   }
@@ -118,7 +131,7 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
       {/* On a phone the two buttons sit under the words, not beside them: beside, they squeezed the hint to a few words a line. */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
         <div>
-          <h3 id="assign-turf-heading" className="text-base font-semibold">{preset ? `Assign ${preset.name}` : "Assign turf"}</h3>
+          <h3 id="assign-turf-heading" className="text-base font-semibold">{preset ? `Assign ${presetName}` : "Assign turf"}</h3>
           <p className="text-hint">
             {preset ? "This turf is drawn below: keep it, or change its corners. Then tick whose shifts get it. Only the shifts you tick change." : "Draw the zone, then pick whose shifts get it."} A worker sees it on their shift. Nobody&apos;s position is used.
           </p>
@@ -182,7 +195,7 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
                         <span className="text-sm text-subtle">
                           <LocalTime iso={s.startsAt} mode="short" /> – <LocalTime iso={s.endsAt} mode="time" from={s.startsAt} />
                           {/* What the shift has now, by the turf's name: true whatever is drawn above, corners moved or not. */}
-                          {preset && s.zoneId === preset.id ? ` · already has ${preset.name}` : s.hasTurf && " · has turf (it will be replaced)"}
+                          {preset && s.zoneId === preset.id ? ` · already has ${presetName}` : s.hasTurf && " · has turf (it will be replaced)"}
                         </span>
                       </span>
                     </label>

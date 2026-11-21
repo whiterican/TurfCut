@@ -5,12 +5,13 @@ import type { TurfPolygon } from "@/lib/field-day";
 
 /**
  * Picking a turf that is already on the Field map (Caden, Nov 21: "keep building", the follow-up to
- * assigning turf from the map): tap its zone, or the button on its card, and the Assign panel opens
- * starting from that turf instead of a blank map. Only there for people who may assign turf: without
- * the provider the map's zones are not tappable and the cards carry no button.
+ * assigning turf from the map): the button on its card, or under the map once its zone is tapped, opens
+ * the Assign panel starting from that turf instead of a blank map. Only there for people who may assign
+ * turf: without the provider the map's zones are not tappable and there is no button.
  */
 export interface PickedTurf {
   id: string;
+  /** As its card named it when picked, or "" for a zone no card names yet. The panel asks the page for the name as it is now. */
   name: string;
   turf: TurfPolygon;
   /** Goes up on every pick and never back, so any pick (the same turf again, or the first after Close) opens the panel. */
@@ -60,7 +61,7 @@ export function AssignThisTurfButton({ id, name, turf }: Zone) {
   const ctx = useTurfPick();
   if (!ctx) return null;
   return (
-    <button type="button" className="btn-secondary btn-sm" aria-label={`Assign this turf: ${name}`} onClick={() => ctx.pick({ id, name, turf })}>
+    <button type="button" className="btn-secondary btn-sm shrink-0" aria-label={name ? `Assign this turf: ${name}` : undefined} onClick={() => ctx.pick({ id, name, turf })}>
       Assign this turf
     </button>
   );

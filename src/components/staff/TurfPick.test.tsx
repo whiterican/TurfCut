@@ -85,6 +85,30 @@ describe("the Assign panel starting from a picked turf", () => {
     expect(html.match(/already has Turf 1/g)).toHaveLength(1);
     expect(html.match(/it will be replaced/g)).toHaveLength(1);
   });
+  it("calls the turf what its card calls it now, not what it was called when picked", () => {
+    // Unnamed turfs are numbered by position: after a save removes "Turf 1", the picked "Turf 2" is the card "Turf 1".
+    const renamed = renderToStaticMarkup(
+      <TurfPickProvider initial={{ id, name: "Turf 2", turf }}>
+        <AssignTurfPanel shifts={shifts} center={null} names={{ [id]: "Turf 1", other: "Turf 2" }} />
+      </TurfPickProvider>,
+    );
+    expect(renamed).toContain("Assign Turf 1");
+    expect(renamed).toContain("already has Turf 1");
+    expect(renamed).not.toContain("already has Turf 2");
+    // A zone picked before any card names it is "this turf", never an empty name.
+    const unnamed = renderToStaticMarkup(
+      <TurfPickProvider initial={{ id, name: "", turf }}>
+        <AssignTurfPanel shifts={shifts} center={null} />
+      </TurfPickProvider>,
+    );
+    expect(unnamed).toContain("Assign this turf");
+    expect(unnamed).toContain("already has this turf");
+  });
+  it("the button's spoken name is left to its words when the turf has no name", () => {
+    const html = renderToStaticMarkup(<TurfPickProvider><AssignThisTurfButton id="z" name="" turf={turf} /></TurfPickProvider>);
+    expect(html).toContain("Assign this turf");
+    expect(html).not.toContain("aria-label");
+  });
   it("ticks nobody for the organizer", () => {
     expect(html).not.toContain("checked=");
   });

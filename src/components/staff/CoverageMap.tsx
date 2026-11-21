@@ -147,16 +147,22 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
   // A region, not an image: the map's zoom buttons and attribution link inside it must stay reachable.
   const region = <div ref={el} data-pickable={pickable ? "" : undefined} className={`turf-map coverage-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label} />;
   if (!pickable) return region;
-  const chosenName = chosen ? (names[chosen.id] ?? "This turf") : "";
+  // A zone the live count knows before the page's cards do has no name yet.
+  const chosenName = chosen ? (names[chosen.id] ?? "") : "";
   return (
     <div className="min-w-0 space-y-2">
       {region}
-      {/* Always there, so choosing a zone moves nothing on the page. The cards' buttons do the same from a keyboard. */}
-      <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 text-sm text-subtle" data-chosen-turf={chosen?.id}>
+      {/* Always there and always the same height (two rows on a phone, one from sm), with a long name cut short: choosing a
+          zone moves nothing on the page. The cards' buttons do the same from a keyboard. */}
+      <div className="flex min-h-16 flex-col items-start justify-center gap-1 text-sm text-subtle sm:min-h-11 sm:flex-row sm:items-center sm:justify-start sm:gap-3" data-chosen-turf={chosen?.id}>
         {chosen ? (
           <>
-            <p>
-              <span className="font-semibold text-fg">{chosenName}</span> · {chosen.onGround} of {chosen.total} on the ground
+            <p className="flex max-w-full min-w-0 gap-1">
+              <span className="truncate font-semibold text-fg">{chosenName || "This turf"}</span>
+              {/* The quantity is named, as on the cards (#113 review, P3). */}
+              <span className="shrink-0">
+                · {chosen.onGround} of {chosen.total} {chosen.total === 1 ? "shift" : "shifts"} checked in now
+              </span>
             </p>
             <AssignThisTurfButton id={chosen.id} name={chosenName} turf={chosen.turf} />
           </>

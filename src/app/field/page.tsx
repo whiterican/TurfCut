@@ -47,6 +47,8 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   // Under way: checked in and not out, or due now and not checked in (late). Counted by the live summary, which the page then polls (P1.7).
   const live = summarizeField(rows, now);
   const cards = turfCards(rows);
+  // Each turf's name as its card says it now, by zone id: what the map's line and the Assign panel call a turf.
+  const turfNames = Object.fromEntries(cards.map((c) => [c.id, c.name]));
   // Whoever may schedule shifts may give turf; the shifts offered are the ones still to work or under way.
   const assignable: AssignableShift[] = canUse(session, "scheduling")
     ? rows
@@ -106,11 +108,11 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
         </section>
         <section className="section" aria-labelledby="turf-heading">
           <h2 id="turf-heading" className="sr-only">Turf</h2>
-          {/* People who may assign turf can start from a turf already on the map: its zone and its card open the panel below. */}
+          {/* People who may assign turf can start from a turf already on the map: its card's button, or the one under the map for a tapped zone, opens the panel below. */}
           <TurfSection canAssign={assignable.length > 0}>
             <div className="overview-grid">
               {live.zones.length > 0 ? (
-                <CoverageMap initial={live.zones} className="overview-map field-map" names={Object.fromEntries(cards.map((c) => [c.id, c.name]))} />
+                <CoverageMap initial={live.zones} className="overview-map field-map" names={turfNames} />
               ) : (
                 <div className="overview-map field-map empty-state">
                   <p className="empty-state-title">No assigned turf to show.</p>
@@ -121,7 +123,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
                 <TurfCards cards={cards} now={now} />
               </aside>
             </div>
-            {assignable.length > 0 && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} />}
+            {assignable.length > 0 && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} names={turfNames} />}
           </TurfSection>
         </section>
         <section className="section" aria-labelledby="shifts-heading">

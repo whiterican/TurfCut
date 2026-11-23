@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireArea } from "@/lib/employer-session";
 import { assignShiftTurf } from "@/lib/field-day-data";
-import { readAssignment } from "@/lib/turf-assign";
+import { assignMessage, readAssignment } from "@/lib/turf-assign";
 
 export interface AssignTurfResult {
   ok: boolean;
@@ -27,9 +27,8 @@ export async function assignTurfAction(shiftIds: unknown, polygon: unknown): Pro
     return { ok: false, message: "Couldn't save the turf. Nothing was changed. Try again." };
   }
   if (!r.ok) return { ok: false, message: r.reason };
+  // Also when nothing was written: a page that offered a shift as lacking this turf was showing old data.
   revalidatePath("/field");
   for (const id of req.shiftIds) revalidatePath(`/shifts/${id}`);
-  const n = r.count;
-  const who = `${n} ${n === 1 ? "worker's shift" : "workers' shifts"}`;
-  return { ok: true, message: req.turf ? `Turf given to ${who}.` : `Turf cleared on ${who}.` };
+  return { ok: true, message: assignMessage(req.turf !== null, r.count, r.unchanged) };
 }

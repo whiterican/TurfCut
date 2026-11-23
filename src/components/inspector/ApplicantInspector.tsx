@@ -12,7 +12,7 @@ import { NotSharedChip } from "@/components/staff/NotSharedChip";
  * political fit, not even whether answers exist (applicantForInspector).
  * The full applicant page keeps everything else.
  */
-export function ApplicantInspector({ a, closeHref, now }: { a: Data; closeHref: string; now: Date }) {
+export function ApplicantInspector({ a, closeHref, now, hiringPaused = [] }: { a: Data; closeHref: string; now: Date; /** Why hiring is paused on the job (loadHiringPaused); empty when it isn't. */ hiringPaused?: string[] }) {
   const e = a.engagement;
   const fullHref = `/hiring/${e.job.id}/people/${e.id}`;
   const today = a.profile?.today ?? now.toISOString().slice(0, 10);
@@ -30,7 +30,7 @@ export function ApplicantInspector({ a, closeHref, now }: { a: Data; closeHref: 
         <StatusBadge status={engagementStatus(e, a.facts, now)} />
         <span className="text-muted-sm">Since {e.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}</span>
       </div>
-      <HiringActions jobId={e.job.id} jobStatus={e.job.status} engagementId={e.id} status={e.status} inReview={a.facts.inReview} offerExpiresAt={a.facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} />
+      <HiringActions jobId={e.job.id} jobStatus={e.job.status} engagementId={e.id} status={e.status} inReview={a.facts.inReview} offerExpiresAt={a.facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} hiringPaused={hiringPaused} />
       {a.open && a.profile ? (
         <dl className="space-y-3 text-sm">
           {e.job.startsAt && e.job.endsAt && (

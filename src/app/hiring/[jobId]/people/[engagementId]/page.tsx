@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { applicantForViewer } from "@/lib/applicant-view-data";
+import { loadHiringPaused } from "@/lib/jobs-data";
 import { ApplicantRecord } from "@/components/ApplicantRecord";
 import { InviteComposer } from "@/components/InviteComposer";
 
@@ -20,6 +21,8 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   const now = new Date();
   const applicant = await applicantForViewer(session, { jobId, engagementId }, { view: "page", now });
   if (!applicant) notFound();
-  return <ApplicantRecord applicant={applicant} now={now} invitation={applicant.open && applicant.profile
+  // The server refuses an offer while hiring is paused, so the page doesn't show one.
+  const hiringPaused = await loadHiringPaused(applicant.engagement.job.id, session.orgId, now);
+  return <ApplicantRecord applicant={applicant} now={now} hiringPaused={hiringPaused} invitation={applicant.open && applicant.profile
     ? <InviteComposer workerId={applicant.engagement.worker.id} orgId={session.orgId} /> : null} />;
 }

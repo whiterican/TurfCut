@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import type { ApplicantPage as ApplicantPageData } from "@/lib/applicant-view-data";
 
 /** The full candidate record, using only the authorized page loader result. */
-export function ApplicantRecord({ applicant, now, invitation }: { applicant: ApplicantPageData; now: Date; invitation: ReactNode }) {
+export function ApplicantRecord({ applicant, now, invitation, hiringPaused = [] }: { applicant: ApplicantPageData; now: Date; invitation: ReactNode; /** Why hiring is paused on the job (loadHiringPaused); empty when it isn't. */ hiringPaused?: string[] }) {
   const a = applicant;
   const { engagement: e, facts, access, open, appJob, profile: view, free, creds, snapshot, hired } = a;
   const job = e.job;
@@ -40,7 +40,7 @@ export function ApplicantRecord({ applicant, now, invitation }: { applicant: App
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
       <div className={styles.actions}>
-        <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} />
+        <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} hiringPaused={hiringPaused} />
         {hired && <form action={startDirect}>
           <input type="hidden" name="engagementId" value={e.id} />
           <button className="btn-secondary btn-sm">Message</button>

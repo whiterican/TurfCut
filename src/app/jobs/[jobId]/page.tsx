@@ -565,6 +565,8 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, u
   const live = job.status === "PUBLISHED" || job.status === "PAUSED";
   const current = live ? await db().jurisdictionProfile.findFirst({ where: { state: job.jurisdiction.state, locality: job.jurisdiction.locality, isCurrent: true }, select: { id: true, rules: true } }) : null;
   const frozen = live ? jobFreezeReasons(job, job.jurisdiction, current, now) : [];
+  // The server refuses an offer while hiring is paused (hiringPausedReasons), so the applicants' rows don't show one.
+  const hiringPaused = live ? hiringPausedReasons(job.org, job.jurisdiction, now) : [];
 
   return (
     <>
@@ -659,6 +661,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, u
                       inReview={f.inReview}
                       offerExpiresAt={f.offerExpiresAt}
                       inviteExpiresAt={e.inviteExpiresAt}
+                      hiringPaused={hiringPaused}
                     />
                     <EngagementHistory events={f.events} />
                     {e.applicationSnapshot ? (

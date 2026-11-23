@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { availabilityFromRow, EMPTY_AVAILABILITY } from "@/lib/availability";
 import { currentCredentials, orgCredentialView } from "@/lib/credentials";
 import { geoTables, milesBetween, resolveArea, type Point } from "@/lib/geo";
-import { exclusionReasons, readDisclosure } from "@/lib/jobs";
+import { exclusionReasons, hiringPausedReasons, readDisclosure, type JurisdictionFacts } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { computeScorecard } from "@/lib/scorecard";
@@ -67,12 +67,13 @@ async function candidates(onlyWorkerId?: string): Promise<Candidate[]> {
 const JOB_SELECT = {
   id: true, orgId: true, type: true, status: true, geography: true, campaignDisclosure: true, measureIds: true,
   org: { select: { name: true, approved: true } },
-  jurisdiction: { select: { state: true } },
+  // The fields hiringPausedReasons reads, and nothing else on the profile.
+  jurisdiction: { select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } },
 } as const;
-type MatchJob = { id: string; orgId: string; type: string; status: string; geography: unknown; campaignDisclosure: unknown; measureIds: string[]; org: { name: string; approved: boolean }; jurisdiction: { state: string } };
+type MatchJob = { id: string; orgId: string; type: string; status: string; geography: unknown; campaignDisclosure: unknown; measureIds: string[]; org: { name: string; approved: boolean }; jurisdiction: JurisdictionFacts };
 
 /** The job's place: its city in its state, from the bundled Census places. */
-export async function jobPoint(job: Pick<MatchJob, "geography" | "jurisdiction">): Promise<Point | null> {
+export async function jobPoint(job: { geography: unknown; jurisdiction: { state: string } }): Promise<Point | null> {
   const g = job.geography && typeof job.geography === "object" ? (job.geography as Record<string, unknown>) : {};
   const city = typeof g.city === "string" ? g.city : null;
   const state = typeof g.state === "string" ? g.state : job.jurisdiction.state;
@@ -80,7 +81,7 @@ export async function jobPoint(job: Pick<MatchJob, "geography" | "jurisdiction">
   return resolveArea(`${city}, ${state}`, await geoTables());
 }
 
-type Refusal = "not_found" | "not_approved" | "not_open" | "no_city" | "city_unplaced";
+type Refusal = "not_found" | "not_approved" | "not_open" | "hiring_paused" | "no_city" | "city_unplaced";
 
 /**
  * The near, eligible candidates for a job: its work type, within each
@@ -94,6 +95,8 @@ async function nearFor(job: MatchJob, pool: Candidate[], now: Date, includeEngag
   // Published (or paused) jobs only: a draft's city and campaign can still change, which would let
   // an organization move a draft around to learn where someone lives or which campaigns they ruled out.
   if (job.status !== "PUBLISHED" && job.status !== "PAUSED") return "not_open";
+  // Hiring is paused (the rules profile fails the gate; the approval is checked above): nobody can be invited, so nobody is suggested.
+  if (hiringPausedReasons(job.org, job.jurisdiction, now).length) return "hiring_paused";
   const g = job.geography && typeof job.geography === "object" ? (job.geography as Record<string, unknown>) : {};
   if (typeof g.city !== "string" || !g.city.trim()) return "no_city";
   const here = await jobPoint(job);
@@ -195,7 +198,8 @@ export async function matchCounts(jobIds: string[], orgId: string, now = new Dat
   if (!jobIds.length) return out;
   const [jobs, pool] = await Promise.all([db().job.findMany({ where: { id: { in: jobIds }, orgId }, select: JOB_SELECT }), candidates()]);
   for (const j of jobs) {
-    const near = pool.length ? await nearFor(j, pool, now) : [];
+    // Always through nearFor, an empty pool too: a job with no matches to show (draft, paused, no city) reads as blank, not 0.
+    const near = await nearFor(j, pool, now);
     out.set(j.id, typeof near === "string" ? null : near.length);
   }
   return out;

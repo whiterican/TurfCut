@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { readHiringModes } from "@/lib/jobs";
+import { hiringOpenWhere, readHiringModes } from "@/lib/jobs";
 import { INVITE_DAYS, INVITES_PER_WEEK, inviteLapsed, NOTE_MAX } from "@/lib/engagements";
 import { invitesLeft } from "@/lib/invitations-data";
 import { ActionButton } from "@/components/ActionButton";
@@ -11,13 +11,14 @@ import { invite } from "@/app/jobs/actions";
  * Call it only where the organization may see the worker (C1 relationship).
  */
 export async function InviteComposer({ workerId, orgId }: { workerId: string; orgId: string }) {
+  const now = new Date();
   const [openJobs, engagedOn, left] = await Promise.all([
-    db().job.findMany({ where: { orgId, status: "PUBLISHED" }, select: { id: true, title: true, hiringMethod: true }, orderBy: { startsAt: "asc" } }),
+    // Not a job whose hiring is paused (hiringOpenWhere, as the feed): the server refuses an invitation to one.
+    db().job.findMany({ where: { orgId, status: "PUBLISHED", AND: [hiringOpenWhere(now)] }, select: { id: true, title: true, hiringMethod: true }, orderBy: { startsAt: "asc" } }),
     db().engagement.findMany({ where: { workerId, job: { orgId } }, select: { jobId: true, status: true, inviteExpiresAt: true } }),
     invitesLeft(workerId, orgId),
   ]);
   // A lapsed invitation can be sent again; any other engagement on a job rules that job out.
-  const now = new Date();
   const engaged = new Set(engagedOn.filter((e) => !inviteLapsed(e.status, e.inviteExpiresAt, now)).map((e) => e.jobId));
   const invitable = openJobs.filter((j) => readHiringModes(j.hiringMethod).includes("invite") && !engaged.has(j.id));
 
@@ -25,7 +26,7 @@ export async function InviteComposer({ workerId, orgId }: { workerId: string; or
     <section className="section">
       <h2 className="section-title">Invite to a job</h2>
       {invitable.length === 0 ? (
-        <p className="text-muted-sm">No published job of yours is open to invitations for this worker.</p>
+        <p className="text-muted-sm">No published job of yours is open to invitations for this worker right now.</p>
       ) : left === 0 ? (
         <p className="text-muted-sm">You&apos;ve sent this worker the most invitations allowed this week ({INVITES_PER_WEEK}). Try again in a few days.</p>
       ) : (

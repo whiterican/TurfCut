@@ -140,8 +140,11 @@ const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, "");
  * with digits after it ("SSN4"). Multi-word names ("Social Security",
  * "License Number") are matched on the squeezed header.
  */
-const NEVER_WORD = /^(ssn|ss|sin|itin|tin|ein|dob|dl|dln|pin|pwd|passwd|password|passphrase|token|secret|cvv|cvc|iban|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc)\d*$/;
-const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthdate", "lastfour", "last4"];
+const NEVER_WORD =
+  /^(ssn|ssno|ss|sin|itin|tin|ein|nino|mbi|dob|yob|bday|dl|dln|dlnum|dlno|pin|pincode|pw|pwd|pass|passcode|passwd|password|passphrase|token|secret|apikey|cvv|cvc|pan|exp|expiry|expdate|expmonth|expyear|iban|aba|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc|medicare|medicaid|alien)\d*$/;
+const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthdate", "lastfour", "last4", "nationalid", "nationalinsurance", "apikey", "expirationdate", "expdate", "medicareno", "medicarenumber", "medicaidid"];
+/** Squeezed headers matched only exactly, being short enough to sit inside ordinary words ("Plan Number" holds "anumber"). */
+const NEVER_EXACT = ["dob", "dl", "ssn", "ss", "sin", "tin", "ein", "pin", "bday", "anumber", "dlno", "dlnum"];
 export function isNeverStored(header: string): boolean {
   const words = header
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -151,7 +154,7 @@ export function isNeverStored(header: string): boolean {
   if (words.some((w) => NEVER_WORD.test(w))) return true;
   const squeezed = words.join("");
   // "D.O.B" and "S.S.N." split into single letters; squeezed back they are the abbreviation, matched exactly (never as a substring: "Adobe").
-  if (["dob", "dl", "ssn", "ss", "sin", "tin", "ein", "pin"].includes(squeezed)) return true;
+  if (NEVER_EXACT.includes(squeezed)) return true;
   return NEVER_SQUEEZED.some((x) => squeezed.includes(x));
 }
 
@@ -172,8 +175,10 @@ function luhn(digits: string): boolean {
  * can hold either; the value is left out rather than stored.
  */
 export function looksLikeGovIdOrCard(value: string): boolean {
-  if (/(?<!\d)\d{3}[- ]\d{2}[- ]\d{4}(?!\d)/.test(value)) return true;
-  for (const m of value.matchAll(/(?<![\d])(?:\d[ -]?){13,19}(?!\d)/g)) {
+  if (/(?<!\d)\d{3}[- .]\d{2}[- .]\d{4}(?!\d)/.test(value)) return true;
+  // A bare nine digits next to a Social Security label ("SSN: 123456789", "Soc Sec No 123456789").
+  if (/\b(ssn|ss|soc(ial)?\.?\s*sec(urity)?)\.?\s*(no\.?|num(ber)?|#)?\s*[:#=-]?\s*\d{9}(?!\d)/i.test(value)) return true;
+  for (const m of value.matchAll(/(?<![\d])(?:\d[ .-]?){13,19}(?!\d)/g)) {
     const digits = m[0].replace(/\D/g, "");
     if (digits.length >= 13 && digits.length <= 19 && luhn(digits)) return true;
   }

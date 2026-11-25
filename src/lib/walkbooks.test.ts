@@ -107,8 +107,10 @@ describe("mapColumns", () => {
 });
 
 describe("never-stored headers (word-based, so an ID column can't hide behind an abbreviation)", () => {
-  const dropped = ["SSN", "SSN4", "Last4SSN", "ssn_last_4", "SS#", "Soc Sec", "Social", "Social Security #", "D.O.B", "DOB", "Birthdate", "Born", "Date Of Birth", "DateOfBirth", "Birth Year", "License No", "License #", "Lic Num", "DL", "DL#", "Drivers Lic No", "Driver License", "Govt ID", "ID Number", "Passport", "Tax ID", "TIN", "EIN", "ITIN", "Credit Card", "Card #", "CC Number", "CVV", "Account", "Acct #", "Account Number", "IBAN", "Routing", "Password", "Pwd", "PIN", "Token", "Secret"];
-  const kept = ["Business Name", "Class Name", "Voter ID", "VANID", "First Name", "Last Name", "Party", "Phone", "Email", "2024 General", "Precinct", "Registered Date", "Notes", "Age", "Gender", "Race", "Employer", "Licensed Voter Since", "Pinned", "Tinder Group", "Accountant", "Birthplace Note"];
+  const dropped = ["SSN", "SSN4", "Last4SSN", "ssn_last_4", "SS#", "Soc Sec", "Social", "Social Security #", "D.O.B", "DOB", "Birthdate", "Born", "Date Of Birth", "DateOfBirth", "Birth Year", "License No", "License #", "Lic Num", "DL", "DL#", "Drivers Lic No", "Driver License", "Govt ID", "ID Number", "Passport", "Tax ID", "TIN", "EIN", "ITIN", "Credit Card", "Card #", "CC Number", "CVV", "Account", "Acct #", "Account Number", "IBAN", "Routing", "Password", "Pwd", "PIN", "Token", "Secret",
+    // The review's misses (Nov 25).
+    "YOB", "Bday", "BDay", "B-Day", "DLNum", "DL No", "PW", "Pass", "Passcode", "SSNo", "National ID", "NationalID", "National Insurance Number", "NINO", "Medicare Number", "MBI", "Medicaid ID", "Alien Number", "A-Number", "PAN", "Expiry", "Exp Date", "ExpMonth", "ABA", "API Key", "Pincode"];
+  const kept = ["Business Name", "Class Name", "Voter ID", "VANID", "First Name", "Last Name", "Party", "Phone", "Email", "2024 General", "Precinct", "Registered Date", "Notes", "Age", "Gender", "Race", "Employer", "Licensed Voter Since", "Pinned", "Tinder Group", "Accountant", "Birthplace Note", "Pantry Volunteer", "Passed Petition", "Expected Turnout", "Plan Number", "Panel"];
   it("drops every government ID, birth date, payment and password header in the list", () => {
     for (const h of dropped) expect(isNeverStored(h), h).toBe(true);
   });
@@ -126,6 +128,9 @@ describe("values that look like a Social Security or card number", () => {
   it("don't catch an ordinary phone number, ZIP+4, date or long ID that fails the card check", () => {
     for (const v of ["(303) 555-0100", "+1 303 555 0100", "80202-1234", "2026-11-18", "1234567890123", "Unit 12-34-5678"]) expect(looksLikeGovIdOrCard(v), v).toBe(false);
     expect(looksLikeGovIdOrCard("123 45 6789")).toBe(true);
+    // The review's misses (Nov 25): dotted, and a bare nine digits next to an SSN label; cards with dots.
+    for (const v of ["123.45.6789", "SSN: 123456789", "ss# 123456789", "Soc Sec No 123456789", "4111.1111.1111.1111"]) expect(looksLikeGovIdOrCard(v), v).toBe(true);
+    for (const v of ["Precinct 123456789", "Zip+4 802021234"]) expect(looksLikeGovIdOrCard(v), v).toBe(false);
     expect(looksLikeGovIdOrCard("5500005555555559")).toBe(true);
   });
 });

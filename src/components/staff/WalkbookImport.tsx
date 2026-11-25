@@ -152,11 +152,11 @@ function Preview({ name, file }: { name: string; file: AddressFile }) {
         </ul>
       </div>
       <div className="space-y-1">
-        <p className="label">Stored with each row, for matching your return file</p>
+        <p className="label">Stored with each row</p>
         <p className="text-sm text-fg break-words">
           {file.recordIdColumn ? (
             <>
-              Record ID: <span className="font-semibold">{file.recordIdColumn}</span>.{" "}
+              Record ID, for matching your return file: <span className="font-semibold">{file.recordIdColumn}</span>.{" "}
             </>
           ) : (
             "No record ID column found (a column such as VANID or Contact ID). "
@@ -170,14 +170,17 @@ function Preview({ name, file }: { name: string; file: AddressFile }) {
           )}
         </p>
         <p className="text-hint">
-          These can hold names, phone numbers, party and vote history. They stay with the row, are never shown to workers or used to match or rank anyone, and are deleted with the address.
+          These can hold names, phone numbers, party and vote history. They stay with the row, are never shown to workers or used to match or rank anyone, and are deleted with the address. They aren&apos;t shown or exported again, except the record ID in your return file.
+        </p>
+        <p className="text-hint">
+          Values shaped like a Social Security or card number are left out of every column, but a birth date or an ID written into a notes column some other way can&apos;t be spotted: take such columns out of the file before you import it.
         </p>
       </div>
       {file.dropped.length > 0 && (
         <div className="space-y-1">
           <p className="label">Never stored: {file.dropped.length} {file.dropped.length === 1 ? "column" : "columns"}</p>
           <p className="text-sm text-fg break-words">{file.dropped.join(", ")}</p>
-          <p className="text-hint">Government ID numbers, birth dates, and payment and password columns are left out whatever the file says; so are any columns past the first 60, or cut to fit a row. Your whole file is read here, but only what is listed under Stored is kept; the stored columns aren&apos;t shown or exported again, except the record ID in your return file. Keep your own copy: we are not a backup.</p>
+          <p className="text-hint">A column whose name says it holds a government ID number, a birth date, or a payment or password detail is left out; so are any columns past the first 60, or cut to fit a row. Your whole file is read here, but only what is listed under Stored is kept. Keep your own copy: we are not a backup.</p>
         </div>
       )}
       <p className="text-sm text-fg">

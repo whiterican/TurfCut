@@ -33,10 +33,15 @@ reverses the first version of W1 (addresses only).
   columns and 16 KB a row, values cut at 500 characters). These columns hold
   names, phone numbers, party and vote history: the most sensitive data in the
   system.
-- **Never stored**, whatever the file says: government ID numbers, birth dates,
-  and payment and password columns (`isNeverStored` in `src/lib/walkbooks.ts`).
-  They are listed by name on the import, so the organization sees what was left
-  out. Columns past the first 60, or cut to fit a row, are listed too.
+- **Never stored**: a column whose name says it holds a government ID number, a
+  birth date, or a payment or password detail (`isNeverStored` in
+  `src/lib/walkbooks.ts`, matched on the header's words), and, in every other
+  column, a value shaped like a Social Security or card number
+  (`looksLikeGovIdOrCard`). They are listed by name on the import, so the
+  organization sees what was left out. Columns past the first 60, or cut to fit
+  a row, are listed too, and are stored on no row. What can't be caught: a birth
+  date or an ID written into a free-text column in some other form. The import
+  says so, and the organization should take such columns out of the file.
 - **Where they may be read**: only the importer that writes them, the purge that
   deletes them, and the staff export (the record ID only). `src/lib/walkbook-isolation.test.ts`
   fails if any other file names `sourceData` or `sourceRecordId`, if any

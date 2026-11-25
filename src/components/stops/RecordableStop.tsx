@@ -60,6 +60,8 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
   // for a tap that sends the same: an outcome or count changed since is a new tap, never "Already saved" and dropped.
   const sent = useRef<{ id: string; contents: string } | null>(null);
   const submit = (fd: FormData) => {
+    // Save stays focusable while it can't be used (aria-disabled), so a press then does nothing here.
+    if (pending || !chosen || !clientId) return;
     const contents = tapContents(fd);
     const t = idForTap(sent.current?.id === clientId ? sent.current : null, contents);
     if (sent.current?.id === clientId && t.id !== clientId) {
@@ -149,11 +151,11 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
                   <div key={f.key} className="flex min-h-12 items-center justify-between gap-3 rounded-[var(--radius-inner)] border border-border bg-surface px-3">
                     <label htmlFor={`${panelId}-${f.key}`} className="font-medium text-fg">{f.label}</label>
                     <div className="flex items-center gap-1">
-                      <button type="button" className="grid size-11 place-items-center rounded-full border border-border text-fg disabled:opacity-40" onClick={() => setCount(Math.max(0, count - 1))} disabled={count <= 0} aria-label="One fewer signature">
+                      <button type="button" className="grid size-11 place-items-center rounded-full border border-border text-fg aria-disabled:opacity-40" onClick={() => count > 0 && setCount(count - 1)} aria-disabled={count <= 0} aria-label="One fewer signature">
                         <Minus aria-hidden className="size-5" />
                       </button>
                       <input id={`${panelId}-${f.key}`} name={f.key} type="number" inputMode="numeric" min={0} max={f.max} value={count} onChange={(e) => setCount(Math.min(f.max ?? 50, Math.max(0, Number(e.target.value) || 0)))} className="field h-11 w-16 text-center text-lg font-bold" />
-                      <button type="button" className="grid size-11 place-items-center rounded-full border border-border text-fg disabled:opacity-40" onClick={() => setCount(Math.min(f.max ?? 50, count + 1))} disabled={count >= (f.max ?? 50)} aria-label="One more signature">
+                      <button type="button" className="grid size-11 place-items-center rounded-full border border-border text-fg aria-disabled:opacity-40" onClick={() => count < (f.max ?? 50) && setCount(count + 1)} aria-disabled={count >= (f.max ?? 50)} aria-label="One more signature">
                         <Plus aria-hidden className="size-5" />
                       </button>
                     </div>
@@ -165,7 +167,8 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
           )}
 
           <div className="flex items-center gap-3">
-            <button className="btn-primary min-h-12 flex-1" disabled={pending || !chosen || !clientId} aria-busy={pending || undefined}>
+            {/* aria-disabled, not disabled: a focused button that turns disabled drops focus to the page (submit ignores it). */}
+            <button className="btn-primary min-h-12 flex-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50" aria-disabled={pending || !chosen || !clientId} aria-busy={pending || undefined}>
               {pending ? "Saving…" : "Save"}
             </button>
             <button type="button" className="btn-ghost min-h-12" onClick={close}>Cancel</button>

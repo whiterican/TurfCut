@@ -170,7 +170,7 @@ async function record(who: Who, stopIdRaw: unknown, clientIdRaw: unknown, raw: R
       await lockShared(tx, `poll:${stop.walkbook.jobId}`);
       let engagementId: string | null = null;
       if (who.kind === "WORKER") {
-        const held = await tx.walkbookAssignment.findFirst({ where: { walkbookId: stop.walkbookId }, orderBy: { createdAt: "desc" }, select: { engagementId: true } });
+        const held = await tx.walkbookAssignment.findFirst({ where: { walkbookId: stop.walkbookId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { engagementId: true } });
         const e = held?.engagementId ? await tx.engagement.findFirst({ where: { id: held.engagementId, workerId: who.workerId, status: { in: [...HIRED] }, worker: { closedAt: null } }, select: { id: true } }) : null;
         if (!e) return gone;
         engagementId = e.id;
@@ -194,7 +194,7 @@ async function record(who: Who, stopIdRaw: unknown, clientIdRaw: unknown, raw: R
         if (existing.length > 0) return { ok: true as const, jobId: stop.walkbook.jobId, saved: 0, repeated: true };
       }
       // Only what changed is a new row: saving an unchanged form adds nothing to the history.
-      const newest = newestAnswers(await tx.pollAnswer.findMany({ where: { stopId: stop.id, questionId: { in: read.value.map((a) => a.questionId) } }, select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true, engagementId: true } }));
+      const newest = newestAnswers(await tx.pollAnswer.findMany({ where: { stopId: stop.id, questionId: { in: read.value.map((a) => a.questionId) } }, select: { id: true, stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true, engagementId: true } }));
       // A worker reads back only their own rows, so they change only those: an answer someone else recorded isn't theirs to overwrite blind or to probe. Staff change it.
       if (who.kind === "WORKER" && read.value.some((a) => { const cur = newest.get(`${stop.id}|${a.questionId}`); return cur && cur.engagementId !== engagementId; })) {
         return { ok: false as const, reason: "An answer here was recorded by someone else. Ask a supervisor to change it." };
@@ -247,7 +247,7 @@ export async function loadWorkerPollAnswers(workerId: string, stopIds: string[])
     rows.push(
       ...(await db().pollAnswer.findMany({
         where: { stopId: { in: stopIds.slice(i, i + 5000) }, engagement: { workerId, status: { in: [...HIRED] }, worker: { closedAt: null } } },
-        select: { stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true },
+        select: { id: true, stopId: true, questionId: true, choiceId: true, declined: true, createdAt: true },
       }))
     );
   }

@@ -56,6 +56,12 @@ describe("newest answers and tallies", () => {
     expect(m.get(`s1|${Q1.id}`)?.choiceId).toBe(Q1.choices[1].id);
     expect(m.size).toBe(2);
   });
+  it("two answers at the same instant: the higher id is newest, whatever order they arrive in (as the console reads it)", () => {
+    const a = { ...row("s1", Q1, 0, 4), id: "00000000-0000-4000-8000-00000000000a" };
+    const b = { ...row("s1", Q1, 1, 4), id: "00000000-0000-4000-8000-00000000000b" };
+    expect(newestAnswers([a, b]).get(`s1|${Q1.id}`)?.choiceId).toBe(Q1.choices[1].id);
+    expect(newestAnswers([b, a]).get(`s1|${Q1.id}`)?.choiceId).toBe(Q1.choices[1].id);
+  });
   it("counts each question on its own, counting an edit once (its newest answer)", () => {
     const m = newestAnswers([row("s1", Q1, 0, 1), row("s1", Q1, 1, 3), row("s2", Q1, 1, 2), row("s3", Q1, "declined", 2), row("s1", Q2, 0, 2)]);
     const [a, b] = tally([Q1, Q2], m.values());

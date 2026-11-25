@@ -193,7 +193,7 @@ export async function assignWalkbook(actor: Staff, walkbookIdRaw: string, engage
     await lock(tx, `walkbook:${walkbookId}`);
     const wb = await tx.walkbook.findFirst({ where: { id: walkbookId, job: { orgId: actor.orgId } }, include: { job: { include: { jurisdiction: true } } } });
     if (!wb) return { ok: false as const, reason: "Walkbook not found." };
-    const current = await tx.walkbookAssignment.findFirst({ where: { walkbookId }, orderBy: { createdAt: "desc" }, select: { engagementId: true, createdAt: true } });
+    const current = await tx.walkbookAssignment.findFirst({ where: { walkbookId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { engagementId: true, createdAt: true } });
     if ((current?.engagementId ?? null) === engagementId) return { ok: true as const, jobId: wb.jobId, changed: false };
     if (engagementId) {
       const e = await tx.engagement.findFirst({ where: { id: engagementId, jobId: wb.jobId }, select: { status: true, worker: { select: { closedAt: true } } } });
@@ -309,7 +309,7 @@ export async function loadWalkbookForStaff(orgId: string, walkbookId: string) {
       import: { select: { fileName: true, recordSource: true, purpose: true, license: true } },
       stops: { orderBy: { stopNumber: "asc" }, select: STOP_SELECT },
       assignments: {
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         take: 50,
         select: { id: true, createdAt: true, engagement: { select: { worker: { select: { displayName: true } } } } },
       },

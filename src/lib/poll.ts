@@ -104,6 +104,8 @@ export interface AnswerRow {
   choiceId: string | null;
   declined: boolean;
   createdAt: Date;
+  /** Breaks a tie in createdAt, as the console's SQL does (newest is the higher id). */
+  id?: string;
 }
 
 /** The newest row of each stop and question: the answer now, whatever order rows arrive in. */
@@ -112,7 +114,8 @@ export function newestAnswers<T extends AnswerRow>(rows: readonly T[]): Map<stri
   for (const r of rows) {
     const k = `${r.stopId}|${r.questionId}`;
     const cur = best.get(k);
-    if (!cur || r.createdAt > cur.createdAt) best.set(k, r);
+    const t = r.createdAt.getTime(), c = cur?.createdAt.getTime();
+    if (!cur || t > c! || (t === c && (r.id ?? "") > (cur.id ?? ""))) best.set(k, r);
   }
   return best;
 }

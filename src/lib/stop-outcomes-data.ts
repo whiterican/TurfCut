@@ -42,7 +42,7 @@ export async function recordStopOutcome(
     if (!stop) return { ok: false as const, reason: "Stop not found.", gone: true as const };
     await lock(tx, `walkbook:${stop.walkbookId}`);
     // Who holds the book now: its newest assignment, and only if that is one of this worker's hired engagements.
-    const held = await tx.walkbookAssignment.findFirst({ where: { walkbookId: stop.walkbookId }, orderBy: { createdAt: "desc" }, select: { engagementId: true } });
+    const held = await tx.walkbookAssignment.findFirst({ where: { walkbookId: stop.walkbookId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { engagementId: true } });
     const engagement = held?.engagementId
       ? await tx.engagement.findFirst({ where: { id: held.engagementId, workerId: actor.workerId, status: { in: [...HIRED] }, worker: { closedAt: null } }, select: { id: true } })
       : null;
@@ -55,7 +55,7 @@ export async function recordStopOutcome(
     const v = validateOutcome(stop.walkbook.job.type, raw);
     if (!v.ok) return { ok: false as const, reason: v.reason, errors: v.errors };
     // Under the lock: strictly after the stop's newest row, so "newest wins" never ties.
-    const newest = await tx.stopOutcome.findFirst({ where: { stopId: stop.id }, orderBy: { createdAt: "desc" }, select: { createdAt: true } });
+    const newest = await tx.stopOutcome.findFirst({ where: { stopId: stop.id }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { createdAt: true } });
     const at = newest && newest.createdAt >= now ? new Date(newest.createdAt.getTime() + 1) : now;
     // The shift under way, if there is one; recording doesn't need a shift.
     const shift = await tx.shift.findFirst({ where: { engagementId: engagement.id, status: "ACTIVE" }, orderBy: { startsAt: "desc" }, select: { id: true } });

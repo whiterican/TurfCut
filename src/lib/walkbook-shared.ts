@@ -13,12 +13,13 @@ export const HIRED = ["ACTIVE", "CLAIMED"] as const;
 /** The newest assignment row of each walkbook: who holds it now. */
 export async function holders(walkbookIds: string[]) {
   if (!walkbookIds.length) return new Map<string, { engagementId: string | null; at: Date }>();
-  // DISTINCT ON in the database: one row per book, however long its history grows.
+  // DISTINCT ON in the database: one row per book, however long its history grows. A tie goes to the higher id, as
+  // the console reads it, so every page agrees on who holds a book.
   const rows = await db().$queryRaw<Array<{ walkbookId: string; engagementId: string | null; createdAt: Date }>>`
     SELECT DISTINCT ON ("walkbookId") "walkbookId", "engagementId", "createdAt"
     FROM "public"."WalkbookAssignment"
     WHERE "walkbookId" = ANY(${walkbookIds}::uuid[])
-    ORDER BY "walkbookId", "createdAt" DESC`;
+    ORDER BY "walkbookId", "createdAt" DESC, "id" DESC`;
   return new Map(rows.map((r) => [r.walkbookId, { engagementId: r.engagementId, at: r.createdAt }]));
 }
 

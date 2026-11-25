@@ -8,6 +8,7 @@ import { claimJob } from "@/lib/engagements-data";
 import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff } from "@/lib/walkbooks-data";
 import { recordStopOutcome } from "@/lib/stop-outcomes-data";
 import { loadConsole, loadExportRows, loadStopHistory } from "@/lib/stop-console-data";
+import { holders } from "@/lib/walkbook-shared";
 import { exportCsv, parseConsoleQuery } from "@/lib/stop-console";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
@@ -117,6 +118,16 @@ const META = { fileName: "big.csv", recordSource: "Own list", purpose: "Canvassi
   check("after a take-back, 'held by nobody' lists exactly that book's 60 stops", none.total === 60 && none.stops.every((s) => s.bookId === b2 && s.holderEngagementId === null), none.total);
   const inspectJob = await loadStopHistory(ORG, s1[0].id, job.id);
   check("the inspector is scoped to the job: the same stop under another job id is not found", !!inspectJob && (await loadStopHistory(ORG, s1[0].id, randomUUID())) === null);
+
+  // Two hand-outs at the same instant (a seed, or rows from the first version of W1): every reader must agree on who
+  // holds the book. The console breaks a tie by id; so must the job page, the recorder and the poll.
+  const [lo, hi] = [randomUUID(), randomUUID()].sort();
+  const tie = new Date(Date.now() + 3_600_000);
+  const e0id = e0.ok ? e0.engagementId : "", e1id = e1.ok ? e1.engagementId : "";
+  await p.$executeRaw`INSERT INTO "WalkbookAssignment" ("id", "walkbookId", "engagementId", "actorId", "createdAt") VALUES (${lo}::uuid, ${b2}::uuid, ${e0id}::uuid, ${owner.profileId}::uuid, ${tie}), (${hi}::uuid, ${b2}::uuid, ${e1id}::uuid, ${owner.profileId}::uuid, ${tie})`;
+  const viaConsole = (await loadConsole(ORG, job.id, q({ book: b2 })))!.stops[0]?.holderEngagementId;
+  const viaPage = (await holders([b2])).get(b2)?.engagementId;
+  check("a tie between two hand-outs is read the same way by the console and the job page (the higher id is newest)", viaConsole === e1id && viaPage === e1id, { viaConsole, viaPage, e1id });
 
   await p.$disconnect();
   if (fails) { console.log(`${fails} failed`); process.exit(1); }

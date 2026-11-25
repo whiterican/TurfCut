@@ -33,11 +33,13 @@ const ALLOWED = [
   /^src\/lib\/stop-console(-data)?(\.test)?\.ts$/, // the staff export (record ID only)
   /^src\/lib\/walkbook-isolation\.test\.ts$/,
   /^src\/instrumentation\.test\.ts$/, // checks the error scrubber redacts a DB message naming them
-  /^src\/components\/staff\/WalkbookImport\.tsx$/, // the uploader's own browser, previewing the file they chose
-  /^src\/app\/jobs\/\[jobId\]\/walkbooks\/(page|actions)\.tsx?$/, // staff: the import form's action, and the file list
-  /^src\/app\/api\/cron\/purge-imports\//, // the daily purge
-  /^src\/app\/zz-preview\//,
 ];
+/**
+ * Files that may name droppedColumns only (the headers left out, which the staff file list shows) and nothing else
+ * stored. The uploader's preview, the import action and the cron route name none of the three, so they aren't
+ * allowed at all: a read added to one of them fails here (the review's mutation, Nov 25).
+ */
+const DROPPED_ONLY = [/^src\/app\/jobs\/\[jobId\]\/walkbooks\/page\.tsx$/];
 /** Code that ranks, matches, scores or explains, and everything a worker is served: stricter, and never allowed. */
 const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring.*|desk.*|experience.*|applicants.*|invitations.*|engagements.*|org-profile.*|field-day.*|shift.*|pay.*|profile.*|worker.*|availability.*|credentials.*|walkbook-shared|walkbooks-worker-data|poll.*|stop-outcomes.*)\.ts|components\/(FitSignals|ScorecardPanel|JobCard|OrgProfileSections|FieldDayLive|OfflineBrief|ShiftDayList|WalkbookStops)\.tsx|components\/stops\/.*\.tsx?|app\/(shifts|earnings|pay|profile|workers|hiring|desk|walkbooks|api\/workers|api\/shifts|api\/feed|api\/walkbooks|api\/stops|api\/polls)\/.*\.tsx?)$/;
 /**
@@ -48,6 +50,9 @@ const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|met
  */
 const IMPORTERS = [
   ...ALLOWED,
+  ...DROPPED_ONLY,
+  /^src\/app\/jobs\/\[jobId\]\/walkbooks\/actions\.ts$/, // the import form's action
+  /^src\/app\/api\/cron\/purge-imports\/route\.ts$/, // the daily purge
   /^src\/app\/jobs\/\[jobId\]\/walkbooks\/\[walkbookId\]\/page\.tsx$/,
   /^src\/app\/jobs\/\[jobId\]\/walkbooks\/console\/(page\.tsx|export\/route\.ts)$/,
 ];
@@ -57,13 +62,14 @@ const code = (text: string) => text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
     const p = join(dir, f);
-    return statSync(p).isDirectory() ? files(p) : /\.(ts|tsx)$/.test(f) ? [p] : [];
+    // JavaScript too: tsconfig allows it, so a .js route would otherwise go unread.
+    return statSync(p).isDirectory() ? files(p) : /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/.test(f) ? [p] : [];
   });
 }
 const root = process.cwd();
 const rel = (p: string) => relative(root, p).replace(/\\/g, "/");
 const all = files(join(root, "src")).map((p) => ({ path: rel(p), text: readFileSync(p, "utf8") }));
-const isTest = (p: string) => /\.test\.tsx?$/.test(p);
+const isTest = (p: string) => /\.test\.(tsx?|jsx?|mjs|cjs)$/.test(p);
 const allowed = (p: string) => ALLOWED.some((a) => a.test(p));
 const get = (path: string) => all.find((f) => f.path === path)!.text;
 
@@ -88,13 +94,20 @@ describe("imported columns stay where they are meant to", () => {
   });
 
   it("only the importer, the purge, the staff export and the uploader's own preview name the stored columns", () => {
-    const strays = all.filter((f) => NAMES.test(f.text) && !allowed(f.path)).map((f) => f.path);
+    const onlyDropped = (f: { path: string; text: string }) => DROPPED_ONLY.some((a) => a.test(f.path)) && !/\b(sourceData|sourceRecordId)\b/.test(f.text);
+    const strays = all.filter((f) => NAMES.test(f.text) && !allowed(f.path) && !onlyDropped(f)).map((f) => f.path);
     expect(strays, `these name sourceData, sourceRecordId or droppedColumns: ${strays.join(", ")}`).toEqual([]);
   });
 
   it("no other file reads the import tables at all, by accessor, model or raw SQL (even without naming a column)", () => {
     const strays = all.filter((f) => !isTest(f.path) && TABLES.test(f.text) && !allowed(f.path)).map((f) => f.path);
     expect(strays, `these reach the import tables: ${strays.join(", ")}`).toEqual([]);
+  });
+
+  it("outside the allowed files no raw SQL is put together from strings (Prisma.raw), which could spell a table's name", () => {
+    // The review read a row whole with Prisma.raw('"public"."Imported' + 'Address"'): no table name appears whole.
+    const strays = all.filter((f) => !isTest(f.path) && !allowed(f.path) && /\bPrisma\s*\.\s*raw\s*\(/.test(code(f.text))).map((f) => f.path);
+    expect(strays, `these build raw SQL from strings: ${strays.join(", ")}`).toEqual([]);
   });
 
   it("no file builds a stored column's name from pieces or reads it by a computed key", () => {
@@ -110,10 +123,12 @@ describe("imported columns stay where they are meant to", () => {
   it("no query that could reach an address selects every column ('SELECT *') or an address whole", () => {
     const star = /\bSELECT\s+(\w+\.)?\*/i;
     // A relation key named address/importedAddress taken whole (true, 1, {}, or a quoted key); STOP_SELECT's explicit field list is the only form allowed.
-    const whole = /["'`](address|importedAddress)["'`]\s*\]?\s*:|\b(address|importedAddress)\s*:\s*(true|!0|1|\{\s*\}|\{\s*include)/;
-    const json = /\b(to_jsonb|row_to_json|json_agg)\s*\(\s*(ia|a|b)\b|\b(ia|a|b)\.\*/i;
+    // A quoted key where a key can sit (after { , or [): a ternary's "address" : "addresses" is a string, not a key.
+    const whole = /[{,[]\s*["'`](address|importedAddress)["'`]\s*\]?\s*:|\b(address|importedAddress)\s*:\s*(true|!0|1|\{\s*\}|\{\s*include)/;
+    // Any alias (the review read a row whole as "z"): a row turned into JSON or text, or alias.*, in a file that reads the tables.
+    const json = /\b(to_jsonb?|row_to_json|json_agg|jsonb_agg|json_build_\w+|jsonb_build_\w+|array_to_json|hstore)\s*\(|\b\w+[ \t]*\.[ \t]*\*/i;
     const wholeAddress = all
-      .filter((f) => !isTest(f.path) && ((allowed(f.path) && (star.test(f.text) || (TABLES.test(f.text) && json.test(f.text)))) || (!allowed(f.path) && whole.test(f.text.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")))))
+      .filter((f) => !isTest(f.path) && ((allowed(f.path) && (star.test(code(f.text)) || (TABLES.test(f.text) && json.test(code(f.text))))) || (!allowed(f.path) && whole.test(code(f.text)))))
       .map((f) => f.path);
     expect(wholeAddress, `these select whole rows: ${wholeAddress.join(", ")}`).toEqual([]);
   });

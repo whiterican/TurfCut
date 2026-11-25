@@ -109,8 +109,10 @@ describe("mapColumns", () => {
 describe("never-stored headers (word-based, so an ID column can't hide behind an abbreviation)", () => {
   const dropped = ["SSN", "SSN4", "Last4SSN", "ssn_last_4", "SS#", "Soc Sec", "Social", "Social Security #", "D.O.B", "DOB", "Birthdate", "Born", "Date Of Birth", "DateOfBirth", "Birth Year", "License No", "License #", "Lic Num", "DL", "DL#", "Drivers Lic No", "Driver License", "Govt ID", "ID Number", "Passport", "Tax ID", "TIN", "EIN", "ITIN", "Credit Card", "Card #", "CC Number", "CVV", "Account", "Acct #", "Account Number", "IBAN", "Routing", "Password", "Pwd", "PIN", "Token", "Secret",
     // The review's misses (Nov 25).
-    "YOB", "Bday", "BDay", "B-Day", "DLNum", "DL No", "PW", "Pass", "Passcode", "SSNo", "National ID", "NationalID", "National Insurance Number", "NINO", "Medicare Number", "MBI", "Medicaid ID", "Alien Number", "A-Number", "PAN", "Expiry", "Exp Date", "ExpMonth", "ABA", "API Key", "Pincode"];
-  const kept = ["Business Name", "Class Name", "Voter ID", "VANID", "First Name", "Last Name", "Party", "Phone", "Email", "2024 General", "Precinct", "Registered Date", "Notes", "Age", "Gender", "Race", "Employer", "Licensed Voter Since", "Pinned", "Tinder Group", "Accountant", "Birthplace Note", "Pantry Volunteer", "Passed Petition", "Expected Turnout", "Plan Number", "Panel"];
+    "YOB", "Bday", "BDay", "B-Day", "DLNum", "DL No", "PW", "Passcode", "SSNo", "National ID", "NationalID", "National Insurance Number", "NINO", "Medicare Number", "MBI", "Medicaid ID", "Alien Number", "A-Number", "PAN", "Expiry", "Exp Date", "ExpMonth", "Expiration Date", "ABA", "API Key", "Pincode"];
+  const kept = ["Business Name", "Class Name", "Voter ID", "VANID", "First Name", "Last Name", "Party", "Phone", "Email", "2024 General", "Precinct", "Registered Date", "Notes", "Age", "Gender", "Race", "Employer", "Licensed Voter Since", "Pinned", "Tinder Group", "Accountant", "Birthplace Note", "Pantry Volunteer", "Passed Petition", "Expected Turnout", "Plan Number", "Panel",
+    // Walk-list columns: the attempt number and the expected-turnout score (the rule-9 review, Nov 25).
+    "Pass", "Pass 1", "Pass Number", "Canvass Pass", "Pass Through", "Last Pass", "Exp Vote", "Exp Turnout", "Exp. Turnout", "EXP_SCORE", "Exp Party"];
   it("drops every government ID, birth date, payment and password header in the list", () => {
     for (const h of dropped) expect(isNeverStored(h), h).toBe(true);
   });

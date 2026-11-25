@@ -385,7 +385,7 @@ export async function supervisorShiftAction(
 }
 
 /** The events a worker's own field actions write (not supervisors', not map pins). */
-const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN", "PACKET_HELD", "APP_COUNTS"]);
+const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "SIGNATURE_UNDONE", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN", "PACKET_HELD", "APP_COUNTS"]);
 
 export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "rejected"; reason?: string };
 

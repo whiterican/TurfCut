@@ -86,6 +86,7 @@ export function readQueued(raw: unknown): QueuedAction | null {
     case "pause":
     case "resume":
     case "check_out":
+    case "undo_signature":
       action = { kind: a.kind };
       break;
     case "log":

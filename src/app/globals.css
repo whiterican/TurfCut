@@ -2244,6 +2244,13 @@ body {
   .signature-tally-plus {
     @apply min-h-16 min-w-28 shrink-0 gap-1 text-2xl;
   }
+  /* Below the figure, on the side away from the +1. Faded at none like an unavailable button (aria-disabled keeps it focusable). */
+  .signature-tally-undo {
+    @apply -ml-2 mt-1;
+  }
+  .signature-tally-undo[aria-disabled="true"] {
+    @apply cursor-not-allowed opacity-50;
+  }
   .stat-tile-label,
   .summary-item > .eyebrow {
     @apply mt-1 text-base font-medium text-fg;

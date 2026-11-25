@@ -43,6 +43,7 @@ const EVENT_LABELS: Record<string, string> = {
   PACKET_RETURN: "Packet returned",
   PACKET_HELD: "Packet kept for next shift",
   SIGNATURE_SUBMITTED: "Signatures logged",
+  SIGNATURE_UNDONE: "Signature taken back",
   DOOR_KNOCK: "Doors logged",
   CONTACT: "Contacts logged",
   APP_COUNTS: "App totals entered",
@@ -74,6 +75,8 @@ function eventDetail(type: string, payload: unknown): string {
     case "DOOR_KNOCK":
     case "CONTACT":
       return `+${p.count ?? 1}`;
+    case "SIGNATURE_UNDONE":
+      return `−${p.count ?? 1}`;
     case "APP_COUNTS":
       return `${typeof p.app === "string" ? appLabel(p.app as never) : "app"} · ${p.doors ?? "?"} doors · ${p.contacts ?? "?"} contacts`;
     case "BATCH_COUNT":

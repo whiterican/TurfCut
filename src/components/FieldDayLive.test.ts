@@ -23,4 +23,8 @@ describe("entries waiting to be sent", () => {
     expect(lines.map((l) => l.what)).toEqual(["+1 signature", "Break started", "+2 signatures", "+2 doors"]);
     expect(lines.map((l) => l.key)).toEqual(["a", "b", "c", "e"]);
   });
+  it("shows a take-back on a line of its own, between the +1s around it", () => {
+    const lines = waitingLines([log("a", "signatures", 1, 100), { clientId: "b", at: 150, action: { kind: "undo_signature" as const } }, log("c", "signatures", 1, 200)]);
+    expect(lines.map((l) => l.what)).toEqual(["+1 signature", "1 signature taken back", "+1 signature"]);
+  });
 });

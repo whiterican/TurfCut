@@ -8,6 +8,7 @@ describe("readQueued", () => {
   it("accepts the field actions and nothing else", () => {
     expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 5 } })).toEqual({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 5 } });
     expect(readQueued({ clientId: id, at, action: { kind: "pause" } })?.action).toEqual({ kind: "pause" });
+    expect(readQueued({ clientId: id, at, action: { kind: "undo_signature", count: 40 } })?.action).toEqual({ kind: "undo_signature" });
     expect(readQueued({ clientId: id, at, action: { kind: "cancel", reason: "x" } })).toBeNull();
     expect(readQueued({ clientId: id, at, action: { kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 } })?.action).toEqual({ kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 });
     expect(readQueued({ clientId: id, at, action: { kind: "app_counts", app: "OTHER", doors: 1, contacts: 1 } })).toBeNull();

@@ -63,3 +63,11 @@ describe("the import's acknowledgements", () => {
     }
   });
 });
+
+describe("disclosures on the poll screens", () => {
+  it("every summary (Earlier wording, History) is a 44px target", () => {
+    for (const f of ["src/components/staff/PollSetup.tsx", "src/components/stops/PollConsole.tsx"]) {
+      for (const m of readFileSync(f, "utf8").matchAll(/<summary className="([^"]*)"/g)) expect(m[1], f).toMatch(/min-h-11/);
+    }
+  });
+});

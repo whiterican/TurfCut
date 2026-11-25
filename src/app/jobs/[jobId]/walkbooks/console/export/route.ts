@@ -51,7 +51,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ jobId: s
     return new NextResponse("Job not found.", { status: 404 });
   }
   // Refusals that don't depend on the limit come before it, so they cost the organization no export: too many
-  // stops, or a poll job narrowed to one worker (residents' answers are never broken down by worker, rule 5).
+  // stops, or a poll job narrowed to one worker (a poll export is never narrowed to one worker, rule 5; see WALKBOOKS.md for what that does and doesn't stop).
   const problem = await exportProblem(s.orgId, job, q, true);
   if (problem) {
     await audit(`refused: ${problem}`);

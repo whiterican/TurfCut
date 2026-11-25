@@ -208,7 +208,7 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   } else check("the export loads", false, ex);
   const noPoll = await loadExportRows(ORG, job.id, { outcome: null, bookId: null, holderId: null }, false);
   check("without poll access the export has no poll columns", noPoll.ok && noPoll.pollColumns.length === 0);
-  // Residents' answers are never broken down by worker (rule 5): a poll export narrowed to one worker is refused.
+  // A poll export is never narrowed to one worker (rule 5): it is refused. (The walkbook column still allows a join: WALKBOOKS.md.)
   const oneWorker = { outcome: null, bookId: null, holderId: e1.ok ? e1.engagementId : "" };
   const byWorker = await loadExportRows(ORG, job.id, oneWorker, true);
   check("a poll export narrowed to one worker is refused, with the reason", !byWorker.ok && byWorker.reason === POLL_BY_WORKER_REFUSAL, byWorker);

@@ -166,10 +166,13 @@ the organization deletes the job's data. Schema approved.
 - **Export**: one column per current question ("Poll 1: ..."), answers in words,
   full field access only. With poll columns the file carries no worker name and
   no time, and an export of a poll job narrowed to one worker ("Held by") is
-  refused, so it can't be pivoted into a per-worker breakdown of what residents
-  said (rule 5). ("Held by nobody" is allowed: it is no one's doors.) A file
-  exported book by book, set beside the console's holder column, still says
-  whose doors a book held; that is the same per-book view staff already have.
+  refused (rule 5). ("Held by nobody" is allowed: it is no one's doors.) That
+  keeps a named worker out of the file; it doesn't make a split by worker
+  impossible. The file keeps each stop's walkbook, and full-access staff can see
+  who holds each book (the walkbooks page, the console), so one join gives the
+  answers per holder, for the whole job at once, and the console's stop history
+  names who recorded each answer. Removing the walkbook column from poll exports
+  would close that but weakens the return file: Caden's call.
   Answers given to *earlier wording* of a changed question are not
   exported (they stay visible in the console history).
 - **Not enforced by the database** (the app does): that an answer's stop and its

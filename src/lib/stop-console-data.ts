@@ -234,7 +234,7 @@ export async function loadStopHistory(orgId: string, stopId: string, jobId?: str
 
 /** A poll export narrowed to one worker would break residents' answers down by worker (rule 5): refused. */
 export const POLL_BY_WORKER_REFUSAL =
-  "This job has a poll, and residents' answers are never broken down by worker. Set \"Held by\" back to Anyone to export.";
+  "This job has a poll, and a poll export isn't narrowed to one worker. Set \"Held by\" back to Anyone to export.";
 
 /**
  * Why an export would be refused before it is counted against the organization's hourly exports, or null:

@@ -41,7 +41,7 @@ export function PollResults({ current, earlier }: { current: Tally[]; earlier: T
       <ul className="space-y-3">{current.map(bar)}</ul>
       {earlier.some((t) => t.total > 0) && (
         <details className="text-sm">
-          <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-fg">Earlier wording that has answers</summary>
+          <summary className="min-h-11 cursor-pointer py-2.5 font-semibold text-fg">Earlier wording that has answers</summary>
           <ul className="mt-3 space-y-3">{earlier.filter((t) => t.total > 0).map(bar)}</ul>
         </details>
       )}
@@ -76,7 +76,7 @@ export function StopPollPanel({ stopId, data }: { stopId: string; data: History 
       {views.length > 0 && <StaffPollForm stopId={stopId} questions={views} values={values} />}
       {data.history.length > 0 && (
         <details>
-          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-fg">History ({data.history.length})</summary>
+          <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-fg">History ({data.history.length})</summary>
           <ol className="mt-2 space-y-2 border-l-2 border-border pl-4 text-sm">
             {data.history.map((h) => {
               const q = byQuestion.get(h.questionId);

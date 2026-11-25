@@ -67,7 +67,11 @@ describe("the import's acknowledgements", () => {
 describe("disclosures on the poll screens", () => {
   it("every summary (Earlier wording, History) is a 44px target", () => {
     for (const f of ["src/components/staff/PollSetup.tsx", "src/components/stops/PollConsole.tsx"]) {
-      for (const m of readFileSync(f, "utf8").matchAll(/<summary className="([^"]*)"/g)) expect(m[1], f).toMatch(/min-h-11/);
+      for (const m of readFileSync(f, "utf8").matchAll(/<summary className="([^"]*)"/g)) {
+        expect(m[1], f).toMatch(/min-h-11/);
+        // flex (or grid) turns off the summary's list-item display and with it the triangle that says it opens.
+        expect(m[1], f).not.toMatch(/(^|\s)(flex|inline-flex|grid|block|list-none)(\s|$)/);
+      }
     }
   });
 });

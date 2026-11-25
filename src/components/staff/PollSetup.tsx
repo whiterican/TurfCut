@@ -114,7 +114,7 @@ export function PollSetup({ jobId, current, earlier, canEdit }: { jobId: string;
       )}
       {earlier.length > 0 && (
         <details className="text-sm">
-          <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-fg">Earlier wording ({earlier.length})</summary>
+          <summary className="min-h-11 cursor-pointer py-2.5 font-semibold text-fg">Earlier wording ({earlier.length})</summary>
           <ul className="mt-2 space-y-2">
             {earlier.map((q) => (
               <li key={q.id} className="text-muted">

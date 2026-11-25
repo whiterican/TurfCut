@@ -24,6 +24,7 @@ const distanceText = (m: MatchRow) =>
 const REFUSED: Record<string, { title: string; body: string }> = {
   not_approved: { title: "Matches open once Turfcut approves your organization", body: "Until then, only people who apply are shown." },
   not_open: { title: "Matches show for published jobs", body: "Publish the job (its city and campaign are fixed from then on) to see who's nearby." },
+  hiring_paused: { title: "Matches are off while hiring is paused", body: "This job can't take anyone new right now, so nobody can be invited. The job page says why. People already on the job keep their place." },
   no_city: { title: "Add the job's city to see matches", body: "Matches are measured from the job's city." },
   city_unplaced: { title: "Turfcut can't place this job's city", body: "Check its spelling and state. Matches are measured from the job's city." },
   not_found: { title: "Job not found", body: "" },

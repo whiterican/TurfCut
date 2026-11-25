@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   cardAffiliation,
   jobDiscoveryLabel,
@@ -9,6 +10,12 @@ import {
   parseFeedFilters,
   canScheduleShift,
   compensationProblem,
+  COMPENSATION_METHODS,
+  isVolunteer,
+  PAID_METHODS,
+  volunteeringLive,
+  VOLUNTEERING_NOT_YET,
+  payText,
   exclusionReasons,
   jobCardAnswers,
   jobCredentials,
@@ -166,6 +173,86 @@ describe("compensation engine (spec p.13)", () => {
   });
 });
 
+describe("volunteering is off until its last slice is merged (docs/product/VOLUNTEERS.md, Switching it on)", () => {
+  // Off whatever the shell running the tests has exported (local work sets TURFCUT_VOLUNTEERS=1).
+  beforeEach(() => vi.stubEnv("TURFCUT_VOLUNTEERS", ""));
+  afterEach(() => vi.unstubAllEnvs());
+  const listed = { compensationAllowed: ["HOURLY", "VOLUNTEER"] };
+
+  it("is off in this build, and a production build cannot be talked into it", () => {
+    expect(readFileSync("src/lib/jobs.ts", "utf8")).toContain("const VOLUNTEERING_LIVE = false;");
+    expect(volunteeringLive()).toBe(false);
+    vi.stubEnv("TURFCUT_VOLUNTEERS", "1");
+    expect(volunteeringLive()).toBe(true); // tests and a local dev server
+    vi.stubEnv("NODE_ENV", "production");
+    expect(volunteeringLive()).toBe(false);
+  });
+
+  it("while off: no volunteer job is saved or published, even where a profile somehow lists it", () => {
+    const form = { type: "CANVASS", title: "Door knock", jurisdictionId: "00000000-0000-0000-0000-000000000021", city: "Denver", state: "CO", compensationMethod: "VOLUNTEER", payRate: "", headcount: "5", hiringModes: ["instant_claim"] };
+    const saved = validateJob(form);
+    expect(!saved.ok && saved.errors.compensationMethod).toBe(VOLUNTEERING_NOT_YET);
+    const draft = validateDraft(form);
+    expect(draft.ok).toBe(true);
+    expect(draft.ok && "compensationMethod" in draft.draft).toBe(false);
+    expect(compensationProblem("VOLUNTEER", listed)).toBe(VOLUNTEERING_NOT_YET);
+    const f = ready();
+    expect(publishBlockers({ ...f, job: { ...f.job, compensationMethod: "VOLUNTEER", payRateCents: null, type: "CANVASS" }, jurisdiction: { ...denver, rules: listed } }, now)).toEqual([VOLUNTEERING_NOT_YET]);
+    // Paid jobs are untouched by the switch.
+    expect(publishBlockers(ready(), now)).toEqual([]);
+  });
+});
+
+describe("volunteer jobs: unpaid, canvass only, and only where the rule profile says so (docs/product/VOLUNTEERS.md)", () => {
+  // These are the rules once volunteering is on.
+  beforeAll(() => vi.stubEnv("TURFCUT_VOLUNTEERS", "1"));
+  afterAll(() => vi.unstubAllEnvs());
+  const volunteer = (over: Partial<PublishFacts["job"]> = {}): PublishFacts => {
+    const f = ready();
+    return { ...f, job: { ...f.job, compensationMethod: "VOLUNTEER", payRateCents: null, type: "CANVASS", ...over }, jurisdiction: { ...denver, rules: { ...SEED_RULES, compensationAllowed: ["HOURLY", "VOLUNTEER"] } } };
+  };
+
+  it("is a method of its own, beside the three that pay", () => {
+    expect(COMPENSATION_METHODS.map((m) => m.value)).toEqual(["HOURLY", "SHIFT_RATE", "PER_UNIT", "VOLUNTEER"]);
+    expect(PAID_METHODS.map((m) => m.value)).toEqual(["HOURLY", "SHIFT_RATE", "PER_UNIT"]);
+    expect(isVolunteer("VOLUNTEER")).toBe(true);
+    for (const m of ["HOURLY", "SHIFT_RATE", "PER_UNIT", "", null, undefined, "volunteer"]) expect(isVolunteer(m)).toBe(false);
+  });
+
+  it("the jurisdiction hard stop: no profile lists it by default, and the gate says who can fix that", () => {
+    expect(compensationProblem("VOLUNTEER", {})).toMatch(/rules don't cover volunteer work yet\. Counsel has to add it/);
+    expect(compensationProblem("VOLUNTEER", SEED_RULES)).toMatch(/rules don't cover volunteer work yet/);
+    expect(compensationProblem("VOLUNTEER", null)).toMatch(/rules don't cover volunteer work yet/);
+    expect(compensationProblem("VOLUNTEER", { compensationAllowed: ["HOURLY", "VOLUNTEER"] })).toBeNull();
+    // Per-unit approval has nothing to do with it, either way.
+    expect(compensationProblem("VOLUNTEER", { compensationAllowed: ["VOLUNTEER"], perUnitAllowed: false })).toBeNull();
+    const f = volunteer();
+    expect(publishBlockers({ ...f, jurisdiction: { ...denver } }, now)).toEqual([expect.stringMatching(/rules don't cover volunteer work yet/)]);
+  });
+
+  it("publishes with no pay rate, and is refused one", () => {
+    expect(publishBlockers(volunteer(), now)).toEqual([]);
+    expect(publishBlockers(volunteer({ payRateCents: 2500 }), now)).toEqual(["A volunteer job has no pay rate. Remove it."]);
+    // A paid job still needs its rate.
+    const paid = ready();
+    expect(publishBlockers({ ...paid, job: { ...paid.job, payRateCents: null } }, now)).toEqual(["Set the gross pay rate."]);
+  });
+
+  it("is door canvassing only: volunteer petition circulation has its own state rules and is not offered", () => {
+    expect(publishBlockers(volunteer({ type: "PETITION" }), now)).toEqual(["Volunteer jobs are door-to-door canvassing only for now."]);
+    expect(publishBlockerList(volunteer({ type: "PETITION" }), now)[0]).toMatchObject({ fixer: "job", field: "compensationMethod" });
+  });
+
+  it("never reads as paid: no amount anywhere pay is worded", () => {
+    expect(payText("VOLUNTEER", null)).toBe("Volunteer (unpaid)");
+    // Whatever is stored: a rate on a volunteer job is never shown as pay.
+    expect(payText("VOLUNTEER", 2500)).toBe("Volunteer (unpaid)");
+    expect(payShort("VOLUNTEER", 2500, "CANVASS")).toBe("Volunteer (unpaid)");
+    expect(payParts("VOLUNTEER", 2500, "CANVASS")).toBeNull();
+    expect(payText("HOURLY", 2500)).toBe("$25.00 / hour (gross)");
+  });
+});
+
 describe("shift freeze on rule change (spec p.13)", () => {
   it("blocks new shifts while a job is filed under a superseded version", () => {
     expect(canScheduleShift(denver, now).ok).toBe(true);
@@ -250,6 +337,51 @@ describe("validateJob", () => {
   it("rejects bad input with a message per field", () => {
     const r = validateJob({ ...form, type: "PHONEBANK", payRate: "-1", headcount: "0", endsAt: "2026-10-01", hiringModes: [], affiliation: "whig", issue_gun_rights: "maybe" });
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["affiliation", "endsAt", "headcount", "hiringModes", "issues", "payRate", "type"]);
+  });
+
+  describe("a volunteer job in the form", () => {
+    beforeAll(() => vi.stubEnv("TURFCUT_VOLUNTEERS", "1"));
+    afterAll(() => vi.unstubAllEnvs());
+    const vol = { ...form, type: "CANVASS", compensationMethod: "VOLUNTEER", payRate: "" };
+    it("needs no rate and is stored with none", () => {
+      const r = validateJob(vol);
+      expect(r.ok && r.value.compensationMethod).toBe("VOLUNTEER");
+      expect(r.ok && r.value.payRateCents).toBeNull();
+      // A zero typed into the box is no rate too.
+      expect(validateJob({ ...vol, payRate: "0" }).ok).toBe(true);
+    });
+    it("refuses a rate, and refuses petition circulation", () => {
+      const rated = validateJob({ ...vol, payRate: "25" });
+      expect(!rated.ok && rated.errors).toEqual({ payRate: "A volunteer job has no pay rate. Leave it empty." });
+      const petition = validateJob({ ...vol, type: "PETITION" });
+      expect(!petition.ok && petition.errors).toEqual({ compensationMethod: "Volunteer jobs are door-to-door canvassing only for now." });
+    });
+    it("a paid job still needs its rate", () => {
+      const r = validateJob({ ...form, payRate: "" });
+      expect(!r.ok && r.errors.payRate).toMatch(/gross rate/);
+    });
+    it("round-trips through jobToForm with its empty rate", () => {
+      const r = validateJob(vol);
+      if (!r.ok) throw new Error("form");
+      const v = r.value;
+      const stored = {
+        type: v.type, title: v.title, description: v.description, jurisdictionId: v.jurisdictionId,
+        startsAt: v.startsAt, endsAt: v.endsAt, geography: { city: v.city, state: v.state },
+        compensationMethod: v.compensationMethod, payRateCents: v.payRateCents, headcount: v.headcount,
+        hiringMethod: { modes: v.hiringModes }, requirements: v.requirements, campaignDisclosure: v.disclosure,
+        supportContacts: v.supportContacts, measureIds: v.measureIds, cancellationNoticeHours: v.cancellationNoticeHours,
+        providesTraining: v.providesTraining,
+      };
+      expect(validateJob(jobToForm(stored))).toEqual(r);
+    });
+    it("a draft keeps volunteer with no rate, and drops a volunteer petition's method rather than save the pair", () => {
+      const d = validateDraft(vol);
+      expect(d.ok && d.draft.compensationMethod).toBe("VOLUNTEER");
+      expect(d.ok && d.draft.payRateCents).toBeNull();
+      const bad = validateDraft({ ...vol, type: "PETITION" });
+      expect(bad.ok).toBe(true);
+      expect(bad.ok && "compensationMethod" in bad.draft).toBe(false);
+    });
   });
 
   describe("validateDraft (autosave, P0 3)", () => {

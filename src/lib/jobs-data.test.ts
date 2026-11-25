@@ -58,6 +58,21 @@ describe("saveDraftProgress (job-builder autosave, P0 3)", () => {
     expect(tx.auditEvent.create.mock.calls[0][0].data).toMatchObject({ action: "job.draft_autosaved", entityId: JOB, metadata: { changed: ["location", "pay", "headcount"] } });
   });
 
+  it("a save with a rate but no method cannot put a rate on a stored volunteer draft", async () => {
+    tx.job.findFirst.mockResolvedValue({ ...stored, type: "CANVASS", compensationMethod: "VOLUNTEER" });
+    tx.job.updateMany.mockResolvedValue({ count: 1 });
+    const r = await saveDraftProgress(ORG, ME, JOB, { ...first, type: "CANVASS", payRateCents: 2500, headcount: 10 });
+    expect(r?.changed).toEqual(["headcount"]);
+    expect(tx.job.updateMany.mock.calls[0][0].data).not.toHaveProperty("payRateCents", 2500);
+  });
+
+  it("a volunteer draft turned into a paid one keeps the rate it was given", async () => {
+    tx.job.findFirst.mockResolvedValue({ ...stored, type: "CANVASS", compensationMethod: "VOLUNTEER" });
+    tx.job.updateMany.mockResolvedValue({ count: 1 });
+    await saveDraftProgress(ORG, ME, JOB, { ...first, type: "CANVASS", compensationMethod: "HOURLY", payRateCents: 2500 });
+    expect(tx.job.updateMany.mock.calls[0][0].data).toMatchObject({ compensationMethod: "HOURLY", payRateCents: 2500 });
+  });
+
   it("writes nothing when nothing changed", async () => {
     tx.job.findFirst.mockResolvedValue(stored);
     const r = await saveDraftProgress(ORG, ME, JOB, first);

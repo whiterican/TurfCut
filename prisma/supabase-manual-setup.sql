@@ -22,7 +22,7 @@ CREATE TYPE "public"."JobType" AS ENUM ('PETITION', 'CANVASS');
 CREATE TYPE "public"."JobStatus" AS ENUM ('DRAFT', 'PUBLISHED', 'PAUSED', 'CLOSED');
 
 -- CreateEnum
-CREATE TYPE "public"."CompensationMethod" AS ENUM ('HOURLY', 'SHIFT_RATE', 'PER_UNIT');
+CREATE TYPE "public"."CompensationMethod" AS ENUM ('HOURLY', 'SHIFT_RATE', 'PER_UNIT', 'VOLUNTEER');
 
 -- CreateEnum
 CREATE TYPE "public"."EngagementStatus" AS ENUM ('APPLIED', 'INVITED', 'CLAIMED', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'OFFERED', 'DECLINED', 'WITHDRAWN');
@@ -1358,6 +1358,7 @@ CREATE TABLE "public"."WorkerSharing" (
     "qualityAudience" "public"."ShareAudience" NOT NULL,
     "reliabilityAudience" "public"."ShareAudience" NOT NULL,
     "historyAudience" "public"."ShareAudience" NOT NULL,
+    "volunteerAudience" "public"."ShareAudience" NOT NULL DEFAULT 'NOBODY',
     "availabilityAudience" "public"."ShareAudience" NOT NULL,
     "credentialsAudience" "public"."ShareAudience" NOT NULL,
     "readReceipts" BOOLEAN NOT NULL DEFAULT false,
@@ -2688,3 +2689,52 @@ COMMIT;
 -- "We provide training" on jobs (PR #187). Also in prisma/c3-provides-training.sql.
 -- Existing jobs stay false. Safe to run again (no-op when the column is already on CREATE TABLE above).
 ALTER TABLE "public"."Job" ADD COLUMN IF NOT EXISTS "providesTraining" BOOLEAN NOT NULL DEFAULT false;
+
+-- ---- Volunteers (prisma/v1-volunteers.sql, docs/product/VOLUNTEERS.md) ----
+-- The enum value and WorkerSharing.volunteerAudience are in the definitions above. These are the guards: a volunteer
+-- job has no pay rate, is door canvassing once published and never private-sector, gets no pay line, and cannot turn
+-- from paid to volunteer or back once people are on it. Also in prisma/v1-volunteers.sql; keep the two the same.
+ALTER TABLE "public"."Job" DROP CONSTRAINT IF EXISTS "Job_volunteer_no_rate";
+ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_volunteer_no_rate" CHECK (
+  "compensationMethod"::text <> 'VOLUNTEER' OR "payRateCents" IS NULL);
+
+-- A draft may be part-way (the builder saves as it goes); from published on, the pair must hold.
+ALTER TABLE "public"."Job" DROP CONSTRAINT IF EXISTS "Job_volunteer_canvass";
+ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_volunteer_canvass" CHECK (
+  "compensationMethod"::text <> 'VOLUNTEER' OR "status"::text = 'DRAFT'
+  OR ("type"::text = 'CANVASS' AND "sector"::text <> 'PRIVATE'));
+
+-- No pay line for work on a volunteer job. A line names its engagement, its
+-- shift, the approval it pays, or several: it is refused if any of them
+-- belongs to a volunteer job.
+CREATE OR REPLACE FUNCTION "turfcut_private"."payout_not_for_volunteer"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM "public"."Engagement" e JOIN "public"."Job" j ON j."id" = e."jobId"
+     WHERE j."compensationMethod"::text = 'VOLUNTEER'
+       AND (e."id" = NEW."engagementId"
+            OR e."id" = (SELECT s."engagementId" FROM "public"."Shift" s WHERE s."id" = NEW."shiftId")
+            OR e."id" = (SELECT s."engagementId" FROM "public"."Validation" v JOIN "public"."Shift" s ON s."id" = v."shiftId" WHERE v."id" = NEW."validationId"))
+  ) THEN
+    RAISE EXCEPTION 'A volunteer job has no pay: no pay line can be written for it' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."payout_not_for_volunteer"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Payout_not_for_volunteer" ON "public"."Payout";
+CREATE TRIGGER "Payout_not_for_volunteer" BEFORE INSERT ON "public"."Payout"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."payout_not_for_volunteer"();
+
+-- People sign up for paid work or for volunteering, never "whichever it turns out to be".
+CREATE OR REPLACE FUNCTION "turfcut_private"."job_volunteer_fixed"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF (OLD."compensationMethod"::text = 'VOLUNTEER') IS DISTINCT FROM (NEW."compensationMethod"::text = 'VOLUNTEER')
+     AND EXISTS (SELECT 1 FROM "public"."Engagement" e WHERE e."jobId" = NEW."id") THEN
+    RAISE EXCEPTION 'A job with people on it can''t change between paid and volunteer' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."job_volunteer_fixed"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Job_volunteer_fixed" ON "public"."Job";
+CREATE TRIGGER "Job_volunteer_fixed" BEFORE UPDATE OF "compensationMethod" ON "public"."Job"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."job_volunteer_fixed"();

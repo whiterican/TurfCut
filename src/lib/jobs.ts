@@ -41,6 +41,9 @@ export const COMPENSATION_METHODS = [
   { value: "HOURLY", label: "Hourly" },
   { value: "SHIFT_RATE", label: "Per shift" },
   { value: "PER_UNIT", label: "Per accepted unit" },
+  // Unpaid (docs/product/VOLUNTEERS.md). Listed with the pay methods because a jurisdiction's rules allow or refuse it
+  // the same way, and a job is one or the other; nothing about pay applies to it.
+  { value: "VOLUNTEER", label: "Volunteer (unpaid)" },
 ] as const;
 
 export const HIRING_MODES = [
@@ -54,6 +57,21 @@ export const AFFILIATIONS = ["nonpartisan", ...PARTIES] as const;
 
 export type JobType = (typeof JOB_TYPES)[number]["value"];
 export type CompensationMethod = (typeof COMPENSATION_METHODS)[number]["value"];
+/** The methods that pay. Everything about rates, pay lines and earnings is typed to these. */
+export type PaidMethod = Exclude<CompensationMethod, "VOLUNTEER">;
+export const PAID_METHODS = COMPENSATION_METHODS.filter((m) => m.value !== "VOLUNTEER") as readonly { value: PaidMethod; label: string }[];
+/**
+ * Whether volunteering is switched on in this build. Off until the last slice of the volunteer work is merged
+ * (docs/product/VOLUNTEERS.md, "Switching it on"): until then the app has gaps a live volunteer job would fall into
+ * (the paid-or-volunteer rule, who may see volunteer history), so the server refuses to list it on a rule profile, to
+ * save a volunteer job and to publish one, whatever is posted. The last slice sets the constant to true.
+ * Tests and a local dev server switch it on with TURFCUT_VOLUNTEERS=1, which a production build ignores.
+ */
+const VOLUNTEERING_LIVE = false;
+export const volunteeringLive = (): boolean => VOLUNTEERING_LIVE || (process.env.NODE_ENV !== "production" && process.env.TURFCUT_VOLUNTEERS === "1");
+export const VOLUNTEERING_NOT_YET = "Volunteer jobs aren't available yet.";
+/** A volunteer job: unpaid by its nature, so no rate, no pay line, no earnings (docs/product/VOLUNTEERS.md). */
+export const isVolunteer = (method: string | null | undefined): method is "VOLUNTEER" => method === "VOLUNTEER";
 export type HiringMode = (typeof HIRING_MODES)[number]["value"];
 export type Affiliation = (typeof AFFILIATIONS)[number];
 export type CampaignType = (typeof FIT_CAMPAIGN_TYPES)[number]["value"];
@@ -92,7 +110,8 @@ export interface JobInput {
   city: string;
   state: string;
   compensationMethod: CompensationMethod;
-  payRateCents: number;
+  /** Gross rate in cents; null on a volunteer job, which has none. */
+  payRateCents: number | null;
   headcount: number;
   hiringModes: HiringMode[];
   requirements: JobRequirements;
@@ -182,6 +201,7 @@ export function validateDraft(raw: Record<string, unknown>): { ok: true; draft: 
     draft.state = value.state;
   }
   if (clean("compensationMethod")) draft.compensationMethod = value.compensationMethod;
+  // A volunteer draft's rate is null (it has none), which the draft writer stores as "no rate".
   if (clean("payRate")) draft.payRateCents = value.payRateCents;
   if (clean("headcount")) draft.headcount = value.headcount;
   if (clean("hiringModes")) draft.hiringModes = value.hiringModes;
@@ -250,8 +270,15 @@ function parseJob(raw: Record<string, unknown>): { errors: Record<string, string
   const compensationMethod = text(raw, "compensationMethod");
   if (!values(COMPENSATION_METHODS).includes(compensationMethod)) errors.compensationMethod = "Pick how workers are paid.";
   const rate = numText(raw, "payRate");
-  let payRateCents = 0;
-  if (!/^\d+(\.\d{1,2})?$/.test(rate) || Number(rate) <= 0 || Number(rate) > 10_000) {
+  let payRateCents: number | null = 0;
+  if (isVolunteer(compensationMethod)) {
+    // Unpaid by its nature: a rate on it would read as pay somewhere. And door canvassing only: volunteer petition
+    // circulation has its own state rules and is not offered.
+    payRateCents = null;
+    if (rate !== "" && Number(rate) !== 0) errors.payRate = "A volunteer job has no pay rate. Leave it empty.";
+    if (!volunteeringLive()) errors.compensationMethod = VOLUNTEERING_NOT_YET;
+    else if (type === "PETITION") errors.compensationMethod = "Volunteer jobs are door-to-door canvassing only for now.";
+  } else if (!/^\d+(\.\d{1,2})?$/.test(rate) || Number(rate) <= 0 || Number(rate) > 10_000) {
     errors.payRate = "Enter the gross rate in dollars, e.g. 25 or 25.50.";
   } else payRateCents = Math.round(Number(rate) * 100);
 
@@ -570,6 +597,11 @@ export function compensationProblem(method: CompensationMethod, rules: unknown):
   if (method === "HOURLY") return null; // default; always allowed
   const r = obj(rules);
   const allowed = Array.isArray(r.compensationAllowed) ? (r.compensationAllowed as unknown[]) : [];
+  // Volunteer work is allowed only where the rule profile says so, like any method but hourly: no silent default.
+  if (isVolunteer(method)) {
+    if (!volunteeringLive()) return VOLUNTEERING_NOT_YET;
+    return allowed.includes(method) ? null : "This jurisdiction's rules don't cover volunteer work yet. Counsel has to add it to the rule profile before a volunteer job can be published here.";
+  }
   const label = COMPENSATION_METHODS.find((m) => m.value === method)!.label.toLowerCase();
   if (!allowed.includes(method)) return `This jurisdiction doesn't allow ${label} pay. Use hourly, or a method its rules list.`;
   if (method === "PER_UNIT" && r.perUnitAllowed !== true) return "Per-unit pay needs the jurisdiction's explicit per-unit approval, which isn't on file.";
@@ -581,6 +613,8 @@ export interface PublishFacts {
     status: "DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED";
     compensationMethod: CompensationMethod;
     payRateCents: number | null;
+    /** How the work is counted, when the caller has it: a volunteer job must be a canvass. */
+    type?: JobType;
     headcount: number | null;
     startsAt: Date | null;
     endsAt: Date | null;
@@ -651,7 +685,11 @@ export function publishBlockerList(f: PublishFacts, now: Date = new Date()): Pub
       if (l) job(l, city ? "jurisdictionId" : "city");
     }
   }
-  if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");
+  if (isVolunteer(f.job.compensationMethod)) {
+    // Unpaid by its nature, and door canvassing only (the database refuses both too: prisma/v1-volunteers.sql).
+    if (f.job.payRateCents) job("A volunteer job has no pay rate. Remove it.", "payRate");
+    if (f.job.type === "PETITION") job("Volunteer jobs are door-to-door canvassing only for now.", "compensationMethod");
+  } else if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");
   if (!f.job.headcount || f.job.headcount < 1) job("Set the headcount.", "headcount");
   if (!f.job.startsAt || !f.job.endsAt) job("Set the start and end dates.", "startsAt");
   else if (f.job.endsAt < f.job.startsAt) job("The end date is before the start date.", "endsAt");
@@ -675,6 +713,7 @@ export function publishBlockers(f: PublishFacts, now: Date = new Date()): string
 // ---------------------------------------------------------------------------
 
 export function payText(method: CompensationMethod, cents: number | null): string {
+  if (isVolunteer(method)) return "Volunteer (unpaid)";
   if (!cents) return "Rate not set";
   const d = `$${(cents / 100).toFixed(2)}`;
   return method === "HOURLY" ? `${d} / hour (gross)` : method === "SHIFT_RATE" ? `${d} / completed shift (gross)` : `${d} / accepted unit (gross)`;
@@ -686,13 +725,15 @@ export function payText(method: CompensationMethod, cents: number | null): strin
  * label nearby.
  */
 export function payShort(method: CompensationMethod, cents: number | null, type: JobType = "PETITION"): string {
+  if (isVolunteer(method)) return "Volunteer (unpaid)";
   const p = payParts(method, cents, type);
   return p ? `${p.amount}/${p.short}` : "Rate not set";
 }
 
 /** Pay split for big displays: "$28" + "hour" (short "hr"), "$1.50" + "accepted signature". */
 export function payParts(method: CompensationMethod, cents: number | null, type: JobType = "PETITION"): { amount: string; unit: string; short: string } | null {
-  if (!cents) return null;
+  // A volunteer job has no amount to split, whatever is stored.
+  if (!cents || isVolunteer(method)) return null;
   const amount = `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
   if (method === "HOURLY") return { amount, unit: "hour", short: "hr" };
   if (method === "SHIFT_RATE") return { amount, unit: "completed shift", short: "completed shift" };

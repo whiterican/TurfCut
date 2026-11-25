@@ -67,7 +67,8 @@ function draftData(d: DraftInput) {
     ...(d.endsAt ? { endsAt: d.endsAt } : {}),
     ...(geo ? { geography: json(geo) } : {}),
     ...(d.compensationMethod ? { compensationMethod: d.compensationMethod } : {}),
-    ...(d.payRateCents ? { payRateCents: d.payRateCents } : {}),
+    // A draft turned into a volunteer job loses the rate it had: the database refuses a rate on one.
+    ...(d.compensationMethod === "VOLUNTEER" ? { payRateCents: null } : d.payRateCents ? { payRateCents: d.payRateCents } : {}),
     ...(d.headcount ? { headcount: d.headcount } : {}),
     ...(d.hiringModes ? { hiringMethod: json({ modes: d.hiringModes }) } : {}),
     ...(d.requirements ? { requirements: json(d.requirements) } : {}),
@@ -107,6 +108,9 @@ export async function saveDraftProgress(orgId: string, actorId: string, jobId: s
     // As keepUnsetLaunch: the builder's default launch (staged, no points yet) means "as it was" for a pre-C4 draft.
     const next: Partial<typeof data> = { ...data };
     if (stored.launch === null && draft.launch?.mode === "STAGED" && draft.launch.points.length === 0) delete next.launch;
+    // A volunteer draft keeps no rate, whichever save set the method: this one, or an earlier one this save leaves alone.
+    const pay = next as { compensationMethod?: string; payRateCents?: number | null };
+    if ((pay.compensationMethod ?? stored.compensationMethod) === "VOLUNTEER" && pay.payRateCents) pay.payRateCents = null;
     const changes = jobDiff(stored, next);
     const changed = changeLabels(changes);
     if (!changed.length) return { id: jobId, created: false, changed };
@@ -185,6 +189,11 @@ export async function updatePublishedJob(
     // Judged as a draft would be: the question is whether the edited job could publish, not whether it is.
     const reasons = publishBlockers({ job: { ...job, ...data, status: "DRAFT" }, jurisdiction, org: job.org }, now);
     if (reasons.length) return { ok: false as const, reasons: ["A live job has to pass the publishing checks, and with this saved it wouldn't: " + reasons.join(" ")] };
+    // People signed up for paid work or for volunteering, never "whichever it turns out to be". The database refuses
+    // this too (prisma/v1-volunteers.sql); said here so it is a reason on the form, not an error page.
+    if ((job.compensationMethod === "VOLUNTEER") !== (data.compensationMethod === "VOLUNTEER") && (await tx.engagement.count({ where: { jobId } })) > 0) {
+      return { ok: false as const, reasons: ["A job with people on it can't change between paid and volunteer. Close it and post a new one."] };
+    }
     const changes = jobDiff(job, data);
     const changed = changeLabels(changes);
     if (!changed.length) return { ok: true as const, changed, material: [], told: 0 };

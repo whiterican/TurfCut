@@ -1,5 +1,5 @@
 import { US_STATES } from "@/lib/experience";
-import { COMPENSATION_METHODS, type CompensationMethod } from "@/lib/jobs";
+import { COMPENSATION_METHODS, volunteeringLive, type CompensationMethod } from "@/lib/jobs";
 
 /**
  * The rules a jurisdiction profile carries (M10.3), as the publish gate and
@@ -40,6 +40,9 @@ export function rulesProblems(rules: JurisdictionRules): string[] {
   const out: string[] = [];
   if (!rules.compensationAllowed.length) out.push("Allow at least one pay method.");
   if (rules.compensationAllowed.some((m) => !isMethod(m))) out.push("Unknown pay method.");
+  // Listing it is what switches volunteering on in a place. Refused here, not only left off the form, until the
+  // volunteer work is finished (lib/jobs volunteeringLive): a crafted request must not be able to switch it on early.
+  if (rules.compensationAllowed.includes("VOLUNTEER") && !volunteeringLive()) out.push("Volunteer work can't be allowed on a rule profile yet: it isn't available.");
   if (rules.compensationAllowed.includes("PER_UNIT") !== rules.perUnitAllowed) out.push("Per-unit pay is allowed only with counsel's explicit per-unit approval, and that approval means the method is allowed.");
   if (rules.notes.length > NOTES_MAX) out.push(`Keep the notes to ${NOTES_MAX} characters or fewer.`);
   return out;

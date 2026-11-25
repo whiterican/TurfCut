@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
 import { autosaveDraft, forgetDraftCopies, saveJob, type JobFormState } from "@/app/jobs/actions";
-import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
+import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, PAID_METHODS, validateJob } from "@/lib/jobs";
 import { PLANNED_CATEGORIES } from "@/lib/job-categories";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
@@ -466,7 +466,8 @@ export function JobForm({
         <label className="space-y-1.5">
           <span className="label">Paid</span>
           <select name="compensationMethod" className="field" defaultValue={d("compensationMethod", "HOURLY")} {...describe("compensationMethod")}>
-            {COMPENSATION_METHODS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {/* The paid methods only, for now: posting a volunteer job comes with its own step in the builder (docs/product/VOLUNTEERS.md, slice 2). */}
+            {PAID_METHODS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           {err("compensationMethod")}
         </label>

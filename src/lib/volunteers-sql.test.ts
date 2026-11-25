@@ -9,9 +9,9 @@ import { readFileSync } from "node:fs";
 const migration = readFileSync("prisma/v1-volunteers.sql", "utf8");
 const setup = readFileSync("prisma/supabase-manual-setup.sql", "utf8");
 const schema = readFileSync("prisma/schema.prisma", "utf8");
-const guards = (sql: string, from: string, to: string | null) => {
+const guards = (sql: string, from: string, to: string) => {
   const start = sql.indexOf(from);
-  const end = to === null ? sql.length : sql.indexOf(to, start);
+  const end = sql.indexOf(to, start);
   if (start < 0 || end < 0) throw new Error(`section not found: ${from}`);
   return sql.slice(start, end).trim();
 };
@@ -19,7 +19,10 @@ const FIRST_GUARD = 'ALTER TABLE "public"."Job" DROP CONSTRAINT IF EXISTS "Job_v
 
 describe("volunteers migration", () => {
   it("the fresh setup holds the migration's guards word for word", () => {
-    expect(guards(setup, FIRST_GUARD, null)).toBe(guards(migration, FIRST_GUARD, "COMMIT;"));
+    // Contained, not "the rest of the file": later sections are appended to the setup after this one.
+    const block = guards(migration, FIRST_GUARD, "COMMIT;");
+    expect(block).toContain('CREATE TRIGGER "Job_volunteer_fixed"');
+    expect(setup).toContain(block);
   });
 
   it("the fresh setup has the method and the worker's audience in its definitions", () => {
@@ -34,7 +37,7 @@ describe("volunteers migration", () => {
     const body = migration.slice(migration.indexOf("BEGIN;"));
     const uses = body.split("\n").filter((l) => l.includes("'VOLUNTEER'") && !l.includes("ADD VALUE"));
     expect(uses.length).toBeGreaterThan(3);
-    for (const line of uses) expect({ line, asText: /::text\s*(=|<>)\s*'VOLUNTEER'|method = 'VOLUNTEER'/.test(line) }).toEqual({ line, asText: true });
+    for (const line of uses) expect({ line, asText: /::text\s*(=|<>)\s*'VOLUNTEER'/.test(line) }).toEqual({ line, asText: true });
   });
 
   it("can be run again: every definition is dropped or replaced first", () => {

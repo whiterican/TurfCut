@@ -60,6 +60,16 @@ export type CompensationMethod = (typeof COMPENSATION_METHODS)[number]["value"];
 /** The methods that pay. Everything about rates, pay lines and earnings is typed to these. */
 export type PaidMethod = Exclude<CompensationMethod, "VOLUNTEER">;
 export const PAID_METHODS = COMPENSATION_METHODS.filter((m) => m.value !== "VOLUNTEER") as readonly { value: PaidMethod; label: string }[];
+/**
+ * Whether volunteering is switched on in this build. Off until the last slice of the volunteer work is merged
+ * (docs/product/VOLUNTEERS.md, "Switching it on"): until then the app has gaps a live volunteer job would fall into
+ * (the paid-or-volunteer rule, who may see volunteer history), so the server refuses to list it on a rule profile, to
+ * save a volunteer job and to publish one, whatever is posted. The last slice sets the constant to true.
+ * Tests and a local dev server switch it on with TURFCUT_VOLUNTEERS=1, which a production build ignores.
+ */
+const VOLUNTEERING_LIVE = false;
+export const volunteeringLive = (): boolean => VOLUNTEERING_LIVE || (process.env.NODE_ENV !== "production" && process.env.TURFCUT_VOLUNTEERS === "1");
+export const VOLUNTEERING_NOT_YET = "Volunteer jobs aren't available yet.";
 /** A volunteer job: unpaid by its nature, so no rate, no pay line, no earnings (docs/product/VOLUNTEERS.md). */
 export const isVolunteer = (method: string | null | undefined): method is "VOLUNTEER" => method === "VOLUNTEER";
 export type HiringMode = (typeof HIRING_MODES)[number]["value"];
@@ -266,7 +276,8 @@ function parseJob(raw: Record<string, unknown>): { errors: Record<string, string
     // circulation has its own state rules and is not offered.
     payRateCents = null;
     if (rate !== "" && Number(rate) !== 0) errors.payRate = "A volunteer job has no pay rate. Leave it empty.";
-    if (type === "PETITION") errors.compensationMethod = "Volunteer jobs are door-to-door canvassing only for now.";
+    if (!volunteeringLive()) errors.compensationMethod = VOLUNTEERING_NOT_YET;
+    else if (type === "PETITION") errors.compensationMethod = "Volunteer jobs are door-to-door canvassing only for now.";
   } else if (!/^\d+(\.\d{1,2})?$/.test(rate) || Number(rate) <= 0 || Number(rate) > 10_000) {
     errors.payRate = "Enter the gross rate in dollars, e.g. 25 or 25.50.";
   } else payRateCents = Math.round(Number(rate) * 100);
@@ -587,7 +598,10 @@ export function compensationProblem(method: CompensationMethod, rules: unknown):
   const r = obj(rules);
   const allowed = Array.isArray(r.compensationAllowed) ? (r.compensationAllowed as unknown[]) : [];
   // Volunteer work is allowed only where the rule profile says so, like any method but hourly: no silent default.
-  if (isVolunteer(method)) return allowed.includes(method) ? null : "This jurisdiction's rules don't cover volunteer work yet. Counsel has to add it to the rule profile before a volunteer job can be published here.";
+  if (isVolunteer(method)) {
+    if (!volunteeringLive()) return VOLUNTEERING_NOT_YET;
+    return allowed.includes(method) ? null : "This jurisdiction's rules don't cover volunteer work yet. Counsel has to add it to the rule profile before a volunteer job can be published here.";
+  }
   const label = COMPENSATION_METHODS.find((m) => m.value === method)!.label.toLowerCase();
   if (!allowed.includes(method)) return `This jurisdiction doesn't allow ${label} pay. Use hourly, or a method its rules list.`;
   if (method === "PER_UNIT" && r.perUnitAllowed !== true) return "Per-unit pay needs the jurisdiction's explicit per-unit approval, which isn't on file.";

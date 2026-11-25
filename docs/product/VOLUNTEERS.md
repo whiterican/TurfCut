@@ -40,8 +40,16 @@ Database rules that go with them (SQL in `prisma/v1-volunteers.sql`, run on the 
 the code deploys, and safe to run twice):
 
 - A volunteer job must have no pay rate; a paid job is unchanged.
-- No payout row can be written for a shift on a volunteer job, whatever the code does.
+- No payout row can be written for volunteer work, whatever the code does: a pay line is refused if either the
+  engagement or the shift it names belongs to a volunteer job.
 - Volunteer jobs are door canvassing in the political or nonprofit sector only.
+- **Added while building slice 1, for Caden's nod:** once anyone is on a job (applied, invited, hired), it cannot
+  change between paid and volunteer. Otherwise a paid job with a crew could be turned into an unpaid one under
+  them, or a volunteer job could start paying people who signed up to volunteer. The organization closes the job
+  and posts a new one. The app says so on the form; the database refuses it whatever the code does.
+
+The file was rehearsed on a copy of a database that predates it (existing jobs, payouts and sharing rows): it ran
+clean twice, left every paid job untouched, and every existing sharing row came out as `NOBODY`.
 
 ## Rules in the app
 
@@ -81,11 +89,32 @@ Each is its own reviewed PR, in this order.
 
 ## Switching it on
 
-A volunteer job can be published only where the rule profile lists `VOLUNTEER`, and the only way to list it is the
-box on the staff rule-profile form. That box is added by the last slice, on purpose: until every slice is merged
-the app has gaps a live volunteer job would fall into (slice 3's paid-or-volunteer rule, slice 5's privacy), so
-nothing half-built can be switched on. After that, volunteering is on in a place when Turfcut staff tick the box
-for that place's profile on counsel's word, and nowhere else.
+Two locks, both closed until the last slice.
+
+1. **A switch in the code** (`VOLUNTEERING_LIVE` in `src/lib/jobs.ts`, `false`). While it is off, the form refuses
+   a volunteer job, a stored one cannot publish, and staff cannot list `VOLUNTEER` on a rule profile, whatever a
+   request carries. It is a constant, not a setting, so production cannot be switched on by a stray environment
+   variable; tests and local work turn it on with `TURFCUT_VOLUNTEERS=1`, which production ignores. The last slice
+   sets it to `true`.
+2. **The rule profile.** With the switch on, a volunteer job still publishes only where the profile lists
+   `VOLUNTEER`, and the only way to list it is the box on the staff rule-profile form, also added by the last
+   slice.
+
+Until every slice is merged the app has gaps a live volunteer job would fall into (listed below), so nothing
+half-built can be switched on. After that, volunteering is on in a place when Turfcut staff tick the box for that
+place's profile on counsel's word, and nowhere else.
+
+### Gaps the later slices close (why the switch stays off)
+
+- Slice 2: the job builder has no volunteer option, and would turn a volunteer draft into an hourly one on save.
+- Slice 3: nothing yet stops a person being paid by and volunteering for the same organization; a volunteer
+  engagement would count as a working relationship for the "organizations I've worked with" sharing audience.
+- Slice 4: the shift page still shows a pay step; a worker's earnings would list a volunteer shift at $0; a pay
+  dispute could be opened on one; a volunteer review has no "final" state (that comes from pay lines today); job
+  cards answer "is this payable" as if every job paid.
+- Slice 5: the scorecard, shared scorecards, Matches and Applicants would show volunteer work to people the worker
+  has not chosen. The sharing form does not carry the volunteer setting yet (saving it keeps the stored value, and
+  no row means nobody); adding it means a new version of the consent text.
 
 ## Not in the first version
 

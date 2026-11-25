@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { METHOD_VALUES, readPlace, readRules, rulesFromForm, rulesProblems, NOTES_MAX, LOCALITY_MAX } from "./jurisdiction-rules";
 
 describe("jurisdiction rules (M10.3)", () => {
@@ -35,11 +35,27 @@ describe("jurisdiction rules (M10.3)", () => {
   it("volunteer work is a method a profile lists or does not: never allowed by default (docs/product/VOLUNTEERS.md)", () => {
     expect(readRules(null).compensationAllowed).toEqual(["HOURLY"]);
     expect(readRules({}).compensationAllowed).not.toContain("VOLUNTEER");
-    const listed = readRules({ compensationAllowed: ["HOURLY", "VOLUNTEER"], notes: "Counsel memo of Nov 25" });
-    expect(listed.compensationAllowed).toEqual(["HOURLY", "VOLUNTEER"]);
-    expect(rulesProblems(listed)).toEqual([]);
     expect(METHOD_VALUES).toContain("VOLUNTEER");
+  });
+
+  describe("listing volunteer work on a profile is what switches it on in a place", () => {
+    afterEach(() => vi.unstubAllEnvs());
     const fields: Record<string, string[]> = { methods: ["HOURLY", "VOLUNTEER"], notes: ["Counsel memo of Nov 25"] };
-    expect(rulesFromForm((n) => fields[n] ?? []).compensationAllowed).toEqual(["HOURLY", "VOLUNTEER"]);
+
+    it("so the server refuses it while volunteering is off, whatever the form posted (the box is not on the form either)", () => {
+      const posted = rulesFromForm((n) => fields[n] ?? []);
+      expect(posted.compensationAllowed).toEqual(["HOURLY", "VOLUNTEER"]);
+      expect(rulesProblems(posted)).toEqual(["Volunteer work can't be allowed on a rule profile yet: it isn't available."]);
+      // Paid methods are judged as before.
+      expect(rulesProblems(readRules({ compensationAllowed: ["HOURLY", "SHIFT_RATE"] }))).toEqual([]);
+    });
+
+    it("and accepts it once volunteering is on", () => {
+      vi.stubEnv("TURFCUT_VOLUNTEERS", "1");
+      const listed = readRules({ compensationAllowed: ["HOURLY", "VOLUNTEER"], notes: "Counsel memo of Nov 25" });
+      expect(listed.compensationAllowed).toEqual(["HOURLY", "VOLUNTEER"]);
+      expect(rulesProblems(listed)).toEqual([]);
+      expect(rulesProblems(rulesFromForm((n) => fields[n] ?? []))).toEqual([]);
+    });
   });
 });

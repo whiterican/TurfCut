@@ -44,16 +44,15 @@ ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_volunteer_canvass" CHECK (
   "compensationMethod"::text <> 'VOLUNTEER' OR "status"::text = 'DRAFT'
   OR ("type"::text = 'CANVASS' AND "sector"::text <> 'PRIVATE'));
 
--- No pay line for work on a volunteer job. A line names its engagement, or
--- (older rows, adjustments) only its shift; either way it leads to one job.
+-- No pay line for work on a volunteer job. A line names its engagement, its
+-- shift, or both: it is refused if either one belongs to a volunteer job.
 CREATE OR REPLACE FUNCTION "turfcut_private"."payout_not_for_volunteer"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
-DECLARE
-  method text;
 BEGIN
-  SELECT j."compensationMethod"::text INTO method
-    FROM "public"."Engagement" e JOIN "public"."Job" j ON j."id" = e."jobId"
-   WHERE e."id" = COALESCE(NEW."engagementId", (SELECT s."engagementId" FROM "public"."Shift" s WHERE s."id" = NEW."shiftId"));
-  IF method = 'VOLUNTEER' THEN
+  IF EXISTS (
+    SELECT 1 FROM "public"."Engagement" e JOIN "public"."Job" j ON j."id" = e."jobId"
+     WHERE j."compensationMethod"::text = 'VOLUNTEER'
+       AND (e."id" = NEW."engagementId" OR e."id" = (SELECT s."engagementId" FROM "public"."Shift" s WHERE s."id" = NEW."shiftId"))
+  ) THEN
     RAISE EXCEPTION 'A volunteer job has no pay: no pay line can be written for it' USING ERRCODE = 'check_violation';
   END IF;
   RETURN NEW;

@@ -6,8 +6,10 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { supervisorShiftAction } from "@/lib/field-day-data";
-import { publishJob, saveDraftProgress } from "@/lib/jobs-data";
-import { validateDraft, validateJob } from "@/lib/jobs";
+import { publishJob, saveDraftProgress, updatePublishedJob } from "@/lib/jobs-data";
+import { validateDraft, validateJob, VOLUNTEERING_NOT_YET } from "@/lib/jobs";
+import { proposeJurisdictionVersion } from "@/lib/admin-jurisdictions-data";
+import { readRules } from "@/lib/jurisdiction-rules";
 import { saveSharing } from "@/lib/sharing-data";
 import { DEFAULT_SHARING } from "@/lib/sharing";
 
@@ -27,7 +29,12 @@ const refused = async (work: () => Promise<unknown>): Promise<string | null> => 
   const p = db();
   await p.profile.create({ data: { id: OWNER, role: "OWNER", orgId: ORG, displayName: "Vol Owner" } });
   const actor = { profileId: OWNER, orgId: ORG };
-  const base = { orgId: ORG, jurisdictionId: JUR, title: "Weekend door knock", hiringMethod: { modes: ["instant_claim"] } as Prisma.InputJsonValue, headcount: 10, geography: { city: "Denver", state: "CO" } as Prisma.InputJsonValue, startsAt: new Date(), endsAt: new Date(Date.now() + 30 * 24 * H) };
+  // The organization is ready to publish (approved, terms signed, classification reviewed), and the jobs are complete,
+  // so the only thing between a volunteer job and publishing is the volunteer rules.
+  await p.organization.update({ where: { id: ORG }, data: { approved: true, contractorTermsSignedAt: new Date(), classificationReviewedAt: new Date() } });
+  const disclosure = { campaignType: "candidate", affiliation: "nonpartisan", campaignName: "Neighbors for Denver", issues: {}, message: "Talk to your neighbors about the election." };
+  const contacts = { emergency: "Field lead, 555-0100", disputes: "ops@example.org", lostMaterials: "Office, 555-0101" };
+  const base = { orgId: ORG, jurisdictionId: JUR, title: "Weekend door knock", hiringMethod: { modes: ["instant_claim"] } as Prisma.InputJsonValue, headcount: 10, geography: { city: "Denver", state: "CO" } as Prisma.InputJsonValue, startsAt: new Date(), endsAt: new Date(Date.now() + 30 * 24 * H), campaignDisclosure: disclosure as Prisma.InputJsonValue, supportContacts: contacts as Prisma.InputJsonValue };
   const job = (over: Partial<Prisma.JobUncheckedCreateInput>) => p.job.create({ data: { ...base, type: "CANVASS", compensationMethod: "VOLUNTEER", status: "DRAFT", ...over } as Prisma.JobUncheckedCreateInput });
 
   // --- The database's own guards on the job ---
@@ -42,8 +49,23 @@ const refused = async (work: () => Promise<unknown>): Promise<string | null> => 
   const paid = await job({ compensationMethod: "HOURLY", payRateCents: 2500, title: "Paid canvass", status: "PUBLISHED" });
   check("paid jobs are as they were: a rate, any status", paid.payRateCents === 2500);
 
-  // --- The app's rules: the form, the draft writer, the publish gate ---
+  // --- Off until the last slice is merged: nothing below can be reached in production ---
   const form = { type: "CANVASS", title: "Weekend door knock", jurisdictionId: JUR, city: "Denver", state: "CO", compensationMethod: "VOLUNTEER", payRate: "", headcount: "10", hiringModes: ["instant_claim"] };
+  const profile = await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: JUR } });
+  const rules = profile.rules as Record<string, unknown>;
+  const offForm = validateJob(form);
+  check("while volunteering is off, the form refuses a volunteer job", !offForm.ok && offForm.errors.compensationMethod === VOLUNTEERING_NOT_YET, offForm);
+  const offPublish = await publishJob(vol.id, ORG, OWNER);
+  check("…a stored one cannot be published", !offPublish.ok && offPublish.reasons.includes(VOLUNTEERING_NOT_YET), offPublish);
+  const versionsBefore = await p.jurisdictionProfile.count();
+  const offRules = await proposeJurisdictionVersion({ userId: OWNER, staff: true }, { state: "CO", locality: "Denver", rules: { ...readRules(profile.rules), compensationAllowed: ["HOURLY", "VOLUNTEER"] }, effectiveFrom: null, reason: "A crafted request" });
+  check("…and staff cannot list it on a rule profile, whatever is posted", !offRules.ok && offRules.message.includes("can't be allowed on a rule profile yet"), offRules);
+  check("…no version was written", (await p.jurisdictionProfile.count()) === versionsBefore);
+
+  // --- From here on: the rules once volunteering is on (the last slice switches it on; tests do it with this) ---
+  process.env.TURFCUT_VOLUNTEERS = "1";
+
+  // --- The app's rules: the form, the draft writer, the publish gate ---
   const withRate = validateJob({ ...form, payRate: "25" });
   check("the form refuses a rate on a volunteer job", !withRate.ok && /no pay rate/.test(withRate.errors.payRate ?? ""), withRate);
   const asPetition = validateJob({ ...form, type: "PETITION" });
@@ -55,17 +77,21 @@ const refused = async (work: () => Promise<unknown>): Promise<string | null> => 
   if (d.ok) await saveDraftProgress(ORG, OWNER, paidDraft.id, d.draft);
   const turned = await p.job.findUniqueOrThrow({ where: { id: paidDraft.id } });
   check("a paid draft saved as volunteer loses its rate", turned.compensationMethod === "VOLUNTEER" && turned.payRateCents === null, { method: turned.compensationMethod, rate: turned.payRateCents });
+  // A later save that sends a rate but no usable method (a stale or tampered page) must not put a rate back on it.
+  const stale = validateDraft({ ...form, title: "Was paid", compensationMethod: "", payRate: "25" });
+  check("(a save with no method but a rate reads as: rate 2500, method left alone)", stale.ok && stale.draft.payRateCents === 2500 && !("compensationMethod" in stale.draft), stale);
+  const staleSave = stale.ok ? await refused(() => saveDraftProgress(ORG, OWNER, paidDraft.id, stale.draft)) : "not ok";
+  const after = await p.job.findUniqueOrThrow({ where: { id: paidDraft.id } });
+  check("…and the volunteer draft keeps no rate: saved without an error", staleSave === null && after.compensationMethod === "VOLUNTEER" && after.payRateCents === null, { staleSave, rate: after.payRateCents });
 
   const noRule = await publishJob(vol.id, ORG, OWNER);
   check("no rule profile lists volunteer work yet, so it cannot publish: a clear reason, never a silent default", !noRule.ok && noRule.reasons.some((r) => /rules don't cover volunteer work yet/.test(r)), noRule);
   check("…and it stayed a draft", (await p.job.findUniqueOrThrow({ where: { id: vol.id } })).status === "DRAFT");
-  const rules = (await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: JUR } })).rules as Record<string, unknown>;
   await p.jurisdictionProfile.update({ where: { id: JUR }, data: { rules: { ...rules, compensationAllowed: ["HOURLY", "VOLUNTEER"] } } });
   const withRule = await publishJob(vol.id, ORG, OWNER);
-  check("once the profile lists it, that reason is gone (and no pay rate is asked for)", withRule.ok || !withRule.reasons.some((r) => /volunteer|pay rate/i.test(r)), withRule);
+  check("once the profile lists it, the volunteer job publishes, with no pay rate asked for", withRule.ok && (await p.job.findUniqueOrThrow({ where: { id: vol.id } })).status === "PUBLISHED", withRule);
 
   // --- No pay for volunteer work ---
-  await p.job.update({ where: { id: vol.id }, data: { status: "PUBLISHED" } });
   const eng = await p.engagement.create({ data: { jobId: vol.id, workerId: W1, status: "ACTIVE" } });
   const start = new Date(Date.now() - 6 * H);
   const shift = await p.shift.create({ data: { engagementId: eng.id, startsAt: start, endsAt: new Date(start.getTime() + 4 * H), status: "COMPLETED", checkInAt: start, checkOutAt: new Date(start.getTime() + 4 * H) } });
@@ -90,11 +116,20 @@ const refused = async (work: () => Promise<unknown>): Promise<string | null> => 
   const paidReview = await supervisorShiftAction(actor, paidShift.id, { kind: "closeout", status: "APPROVED", reason: null });
   const paidLines = await p.payout.findMany({ where: { shiftId: paidShift.id } });
   check("a paid shift still gets its pay line: 4 hours at $25", paidReview.ok && paidLines.length === 1 && paidLines[0].amountCents === 10_000, { paidReview, paidLines: paidLines.map((l) => l.amountCents) });
+  // A line is refused if EITHER thing it names is volunteer work: a paid engagement cannot lend its name to a volunteer shift.
+  check("a pay line naming a paid engagement and a volunteer shift is refused", /volunteer job has no pay/.test((await refused(() => p.payout.create({ data: { ...line, engagementId: paidEng.id, shiftId: shift.id } }))) ?? ""));
+  check("…and one naming a volunteer engagement and a paid shift", /volunteer job has no pay/.test((await refused(() => p.payout.create({ data: { ...line, engagementId: eng.id, shiftId: paidShift.id } }))) ?? ""));
 
   // --- People signed up for one or the other ---
   check("a volunteer job with people on it cannot become paid", /can't change between paid and volunteer/.test((await refused(() => p.job.update({ where: { id: vol.id }, data: { compensationMethod: "HOURLY", payRateCents: 2500 } }))) ?? ""));
   check("…nor a paid one become volunteer", /can't change between paid and volunteer/.test((await refused(() => p.job.update({ where: { id: paid.id }, data: { compensationMethod: "VOLUNTEER", payRateCents: null } }))) ?? ""));
   check("…a paid job can still change how it pays", (await refused(() => p.job.update({ where: { id: paid.id }, data: { compensationMethod: "SHIFT_RATE" } }))) === null);
+  // Through the app, the same switch is a reason on the form, not an error page.
+  const full = validateJob({ ...form, startsAt: new Date(Date.now() + 24 * H).toISOString().slice(0, 10), endsAt: new Date(Date.now() + 20 * 24 * H).toISOString().slice(0, 10), campaignType: "candidate", affiliation: "nonpartisan", campaignName: "Neighbors for Denver", message: "Talk to your neighbors about the election.", contactEmergency: "Field lead, 555-0100", contactDisputes: "ops@example.org", contactLostMaterials: "Office, 555-0101", cancellationNoticeHours: "12" });
+  check("(the complete volunteer form is valid)", full.ok, full);
+  const viaApp = full.ok ? await updatePublishedJob(paid.id, ORG, OWNER, full.value) : null;
+  check("editing a paid job with people on it into a volunteer one is refused with a reason", !!viaApp && !viaApp.ok && /can't change between paid and volunteer/.test(viaApp.reasons.join(" ")), viaApp);
+  check("…and the job is as it was", (await p.job.findUniqueOrThrow({ where: { id: paid.id } })).compensationMethod === "SHIFT_RATE");
   const empty = await job({ compensationMethod: "HOURLY", payRateCents: 2500, title: "Nobody on it" });
   check("…and a job nobody is on may still be turned into a volunteer one", (await refused(() => p.job.update({ where: { id: empty.id }, data: { compensationMethod: "VOLUNTEER", payRateCents: null } }))) === null);
 

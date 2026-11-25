@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_SHIFTS_PER_ASSIGNMENT, assignProblem, readAssignment, saveOutcome } from "./turf-assign";
+import { MAX_SHIFTS_PER_ASSIGNMENT, assignMessage, assignProblem, readAssignment, sameTurf, saveOutcome } from "./turf-assign";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const square = { type: "Polygon", coordinates: [[[-104.9, 39.7], [-104.9, 39.71], [-104.89, 39.71], [-104.9, 39.7]]] };
@@ -69,5 +69,61 @@ describe("saveOutcome: what the panel does with a save's answer", () => {
       }
     }
     expect(saveOutcome(false, null).msg.text).toBe("Couldn't save the turf. Nothing was changed. Try again.");
+  });
+});
+
+describe("sameTurf: a shift that already has what is asked is left alone", () => {
+  const read = readAssignment([id(1)], square);
+  const turf = read.ok ? read.turf : null;
+  if (!turf) throw new Error("fixture");
+  it("the same corners in the same order are the same turf, however the stored JSON is written", () => {
+    expect(sameTurf(square, turf)).toBe(true);
+    // As Postgres hands a jsonb column back: its own key order, and extra keys the turf reader drops.
+    expect(sameTurf({ coordinates: square.coordinates, bbox: [0, 0, 1, 1], type: "Polygon" }, turf)).toBe(true);
+  });
+  it("a moved corner, another order or another count of corners is a different turf", () => {
+    const ring = square.coordinates[0];
+    expect(sameTurf({ ...square, coordinates: [[ring[0], [-104.9, 39.7101], ring[2], ring[3]]] }, turf)).toBe(false);
+    expect(sameTurf({ ...square, coordinates: [[ring[0], ring[2], ring[1], ring[3]]] }, turf)).toBe(false);
+    expect(sameTurf({ ...square, coordinates: [[ring[0], ring[1], ring[2], [-104.89, 39.7], ring[3]]] }, turf)).toBe(false);
+  });
+  it("the same shape drawn from another corner counts as different: it is written, never skipped", () => {
+    // Deliberately strict, and the same identity the map uses for a zone (zoneId hashes the corners in order). The
+    // cost of being strict is one honest write; being loose could skip an assignment that was meant.
+    const [p0, p1, p2] = square.coordinates[0];
+    // (Drawn the other way round is the "another order" case above: the fixture is a triangle.)
+    expect(sameTurf({ ...square, coordinates: [[p1, p2, p0, p1]] }, turf)).toBe(false);
+  });
+  it("no turf matches only a request to clear", () => {
+    expect(sameTurf(null, null)).toBe(true);
+    expect(sameTurf(undefined, null)).toBe(true);
+    expect(sameTurf(null, turf)).toBe(false);
+    expect(sameTurf(square, null)).toBe(false);
+  });
+  it("a stored value that is not a readable turf is never the same: it gets replaced, or cleared", () => {
+    for (const junk of [{}, "x", 0, { type: "Polygon", coordinates: [] }, { type: "Point", coordinates: [0, 0] }]) {
+      expect(sameTurf(junk, turf)).toBe(false);
+      expect(sameTurf(junk, null)).toBe(false);
+    }
+  });
+});
+
+describe("assignMessage: what the organizer is told", () => {
+  it("counts only the shifts that changed", () => {
+    expect(assignMessage(true, 1, 0)).toBe("Turf given to 1 worker's shift.");
+    expect(assignMessage(true, 3, 0)).toBe("Turf given to 3 workers' shifts.");
+    expect(assignMessage(false, 2, 0)).toBe("Turf cleared on 2 workers' shifts.");
+  });
+  it("says how many were already as asked", () => {
+    expect(assignMessage(true, 2, 1)).toBe("Turf given to 2 workers' shifts. 1 more already had this turf.");
+    expect(assignMessage(false, 1, 2)).toBe("Turf cleared on 1 worker's shift. 2 more had no turf.");
+  });
+  it("never claims a change when there was none", () => {
+    expect(assignMessage(true, 0, 1)).toBe("That shift already had this turf. Nothing was changed.");
+    expect(assignMessage(true, 0, 2)).toBe("Both shifts already had this turf. Nothing was changed.");
+    expect(assignMessage(true, 0, 3)).toBe("All 3 shifts already had this turf. Nothing was changed.");
+    expect(assignMessage(false, 0, 3)).toBe("All 3 shifts had no turf. Nothing was changed.");
+    expect(assignMessage(false, 0, 1)).toBe("That shift had no turf. Nothing was changed.");
+    expect(assignMessage(false, 0, 2)).toBe("Both shifts had no turf. Nothing was changed.");
   });
 });

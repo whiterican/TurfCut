@@ -50,3 +50,25 @@ export function saveOutcome(moved: boolean, result: { ok: boolean; message: stri
   if (result.ok) return { msg: { ok: true, text: "The save you sent a moment ago went through." }, clearTicks: false, reopen: false };
   return { msg: { ok: false, text: `The save you sent a moment ago did not go through. ${result.message}` }, clearTicks: false, reopen: true };
 }
+
+/**
+ * Whether a shift's stored turf is already what an assignment asks for: the same corners in the same order, or no
+ * turf on both sides. Such a shift is left alone. Writing it again changed nothing but still added a "turf assigned"
+ * audit entry whose before and after were equal, a record of a change that never happened.
+ * A stored value that can't be read as a turf is never "the same": it gets replaced.
+ */
+export function sameTurf(stored: unknown, wanted: TurfPolygon | null): boolean {
+  if (stored === null || stored === undefined) return wanted === null;
+  if (wanted === null) return false;
+  const have = readTurf(stored);
+  return have !== null && JSON.stringify(have.coordinates) === JSON.stringify(wanted.coordinates);
+}
+
+/** What the organizer is told after a save: how many shifts changed, and how many were already as asked. */
+export function assignMessage(giving: boolean, changed: number, unchanged: number): string {
+  const shifts = (n: number) => `${n} ${n === 1 ? "worker's shift" : "workers' shifts"}`;
+  const already = giving ? "already had this turf" : "had no turf";
+  if (changed === 0) return `${unchanged === 1 ? "That shift" : unchanged === 2 ? "Both shifts" : `All ${unchanged} shifts`} ${already}. Nothing was changed.`;
+  const done = giving ? `Turf given to ${shifts(changed)}.` : `Turf cleared on ${shifts(changed)}.`;
+  return unchanged === 0 ? done : `${done} ${unchanged} more ${already}.`;
+}

@@ -213,6 +213,14 @@ async function makeJob(type: "CANVASS" | "PETITION", title: string) {
   const byWorker = await loadExportRows(ORG, job.id, oneWorker, true);
   check("a poll export narrowed to one worker is refused, with the reason", !byWorker.ok && byWorker.reason === POLL_BY_WORKER_REFUSAL, byWorker);
   check("…and the route's preflight refuses it before an export is counted", (await exportProblem(ORG, job.id, oneWorker, true)) === POLL_BY_WORKER_REFUSAL);
+
+  // A poll is a tool on canvass jobs. A job whose type changed (a draft can) keeps its questions but has no poll.
+  await p.$executeRaw`UPDATE "Job" SET "type" = 'PETITION' WHERE "id" = ${job.id}::uuid`;
+  const qNow = (await loadCurrentPolls([job.id])).get(job.id) ?? [];
+  check("a job that is no longer a canvass job offers no poll to anyone", qNow.length === 0, qNow.length);
+  const onPetition = await staffRecordPollAnswers(owner, s1.id, form({ [newQ.id]: newQ.choices[0].id }));
+  check("…and an answer can't be recorded on it", !onPetition.ok && /no poll/.test(onPetition.reason), onPetition);
+  await p.$executeRaw`UPDATE "Job" SET "type" = 'CANVASS' WHERE "id" = ${job.id}::uuid`;
   check("'Held by nobody' is not a worker: still exported", (await loadExportRows(ORG, job.id, { outcome: null, bookId: null, holderId: "none" }, true)).ok);
   check("without poll columns the worker filter still works", (await loadExportRows(ORG, job.id, oneWorker, false)).ok);
 

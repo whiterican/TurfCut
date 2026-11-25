@@ -39,7 +39,8 @@ const lower = (v: unknown) => String(v ?? "").trim().toLowerCase();
 /** The job's questions as the form shows them: current ones, in order, with their choices. */
 async function currentQuestions(tx: Tx | ReturnType<typeof db>, jobId: string): Promise<PollQuestionView[]> {
   const qs = await tx.pollQuestion.findMany({
-    where: { jobId, supersededBy: null },
+    // A poll is a tool on canvass jobs: a job whose type has changed since (a draft can) keeps its questions, unasked.
+    where: { jobId, supersededBy: null, job: { type: "CANVASS" } },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     select: { id: true, position: true, prompt: true, choices: { orderBy: { position: "asc" }, select: { id: true, label: true } } },
   });
@@ -106,7 +107,7 @@ export async function loadCurrentPolls(jobIds: string[]): Promise<Map<string, Po
   const ids = [...new Set(jobIds)];
   if (!ids.length) return new Map();
   const qs = await db().pollQuestion.findMany({
-    where: { jobId: { in: ids }, supersededBy: null },
+    where: { jobId: { in: ids }, supersededBy: null, job: { type: "CANVASS" } },
     orderBy: [{ position: "asc" }, { createdAt: "asc" }],
     select: { id: true, jobId: true, position: true, prompt: true, choices: { orderBy: { position: "asc" }, select: { id: true, label: true } } },
   });

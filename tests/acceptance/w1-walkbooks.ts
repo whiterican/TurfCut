@@ -4,7 +4,7 @@ import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
 import { randomUUID } from "node:crypto";
-import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff, purgeDueImports, purgeOwnImport } from "@/lib/walkbooks-data";
+import { assignWalkbook, cutWalkbooks, importAddresses, loadJobWalkbooks, loadWalkbookForStaff, purgeDueImports, purgeImport, purgeOwnImport } from "@/lib/walkbooks-data";
 import { loadWorkerWalkbooks } from "@/lib/walkbooks-worker-data";
 import { recordStopOutcome } from "@/lib/stop-outcomes-data";
 import { loadConsole, loadExportRows } from "@/lib/stop-console-data";
@@ -214,6 +214,13 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("running it again finds nothing", (await purgeDueImports()).purged === 0);
   await p.job.update({ where: { id: job.id }, data: { status: "CLOSED" } });
   check("a file whose jobs just closed is kept for the 7-day grace", (await purgeDueImports()).purged === 0 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) > 0);
+  // The daily run picks what is due, then purges each in turn: by the time it reaches a file, a cut onto an open job
+  // (or a file that isn't due after all) must stop it. The purge checks again under the file's lock.
+  const pid = part.ok ? part.importId : "";
+  const early = await purgeImport(pid, "jobs_closed", null);
+  check("a scheduled purge of a file that is no longer due deletes nothing (jobs closed, but within the 7 days)", early.ok && early.addresses === 0 && (await p.importedAddress.count({ where: { importId: pid } })) > 0, early);
+  const notExpired = await purgeImport(pid, "expired", null);
+  check("…nor does one that says 'expired' for a file still inside its 30 days", notExpired.ok && notExpired.addresses === 0 && (await p.importedAddress.count({ where: { importId: pid } })) > 0, notExpired);
   await p.$executeRaw`UPDATE "Job" SET "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
   const due2 = await purgeDueImports();
   const closedAudit = await p.auditEvent.findFirst({ where: { entityId: part.ok ? part.importId : "", action: "address_import.purged" } });

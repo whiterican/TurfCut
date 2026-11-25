@@ -342,7 +342,20 @@ export const CLOSED_GRACE_DAYS = 7;
  * the three ways in (the organization's button, the 30 days running out,
  * every job it was cut for closing) all come through here. Safe to call twice.
  */
-export async function purgeImport(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
+/** What makes a file due for the daily purge: its 30 days are up, or every job it was cut for closed over the grace ago. */
+function dueNow(now: Date): Prisma.AddressImportWhereInput {
+  const graceEnds = new Date(now.getTime() - CLOSED_GRACE_DAYS * 86_400_000);
+  return {
+    purgedAt: null,
+    OR: [
+      { deleteAfter: { lte: now } },
+      // Cut for at least one job, and every one of them closed more than the grace ago.
+      { walkbooks: { some: {} }, NOT: { walkbooks: { some: { job: { OR: [{ status: { not: "CLOSED" } }, { updatedAt: { gt: graceEnds } }] } } } } },
+    ],
+  };
+}
+
+export async function purgeImport(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean; notDue?: true } | Fail> {
   if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
   return db().$transaction(
     async (tx) => {
@@ -352,6 +365,12 @@ export async function purgeImport(importId: string, reason: PurgeReason, actorId
     await lock(tx, `import:${imp.id}`);
     const again = await tx.addressImport.findUnique({ where: { id: imp.id }, select: { purgedAt: true } });
     if (again?.purgedAt) return { ok: true as const, addresses: 0, already: true };
+    // A scheduled purge checks again, under the lock, that the file is still due: the daily run chose it earlier, and a
+    // cut onto an open job since then (which takes this lock) means its addresses are in use. The organization's own
+    // "delete now" is not a schedule: it always goes ahead.
+    if (reason !== "requested" && !(await tx.addressImport.count({ where: { id: imp.id, ...dueNow(now) } }))) {
+      return { ok: true as const, addresses: 0, already: false, notDue: true as const };
+    }
     const gone = await tx.importedAddress.deleteMany({ where: { importId: imp.id } });
     await tx.addressImport.update({ where: { id: imp.id }, data: { purgedAt: now } });
     await tx.auditEvent.create({ data: { actorId, action: "address_import.purged", entityType: "AddressImport", entityId: imp.id, metadata: { reason, addresses: gone.count }, createdAt: now } });
@@ -378,23 +397,16 @@ export async function purgeOwnImport(actor: Staff, importId: string, now = new D
  * this run and doesn't hold up the rest.
  */
 export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Promise<{ purged: number; addresses: number; failed: number }> {
-  const graceEnds = new Date(now.getTime() - CLOSED_GRACE_DAYS * 86_400_000);
   const started = Date.now();
   const skip: string[] = [];
+  // Chosen as due, then found not due under the lock (a cut since): passed over this run, not counted as failed.
+  const passed: string[] = [];
   let purged = 0;
   let addresses = 0;
   for (;;) {
     if (Date.now() - started > budgetMs) break;
     const due = await db().addressImport.findMany({
-      where: {
-        purgedAt: null,
-        id: { notIn: skip },
-        OR: [
-          { deleteAfter: { lte: now } },
-          // Cut for at least one job, and every one of them closed more than the grace ago.
-          { walkbooks: { some: {} }, NOT: { walkbooks: { some: { job: { OR: [{ status: { not: "CLOSED" } }, { updatedAt: { gt: graceEnds } }] } } } } },
-        ],
-      },
+      where: { ...dueNow(now), id: { notIn: [...skip, ...passed] } },
       orderBy: { deleteAfter: "asc" },
       select: { id: true, deleteAfter: true },
       take: 100,
@@ -404,7 +416,8 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
       if (Date.now() - started > budgetMs) break;
       try {
         const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
-        if (r.ok && !r.already) {
+        if (r.ok && r.notDue) passed.push(d.id);
+        else if (r.ok && !r.already) {
           purged++;
           addresses += r.addresses;
         } else skip.push(d.id);

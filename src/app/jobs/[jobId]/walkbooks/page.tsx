@@ -173,7 +173,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
         <section className="section">
           <h2 className="section-title">Poll</h2>
           <p className="text-muted-sm">
-            Questions workers can ask at a door they mark as Done. Each has fixed answer choices (no free text), and a resident can decline. Answers can be changed afterwards; the earlier answer stays in the history. Only people with full access to the field area read them.
+            Questions workers can ask at a door they mark as Done. Each has fixed answer choices (no free text), and a resident can decline. Answers can be changed afterwards; the earlier answer stays in the history. Staff with full access to the field area, and the worker who recorded an answer, can read it.
           </p>
           <PollSetup jobId={job.id} current={poll.current} earlier={poll.earlier} canEdit={canUse(session, "jobsEdit")} />
         </section>
@@ -190,7 +190,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
         <section className="section">
           <h2 className="section-title">Import an address file</h2>
           <p className="text-muted-sm">
-            Bring a file your organization is authorized to use: a voter file, a supporter list, a customer list. Each row&apos;s address, its record ID (so your return file can be matched) and every other column are stored for {RETENTION_DAYS} days, then deleted. They are never shown to workers or used to match or rank anyone. You can delete them sooner.
+            Bring a file your organization is authorized to use: a voter file, a supporter list, a customer list. Each row&apos;s address, its record ID (so your return file can be matched) and its other columns (except ID numbers, birth dates, and payment and password columns) are stored for {RETENTION_DAYS} days, then deleted. Workers see the addresses of the books they hold; the record ID and the other columns are never shown to workers or used to match or rank anyone. You can delete them sooner.
           </p>
           <WalkbookImport jobId={job.id} />
         </section>
@@ -210,11 +210,11 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                 <p className={`text-sm font-semibold ${i.purgedAt ? "text-muted" : "text-fg"}`}>
                   {i.purgedAt ? (
                     <>
-                      The file&apos;s data (addresses and every other column) deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain.
+                      The file&apos;s data (addresses, record IDs and the other columns) deleted <LocalTime iso={i.purgedAt.toISOString()} mode="date" />. The stops and outcomes remain, and each book keeps the street names in its name.
                     </>
                   ) : (
                     <>
-                      Its addresses and every other column are deleted <LocalTime iso={i.deleteAfter.toISOString()} mode="date" />, or sooner if you delete them or every job this file is cut for closes.
+                      Its addresses, record IDs and other columns are deleted <LocalTime iso={i.deleteAfter.toISOString()} mode="date" />, or sooner: when you delete them, or 7 days after every job this file is cut for has closed.
                     </>
                   )}
                 </p>
@@ -226,7 +226,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                     pendingLabel="Deleting…"
                     variant="btn-secondary btn-sm"
                     ariaLabel={`Delete the data of ${i.fileName} now`}
-                    confirm={{ text: "The addresses, record IDs and every other column of this file are deleted for good. Walkbooks already cut keep their stops and outcomes but lose their addresses. This can't be undone; import the file again to bring them back.", label: "Delete them now" }}
+                    confirm={{ text: "The addresses, record IDs and other columns of this file are deleted for good. Walkbooks already cut keep their stops, outcomes and names, but lose their addresses, and importing the file again won't put them back: it would add its doors as new stops. This can't be undone.", label: "Delete them now" }}
                   />
                 )}
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">

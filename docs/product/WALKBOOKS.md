@@ -55,7 +55,9 @@ reverses the first version of W1 (addresses only).
   every job the file was cut for has been closed for 7 days (`CLOSED_GRACE_DAYS`,
   counted from the last job's `updatedAt`). `purgeImport` deletes the
   `ImportedAddress` rows only; `purgedAt` says when. The walkbooks, stops, outcomes
-  and poll answers stay, keyed by walkbook and stop number
+  and poll answers stay, keyed by walkbook and stop number, and a book keeps its
+  name, which names its first and last streets (only lines with a house number
+  name a book, so a "C/O" line or a box never does)
   (`WalkbookStop.addressId` is nullable, `ON DELETE SET NULL`); a stop without an
   address shows "Address deleted". A daily cron (`/api/cron/purge-imports`,
   `vercel.json`, `CRON_SECRET`) runs it. A deleted file can't be cut again: import
@@ -201,7 +203,8 @@ the organization deletes the job's data. Schema approved.
 - The staff job page reads the newest outcome of every stop on the job in one
   query: about 1 s at 100,000 stops. Fine for the pilot; cache per-book
   progress before it grows.
-- The worker's shift page lists book names and counts only, and reads only
+- The worker's shift page lists book names and counts only (a name carries its
+  first and last street, never a house number), and reads only
   those (no stop, address or poll answer is loaded for it). That page is saved
   for offline use, and a saved copy would keep addresses on the phone after a
   book is taken back; the stops live on `/walkbooks`, which is never saved.

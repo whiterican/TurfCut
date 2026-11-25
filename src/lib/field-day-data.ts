@@ -5,7 +5,7 @@ import { readTools } from "@/lib/job-tools";
 import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { areaMembers } from "@/lib/access-data";
-import { assignProblem, sameTurf } from "@/lib/turf-assign";
+import { ASSIGN_TX, assignProblem, sameTurf } from "@/lib/turf-assign";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
@@ -612,7 +612,7 @@ export async function assignShiftTurf(
       }
       return { ok: true as const, count: changing.length, unchanged: loaded.length - changing.length };
     },
-    { timeout: 15_000, maxWait: 10_000 }
+    ASSIGN_TX
   );
 }
 

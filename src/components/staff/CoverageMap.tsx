@@ -25,14 +25,19 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
   const zones = useFieldLive()?.zones ?? initial;
   // People who may assign turf can tap a zone to choose it: it is named under the map, with the button that starts the
   // Assign panel from it. The tap itself changes nothing else, so a double-tap to zoom or a stray touch costs nothing.
+  // `pickable` (the reader may assign turf) decides the shape drawn here and never changes under an open page, so the
+  // map is not rebuilt. `choosable` (some shift can take turf right now) can change, and only switches the tap on and off.
   const turfPick = useTurfPick();
   const pickable = turfPick !== null;
-  const canChoose = useRef(pickable);
+  const choosable = turfPick?.offering ?? false;
+  const canChoose = useRef(choosable);
   useEffect(() => {
-    canChoose.current = pickable;
+    canChoose.current = choosable;
   });
   const [chosenId, setChosenId] = useState<string | null>(null);
   const chosen = zones.find((z) => z.id === chosenId) ?? null;
+  // A zone chosen earlier is not shown as chosen while nothing can take turf: there is nothing to do with it.
+  const shownChoice = choosable ? chosenId : null;
   const framed = useRef(false);
   // Whether the reader has moved or zoomed the map themselves; `framing` marks a move this component is making.
   const moved = useRef(false);
@@ -104,7 +109,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
       const opacity = Math.min(0.5, fillOpacity(zoneFill(z)));
       let p = drawn.current.get(z.id);
       if (!p) {
-        p = L.polygon(z.turf.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]), { color: stroke, weight: z.id === chosenId ? 4 : 2, fillColor: fill, fillOpacity: opacity, className: "coverage-zone" });
+        p = L.polygon(z.turf.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]), { color: stroke, weight: z.id === shownChoice ? 4 : 2, fillColor: fill, fillOpacity: opacity, className: "coverage-zone" });
         p.bindTooltip(tip(z)).addTo(group);
         p.on("click", (e) => {
           if (!canChoose.current) return;
@@ -115,7 +120,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
         drawn.current.set(z.id, p);
         added.push(p);
       } else {
-        p.setStyle({ color: stroke, weight: z.id === chosenId ? 4 : 2, fillColor: fill, fillOpacity: opacity });
+        p.setStyle({ color: stroke, weight: z.id === shownChoice ? 4 : 2, fillColor: fill, fillOpacity: opacity });
         p.setTooltipContent(tip(z));
       }
     }
@@ -137,7 +142,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
       }
     }
     framed.current = true;
-  }, [zones, ready, chosenId]);
+  }, [zones, ready, shownChoice]);
 
   const onGround = zones.reduce((n, z) => n + z.onGround, 0);
   const total = zones.reduce((n, z) => n + z.total, 0);
@@ -146,7 +151,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
     return <p className={`turf-map coverage-map flex w-full items-center justify-center rounded-[var(--radius-card)] border border-border p-4 text-center text-muted-sm ${className}`}>The map needs signal. {label.replace("Coverage map: ", "")}.</p>;
   }
   // A region, not an image: the map's zoom buttons and attribution link inside it must stay reachable.
-  const region = <div ref={el} data-pickable={pickable ? "" : undefined} className={`turf-map coverage-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label} />;
+  const region = <div ref={el} data-pickable={choosable ? "" : undefined} className={`turf-map coverage-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label} />;
   if (!pickable) return region;
   // A zone the live count knows before the page's cards do has no name yet.
   const chosenName = chosen ? (names[chosen.id] ?? "") : "";
@@ -157,7 +162,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
           zone moves nothing on the page. The phone's height holds Sunlight's taller button (44px) under a line of text.
           The cards' buttons do the same from a keyboard. */}
       <div className="flex min-h-17 flex-col items-start justify-center gap-1 text-sm text-subtle sm:min-h-11 sm:flex-row sm:items-center sm:justify-start sm:gap-3" data-chosen-turf={chosen?.id}>
-        {chosen ? (
+        {chosen && choosable ? (
           <>
             <p className="flex max-w-full min-w-0 gap-1">
               <span className="truncate font-semibold text-fg">{chosenName || "This turf"}</span>
@@ -169,7 +174,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
             <AssignThisTurfButton id={chosen.id} name={chosenName} turf={chosen.turf} />
           </>
         ) : (
-          <p>{turfPick.offering ? "Tap a turf on the map to assign it to more shifts." : "No shift can take turf right now: it goes on shifts that are coming up or running."}</p>
+          <p>{choosable ? "Tap a turf on the map to assign it to more shifts." : "No shift in this view can take turf right now: it goes on shifts that are coming up or running."}</p>
         )}
       </div>
     </div>

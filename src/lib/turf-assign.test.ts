@@ -69,6 +69,8 @@ describe("saveOutcome: what the panel does with a save's answer", () => {
       }
     }
     expect(saveOutcome(false, null).msg.text).toBe("Couldn't save the turf. Nothing was changed. Try again.");
+  });
+});
 
 describe("sameTurf: a shift that already has what is asked is left alone", () => {
   const read = readAssignment([id(1)], square);

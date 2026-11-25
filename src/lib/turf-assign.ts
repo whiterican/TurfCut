@@ -49,7 +49,9 @@ export function saveOutcome(moved: boolean, result: { ok: boolean; message: stri
   if (!moved) return { msg: { ok: result.ok, text: result.message }, clearTicks: result.ok, reopen: !result.ok };
   if (result.ok) return { msg: { ok: true, text: "The save you sent a moment ago went through." }, clearTicks: false, reopen: false };
   return { msg: { ok: false, text: `The save you sent a moment ago did not go through. ${result.message}` }, clearTicks: false, reopen: true };
+}
 
+/**
  * Whether a shift's stored turf is already what an assignment asks for: the same corners in the same order, or no
  * turf on both sides. Such a shift is left alone. Writing it again changed nothing but still added a "turf assigned"
  * audit entry whose before and after were equal, a record of a change that never happened.

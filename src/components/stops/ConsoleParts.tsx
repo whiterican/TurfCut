@@ -24,7 +24,7 @@ export function FilterChips({ base, q, todo, count }: { base: string; q: Console
             key={i.label}
             href={consoleHref(base, q, { outcome: i.key })}
             aria-current={on ? "true" : undefined}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-full border px-3 text-sm font-semibold text-fg transition ${on ? "border-fg bg-surface-2" : "border-border bg-surface hover:bg-surface-2"}`}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-full border px-3 text-sm font-semibold text-fg transition ${on ? "border-fg bg-surface-2" : "border-border bg-surface hover:bg-surface-2"}`}
           >
             {i.color && <span aria-hidden className="size-2.5 rounded-full" style={{ background: i.color }} />}
             {i.label}
@@ -109,11 +109,11 @@ export function Pager({ base, q, page, pages, total, size }: { base: string; q: 
   if (pages <= 1) return null;
   return (
     <nav aria-label="Pages" className="flex items-center justify-between gap-3">
-      {page > 1 ? <Link href={consoleHref(base, q, { page: page - 1 > 1 ? String(page - 1) : null })} className="btn-secondary btn-sm">Earlier</Link> : <span />}
+      {page > 1 ? <Link href={consoleHref(base, q, { page: page - 1 > 1 ? String(page - 1) : null })} className="btn-secondary">Earlier</Link> : <span />}
       <span className="text-muted-sm">
         {((page - 1) * size + 1).toLocaleString("en-US")}–{Math.min(total, page * size).toLocaleString("en-US")} of {total.toLocaleString("en-US")}
       </span>
-      {page < pages ? <Link href={consoleHref(base, q, { page: String(page + 1) })} className="btn-secondary btn-sm">Later</Link> : <span />}
+      {page < pages ? <Link href={consoleHref(base, q, { page: String(page + 1) })} className="btn-secondary">Later</Link> : <span />}
     </nav>
   );
 }

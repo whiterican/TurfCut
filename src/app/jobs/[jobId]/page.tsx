@@ -679,7 +679,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, canField, canReadS
         <section className="section">
           <h2 className="section-title">Walkbooks</h2>
           <p className="text-muted-sm">Import an authorized address file, cut it into numbered walkbooks and hand them to the people hired here. Workers see the addresses of the books they hold; the file&apos;s other columns are kept for 30 days (for matching your return file by record ID) and shown to no one, then deleted.</p>
-          <Link href={`/jobs/${job.id}/walkbooks`} className="btn-secondary btn-sm">Open walkbooks</Link>
+          <Link href={`/jobs/${job.id}/walkbooks`} className="btn-secondary">Open walkbooks</Link>
         </section>
       )}
     </>

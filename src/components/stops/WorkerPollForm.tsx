@@ -46,7 +46,7 @@ export function WorkerPollForm({ stopId, questions, answers, locked = [] }: { st
         <div role="alert" className="space-y-2">
           <p className="text-danger-msg">{state.message}</p>
           {state.gone && (
-            <button type="button" className="btn-secondary btn-sm" onClick={() => router.refresh()}>
+            <button type="button" className="btn-secondary" onClick={() => router.refresh()}>
               Refresh
             </button>
           )}

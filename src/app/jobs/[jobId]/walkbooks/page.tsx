@@ -54,7 +54,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
             Job
           </Link>
           {books.length > 0 && (
-            <Link href={`/jobs/${job.id}/walkbooks/console`} className="btn-secondary btn-sm">
+            <Link href={`/jobs/${job.id}/walkbooks/console`} className="btn-secondary">
               Console
             </Link>
           )}
@@ -95,7 +95,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                       {b.number}
                     </span>
                     <div className="min-w-0 flex-1 space-y-1">
-                      <Link href={`/jobs/${job.id}/walkbooks/${b.id}`} className="block font-bold text-fg underline-offset-2 hover:underline">
+                      <Link href={`/jobs/${job.id}/walkbooks/${b.id}`} className="flex min-h-11 items-center font-bold text-fg underline-offset-2 hover:underline">
                         {b.name}
                       </Link>
                       <p className="text-muted-sm">
@@ -119,11 +119,11 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                       {/* Stays mounted once the only hired worker holds it, so the hand-over still says it worked. */}
                       {hired.length > 0 && (
                         <details className="group">
-                          <summary className="btn-secondary btn-sm cursor-pointer list-none [&::-webkit-details-marker]:hidden" aria-label={`${b.holder ? "Hand on" : "Hand out"} ${b.name}`}>
+                          <summary className="btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden" aria-label={`${b.holder ? "Hand on" : "Hand out"} ${b.name}`}>
                             {b.holder ? "Hand on" : "Hand out"}
                           </summary>
                           <div className="mt-2">
-                            <ActionButton action={assignWalkbookAction} fields={{ walkbookId: b.id }} label="Hand over" pendingLabel="Saving…" variant="btn-primary btn-sm" ariaLabel={`Hand over ${b.name}`} disabled={others.length === 0}>
+                            <ActionButton action={assignWalkbookAction} fields={{ walkbookId: b.id }} label="Hand over" pendingLabel="Saving…" variant="btn-primary" ariaLabel={`Hand over ${b.name}`} disabled={others.length === 0}>
                               <label className="space-y-1.5">
                                 <span className="label">Hired worker</span>
                                 <select name="engagementId" className="field" required defaultValue="" disabled={others.length === 0}>
@@ -147,7 +147,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                           fields={{ walkbookId: b.id, engagementId: "" }}
                           label="Take back"
                           pendingLabel="Taking back…"
-                          variant="btn-ghost btn-sm"
+                          variant="btn-ghost"
                           ariaLabel={`Take back ${b.name}`}
                           confirm={{ text: `${b.holder.name} stops seeing this walkbook. Who held it, and when, stays in its history.`, label: "Take it back" }}
                         />
@@ -161,9 +161,9 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
         )}
         {pages > 1 && (
           <nav aria-label="Walkbook pages" className="flex items-center justify-between gap-3">
-            {page > 1 ? <Link href={`/jobs/${job.id}/walkbooks?page=${page - 1}`} className="btn-secondary btn-sm">Earlier books</Link> : <span />}
+            {page > 1 ? <Link href={`/jobs/${job.id}/walkbooks?page=${page - 1}`} className="btn-secondary">Earlier books</Link> : <span />}
             <span className="text-muted-sm">Books {(page - 1) * PAGE_SIZE + 1}–{Math.min(books.length, page * PAGE_SIZE)} of {books.length.toLocaleString("en-US")}</span>
-            {page < pages ? <Link href={`/jobs/${job.id}/walkbooks?page=${page + 1}`} className="btn-secondary btn-sm">Later books</Link> : <span />}
+            {page < pages ? <Link href={`/jobs/${job.id}/walkbooks?page=${page + 1}`} className="btn-secondary">Later books</Link> : <span />}
           </nav>
         )}
         {canEdit && books.length > 0 && hired.length === 0 && <p className="text-hint">Hire someone on this job first: only hired workers can hold its walkbooks.</p>}
@@ -224,7 +224,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
                     fields={{ importId: i.id, jobId: job.id }}
                     label="Delete this file's data now"
                     pendingLabel="Deleting…"
-                    variant="btn-secondary btn-sm"
+                    variant="btn-secondary"
                     ariaLabel={`Delete the data of ${i.fileName} now`}
                     confirm={{ text: "The addresses, record IDs and other columns of this file are deleted for good. Walkbooks already cut keep their stops, outcomes and names, but lose their addresses, and importing the file again won't put them back: it would add its doors as new stops. This can't be undone.", label: "Delete them now" }}
                   />

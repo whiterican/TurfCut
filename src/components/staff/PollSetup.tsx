@@ -43,7 +43,7 @@ function QuestionForm({ jobId, question, onDone }: { jobId: string; question?: P
         </span>
         {err("choices")}
       </label>
-      <PendingButton pendingLabel="Saving…" doneLabel="Saved" result={state.message ? state : null} className="btn-secondary btn-sm">
+      <PendingButton pendingLabel="Saving…" doneLabel="Saved" result={state.message ? state : null} className="btn-secondary">
         {question ? "Save the new wording" : "Add question"}
       </PendingButton>
       {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
@@ -76,7 +76,7 @@ export function PollSetup({ jobId, current, earlier, canEdit }: { jobId: string;
                   {q.prompt}
                 </p>
                 {canEdit && editing !== q.id && (
-                  <button type="button" className="btn-ghost btn-sm shrink-0" onClick={() => { setNotice(""); setEditing(q.id); }} aria-label={`Change question ${q.position}`}>
+                  <button type="button" className="btn-ghost shrink-0" onClick={() => { setNotice(""); setEditing(q.id); }} aria-label={`Change question ${q.position}`}>
                     Change
                   </button>
                 )}
@@ -85,7 +85,7 @@ export function PollSetup({ jobId, current, earlier, canEdit }: { jobId: string;
                 <div className="space-y-2">
                   <p className="text-hint">Saving adds the new wording as the current question. The old wording and the answers given to it stay as earlier wording.</p>
                   <QuestionForm jobId={jobId} question={q} onDone={(m) => { setNotice(m); setEditing(null); }} />
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setEditing(null)}>Cancel</button>
+                  <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
                 </div>
               ) : (
                 <ul className="flex flex-wrap gap-2">
@@ -103,10 +103,10 @@ export function PollSetup({ jobId, current, earlier, canEdit }: { jobId: string;
         adding ? (
           <div className="card space-y-3">
             <QuestionForm jobId={jobId} onDone={(m) => { setNotice(m); setAdding(false); }} />
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setAdding(false)}>Cancel</button>
+            <button type="button" className="btn-ghost" onClick={() => setAdding(false)}>Cancel</button>
           </div>
         ) : (
-          <button type="button" className="btn-secondary btn-sm" onClick={() => { setNotice(""); setAdding(true); }}>
+          <button type="button" className="btn-secondary" onClick={() => { setNotice(""); setAdding(true); }}>
             Add a question
           </button>
         )

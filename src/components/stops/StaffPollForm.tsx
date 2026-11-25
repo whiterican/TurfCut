@@ -14,7 +14,7 @@ export function StaffPollForm({ stopId, questions, values }: { stopId: string; q
   const [open, setOpen] = useState(false);
   if (!open) {
     return (
-      <button type="button" className="btn-secondary btn-sm" onClick={() => setOpen(true)}>
+      <button type="button" className="btn-secondary" onClick={() => setOpen(true)}>
         Edit answers
       </button>
     );
@@ -25,10 +25,10 @@ export function StaffPollForm({ stopId, questions, values }: { stopId: string; q
       <p className="text-hint">Saving adds a new answer as the current one. The earlier answer stays in the history, with who gave it.</p>
       <PollFields key={JSON.stringify(values)} questions={questions} initial={values} idPrefix={`staff-${stopId}`} />
       <div className="flex items-center gap-3">
-        <button className="btn-primary btn-sm" disabled={pending} aria-busy={pending || undefined}>
+        <button className="btn-primary" disabled={pending} aria-busy={pending || undefined}>
           {pending ? "Saving…" : "Save changes"}
         </button>
-        <button type="button" className="btn-ghost btn-sm" onClick={() => setOpen(false)}>
+        <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>
           Close
         </button>
       </div>

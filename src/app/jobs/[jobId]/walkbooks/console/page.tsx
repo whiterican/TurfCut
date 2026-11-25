@@ -56,7 +56,7 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
             Walkbooks
           </Link>
           {canExport && (
-            <a href={exportHref} className="btn-secondary btn-sm">
+            <a href={exportHref} className="btn-secondary">
               <Download aria-hidden className="size-4" />
               Export {filtered ? "these" : "all"} as CSV
             </a>
@@ -91,9 +91,9 @@ export default async function ConsolePage({ params, searchParams }: { params: Pr
               ))}
             </select>
           </label>
-          <button className="btn-secondary btn-sm">Apply</button>
+          <button className="btn-secondary">Apply</button>
           {filtered && (
-            <Link href={base} className="btn-ghost btn-sm">
+            <Link href={base} className="btn-ghost">
               Clear filters
             </Link>
           )}

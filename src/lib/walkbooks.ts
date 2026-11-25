@@ -142,8 +142,8 @@ const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, "");
  * with digits after it ("SSN4"). Multi-word names ("Social Security",
  * "License Number") are matched on the squeezed header.
  */
-const NEVER_WORD = /^(ssn|ss|sin|itin|tin|ein|dob|yob|dl|dln|pin|pwd|passwd|password|passphrase|token|secret|cvv|cvc|iban|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc)\d*$/;
-const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthyr", "birthdate", "birthdt", "birthday", "birthmonth", "dlnum", "dlno", "lastfour", "last4"];
+const NEVER_WORD = /^(ssn|ss|sin|itin|tin|ein|dob|yob|dl|dln|dlnum|dlno|dlnumber|pin|pwd|passwd|password|passphrase|token|secret|cvv|cvc|iban|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc)\d*$/;
+const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthyr", "birthdate", "birthdt", "birthday", "birthmonth", "lastfour", "last4"];
 export function isNeverStored(header: string): boolean {
   const words = header
     .replace(/([a-z])([A-Z])/g, "$1 $2")

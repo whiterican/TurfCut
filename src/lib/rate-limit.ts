@@ -178,7 +178,7 @@ const store = () => (shared ??= postgresStore());
  * per-connection sign-in limit: the per-address limit still applies, and
  * otherwise anyone keeping an instance busy could block every sign-in on it.
  */
-const FAIL_OPEN: ReadonlySet<LimitName> = new Set(["sync"]);
+const FAIL_OPEN: ReadonlySet<LimitName> = new Set(["sync", "stop-record"]);
 function failOpen(name: LimitName, e: unknown): boolean {
   if (FAIL_OPEN.has(name) || isDatabaseUnreachable(e)) return true;
   return (e as { code?: unknown })?.code === "P2024" && name === "login";

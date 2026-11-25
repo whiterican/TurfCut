@@ -216,6 +216,8 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("a file whose jobs just closed is kept for the 7-day grace", (await purgeDueImports()).purged === 0 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) > 0);
   const partId = part.ok ? part.importId : "";
   const kept = async () => (await purgeDueImports()).purged === 0 && (await p.importedAddress.count({ where: { importId: partId } })) > 0;
+  // The books are old from here on, so each check below turns on the job alone.
+  await p.$executeRaw`UPDATE "Walkbook" SET "createdAt" = now() - interval '9 days' WHERE "importId" = ${partId}::uuid`;
   // Closed means hiring has closed; the people already hired keep walking. Only a job whose end date has also passed is over.
   await p.$executeRaw`UPDATE "Job" SET "endsAt" = NULL, "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
   check("a job closed over a week ago with no end date keeps its file (the 30 days still apply)", await kept());
@@ -224,6 +226,7 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   await p.$executeRaw`UPDATE "Job" SET "endsAt" = now() - interval '3 days', "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
   check("…and one that ended inside the 7-day grace", await kept());
   await p.$executeRaw`UPDATE "Job" SET "startsAt" = now() - interval '40 days', "endsAt" = now() - interval '8 days', "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
+  await p.$executeRaw`UPDATE "Walkbook" SET "createdAt" = now() WHERE "importId" = ${partId}::uuid`;
   check("…and one that ended long enough ago, while a book was cut from the file this week", await kept());
   await p.$executeRaw`UPDATE "Walkbook" SET "createdAt" = now() - interval '9 days' WHERE "importId" = ${partId}::uuid`;
   const due2 = await purgeDueImports();

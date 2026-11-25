@@ -350,9 +350,9 @@ describe("walking order and cutting", () => {
 describe("final review: headers", () => {
   it("run-together birth and licence headers from county files are never stored; a mobile column is", () => {
     for (const h of ["YOB", "BIRTHDT", "BIRTHYR", "DLNUMBER", "Birth Month"]) expect(isNeverStored(h), h).toBe(true);
-    for (const h of ["Mob", "Mobile", "Precinct"]) expect(isNeverStored(h), h).toBe(false);
+    for (const h of ["Mob", "Mobile", "Precinct", "Addl Notes", "AddlNumber"]) expect(isNeverStored(h), h).toBe(false);
   });
-  it("refuses a file with more than 500 columns before reading its rows", () => {
+  it("refuses a file with more than 500 columns", () => {
     const r = readAddressFile(`${",".repeat(600)}\n${",".repeat(600)}\n`);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toMatch(/columns/);

@@ -12,6 +12,8 @@ const s = (v: unknown) => (typeof v === "string" ? v : "");
  * POST /api/shifts/:shiftId/events { kind, … }
  * Workers: pause · resume · log {unit, count} · return_packet {packetId,
  * sheetsReturned, signatures} · undo_signature (takes one signature back) ·
+ * share_area {on, consent} (opt-in area sharing for the shift; a signature's
+ * area only comes through the sync route) ·
  * check_out · cancel {reason}.
  * Owners/supervisors: packet_pickup {packetId, sheets} · batch_count
  * {reviewed, accepted, rejected, exceptions?} · cancel {reason}.
@@ -38,6 +40,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
       case "log":
         if (b.unit !== "signatures" && b.unit !== "doors" && b.unit !== "contacts") return Response.json({ error: "unit must be signatures, doors or contacts." }, { status: 400 });
         r = { kind: "log", unit: b.unit, count: n(b.count) };
+        break;
+      case "share_area":
+        if (typeof b.on !== "boolean") return Response.json({ error: "on must be true or false." }, { status: 400 });
+        r = Number.isInteger(b.consent) ? { kind: "share_area", on: b.on, consent: b.consent as number } : { kind: "share_area", on: b.on };
         break;
       case "return_packet":
         r = { kind: "return_packet", packetId: s(b.packetId), sheetsReturned: n(b.sheetsReturned), signatures: n(b.signatures) };

@@ -9,7 +9,7 @@ import { GET } from "./route";
 
 const st = (o: Partial<ShiftState> = {}): ShiftState => ({
   cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [],
-  packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null, ...o,
+  packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null, sharingArea: false, area: null, ...o,
 });
 
 describe("GET /api/field/summary", () => {

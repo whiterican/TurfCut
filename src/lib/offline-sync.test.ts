@@ -9,6 +9,13 @@ describe("readQueued", () => {
     expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 5 } })).toEqual({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 5 } });
     expect(readQueued({ clientId: id, at, action: { kind: "pause" } })?.action).toEqual({ kind: "pause" });
     expect(readQueued({ clientId: id, at, action: { kind: "undo_signature", count: 40 } })?.action).toEqual({ kind: "undo_signature" });
+    expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: true, consent: 1 } })?.action).toEqual({ kind: "share_area", on: true, consent: 1 });
+    expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: true, consent: "1" } })?.action).toEqual({ kind: "share_area", on: true });
+    expect(readQueued({ clientId: id, at, action: { kind: "share_area", on: "yes" } })).toBeNull();
+    // A signature's area is snapped on arrival; a malformed one is dropped, not the signature; doors never carry one.
+    expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 1, area: { lat: 39.73921, lng: -104.99034 } } })?.action).toEqual({ kind: "log", unit: "signatures", count: 1, area: { lat: 39.735, lng: -104.995 } });
+    expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "signatures", count: 1, area: { lat: "x" } } })?.action).toEqual({ kind: "log", unit: "signatures", count: 1 });
+    expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "doors", count: 1, area: { lat: 39.7, lng: -104.9 } } })?.action).toEqual({ kind: "log", unit: "doors", count: 1 });
     expect(readQueued({ clientId: id, at, action: { kind: "cancel", reason: "x" } })).toBeNull();
     expect(readQueued({ clientId: id, at, action: { kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 } })?.action).toEqual({ kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 });
     expect(readQueued({ clientId: id, at, action: { kind: "app_counts", app: "OTHER", doors: 1, contacts: 1 } })).toBeNull();

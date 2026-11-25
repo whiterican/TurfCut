@@ -17,7 +17,7 @@ settings could not be read from here, so those rows say "check"). Re-check after
 
 | Area | State |
 | --- | --- |
-| Database | Supabase project active and healthy (Postgres 17, us-east-2). The columns the code reads (`Job.sector`, `Job.activity`, `Job.workMode`, message reactions and mentions) are present, so the SQL files through `p3-sectors.sql` have been applied. `f1-signature-undo.sql` (the counter's take-back) has not been run: it goes in before that build deploys (README, step 6). The Supabase migration list stops at `profile_photo` because those files were pasted into the SQL editor, which does not record them. |
+| Database | Supabase project active and healthy (Postgres 17, us-east-2). The columns the code reads (`Job.sector`, `Job.activity`, `Job.workMode`, message reactions and mentions) are present, so the SQL files through `p3-sectors.sql` have been applied. `f1-signature-undo.sql` (the counter's take-back) and `f2-location-sharing.sql` (its opt-in area sharing) have not been run: each goes in before its build deploys (README, step 6). The Supabase migration list stops at `profile_photo` because those files were pasted into the SQL editor, which does not record them. |
 | Site | `/login` answers 200. |
 | Payouts | **Not configured.** `/api/stripe/webhook` answers 503 "Payouts aren't configured." Until Stripe is set up the Pay button only explains that. |
 | Security advisor | No errors. Three warnings, below. |

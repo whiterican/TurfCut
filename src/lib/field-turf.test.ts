@@ -6,7 +6,7 @@ import type { FieldRow } from "@/lib/field-view";
 
 const now = new Date("2026-10-28T19:40:00Z");
 const poly = (x: number) => ({ type: "Polygon" as const, coordinates: [[[x, 39.7], [x + 0.01, 39.7], [x + 0.01, 39.71], [x, 39.71], [x, 39.7]]] as [number, number][][] });
-const base = (): ShiftState => ({ cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null });
+const base = (): ShiftState => ({ cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null, sharingArea: false, area: null });
 const row = (p: Partial<Omit<FieldRow, "state">> & { state?: Partial<ShiftState> }): FieldRow => ({
   shiftId: p.shiftId ?? "s1",
   jobId: p.jobId ?? "j1",

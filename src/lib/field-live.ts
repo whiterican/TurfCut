@@ -1,4 +1,4 @@
-import type { TurfPolygon } from "@/lib/field-day";
+import { visibleArea, type TurfPolygon } from "@/lib/field-day";
 import type { FieldRow } from "@/lib/field-view";
 
 /**
@@ -106,11 +106,13 @@ export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
   }
 
   // Sorted by id so the same facts always hash the same way, whatever order the rows came in. Whether a shift
-  // is due yet is a fact too: the clock moving one into "under way" changes the words around the figures.
+  // is due yet is a fact too: the clock moving one into "under way" changes the words around the figures. So is
+  // whether the worker's shared area shows (F2, visibleArea): turning it off, or the shift passing its cutoff, takes
+  // "area shared" off the board. Only that yes/no, hashed.
   const facts = live
     .map(
       (r) =>
-        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}:${r.turf ? zoneId(r.turf) : "-"}`
+        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}${visibleArea(r.state, r.endsAt, now) ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}:${r.turf ? zoneId(r.turf) : "-"}`
     )
     .sort();
 

@@ -99,7 +99,10 @@ light card and the night card, so a new colour has to pass.
   `left_literature` on a Done or a Not home.
 - Petition circulation: `signatures` (0 to 50) on a Done.
 - **Polling** is a tool on canvass jobs (W5, below), not a job type. Door-to-door
-  polling as a job category stays planned.
+  polling as a job category stays planned. A draft whose type changes from
+  canvass keeps its questions, but they are asked, recorded and exported only
+  while the job is a canvass job (the type can change only in draft, before any
+  answer exists).
 - Offline taps are not built. A replayed tap is ordered by when the server
   receives it; offline support needs a client timestamp (see the W2 review).
 

@@ -5,7 +5,7 @@ import { readTools } from "@/lib/job-tools";
 import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { areaMembers } from "@/lib/access-data";
-import { assignProblem } from "@/lib/turf-assign";
+import { assignProblem, sameTurf } from "@/lib/turf-assign";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
@@ -568,13 +568,15 @@ export async function supervisorCorrection(
 /**
  * Give turf to the workers on these shifts, or clear it (polygon null), from the Field map. All or
  * nothing: if any shift is another organization's, cancelled or finished, nothing changes. Each shift's
- * previous turf stays in the audit trail, so a change can be traced and put back by hand.
+ * previous turf stays in the audit trail, so a change can be traced and put back by hand. A shift that
+ * already has exactly this turf (or already has none, when clearing) is left alone and counted as
+ * `unchanged`: no write and no audit entry, since nothing changed.
  */
 export async function assignShiftTurf(
   actor: { profileId: string; orgId: string },
   shiftIds: string[],
   turf: TurfPolygon | null
-): Promise<{ ok: true; count: number } | { ok: false; reason: string }> {
+): Promise<{ ok: true; count: number; unchanged: number } | { ok: false; reason: string }> {
   // Sorted, so two assignments that share shifts take their locks in the same order.
   const ids = [...shiftIds].sort();
   if (ids.length === 0 || !ids.every((id) => UUID_RE.test(id))) return { ok: false, reason: "Shift not found." };
@@ -594,7 +596,9 @@ export async function assignShiftTurf(
         if (problem) return { ok: false as const, reason: `${s.engagement.worker.displayName}'s shift ${problem}; nothing was changed.` };
         loaded.push({ id: s.id, turfArea: s.turfArea });
       }
-      for (const s of loaded) {
+      // Every shift is checked above, the unchanged ones too: asking for a closed shift still refuses the lot.
+      const changing = loaded.filter((s) => !sameTurf(s.turfArea, turf));
+      for (const s of changing) {
         await tx.shift.update({ where: { id: s.id }, data: { turfArea: turf ? (turf as unknown as Prisma.InputJsonValue) : Prisma.DbNull } });
         await tx.auditEvent.create({
           data: {
@@ -602,11 +606,11 @@ export async function assignShiftTurf(
             action: turf ? "shift.turf_assigned" : "shift.turf_cleared",
             entityType: "Shift",
             entityId: s.id,
-            metadata: { previous: (s.turfArea as Prisma.InputJsonValue | null) ?? null, next: turf as unknown as Prisma.InputJsonValue | null, shifts: loaded.length },
+            metadata: { previous: (s.turfArea as Prisma.InputJsonValue | null) ?? null, next: turf as unknown as Prisma.InputJsonValue | null, shifts: changing.length },
           },
         });
       }
-      return { ok: true as const, count: loaded.length };
+      return { ok: true as const, count: changing.length, unchanged: loaded.length - changing.length };
     },
     { timeout: 15_000, maxWait: 10_000 }
   );

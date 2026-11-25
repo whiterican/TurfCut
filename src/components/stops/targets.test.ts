@@ -52,3 +52,14 @@ describe("the worker's links are 44px targets too", () => {
     expect(shift).toMatch(/<Link href=\{`\/walkbooks#book-\$\{b\.id\}`\} className="[^"]*min-h-11/);
   });
 });
+
+describe("the import's acknowledgements", () => {
+  it("each checkbox sits in a label at least 44px tall, so the whole line is the target", () => {
+    const text = readFileSync("src/components/staff/WalkbookImport.tsx", "utf8");
+    for (const name of ["authorized", "ackAZ"]) {
+      const at = text.indexOf(`name="${name}"`);
+      const label = text.slice(text.lastIndexOf("<label", at), at);
+      expect(label, name).toMatch(/min-h-11/);
+    }
+  });
+});

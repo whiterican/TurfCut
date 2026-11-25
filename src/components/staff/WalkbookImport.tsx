@@ -104,14 +104,14 @@ export function WalkbookImport({ jobId }: { jobId: string }) {
               {err("purpose")}
             </label>
           </div>
-          <label className="flex items-start gap-2 text-sm text-fg">
+          <label className="flex min-h-11 cursor-pointer items-start gap-2 py-2 text-sm text-fg">
             <input type="checkbox" name="authorized" className="mt-1 size-4" checked={authorized} onChange={(e) => setAuthorized(e.target.checked)} />
             <span>Our organization is authorized to use this file for this purpose, under this license.</span>
           </label>
           {err("authorized")}
           {preview.file.states.some((s) => (NEEDS_STATE_ACK as readonly string[]).includes(s)) && (
             <>
-              <label className="flex items-start gap-2 text-sm text-fg">
+              <label className="flex min-h-11 cursor-pointer items-start gap-2 py-2 text-sm text-fg">
                 <input type="checkbox" name="ackAZ" className="mt-1 size-4" checked={ackAZ} onChange={(e) => setAckAZ(e.target.checked)} />
                 <span>
                   This file has Arizona addresses. Arizona law (A.R.S. § 16-168) limits voter-list data to political and election use and bars posting it on the internet. We have confirmed we may upload this file here.

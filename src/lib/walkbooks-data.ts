@@ -377,7 +377,7 @@ export async function purgeImport(importId: string, reason: PurgeReason, actorId
     return { ok: true as const, addresses: gone.count, already: false };
     },
     // A purge waiting on a long cut's lock must not time out at the 5-second default.
-    { timeout: 30_000, maxWait: 10_000 }
+    { timeout: PURGE_TX_TIMEOUT_MS, maxWait: PURGE_TX_WAIT_MS }
   );
 }
 
@@ -396,7 +396,17 @@ export async function purgeOwnImport(actor: Staff, importId: string, now = new D
  * first, in batches, within a time budget; one import failing is skipped for
  * this run and doesn't hold up the rest.
  */
-export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Promise<{ purged: number; addresses: number; failed: number }> {
+/** One purge's transaction: up to this long waiting for a connection, and this long to run (it can wait on a cut's lock). */
+export const PURGE_TX_WAIT_MS = 10_000;
+export const PURGE_TX_TIMEOUT_MS = 30_000;
+/**
+ * How long the daily run starts new purges for. It is checked before each one, and one can then take up to
+ * PURGE_TX_WAIT_MS + PURGE_TX_TIMEOUT_MS more, so the run's whole time stays inside the route's maxDuration (60 s):
+ * a budget of 45 s could run to 85 s and be cut off with nothing reported. What is left goes the next day.
+ */
+export const PURGE_BUDGET_MS = 15_000;
+
+export async function purgeDueImports(now = new Date(), budgetMs = PURGE_BUDGET_MS): Promise<{ purged: number; addresses: number; failed: number }> {
   const started = Date.now();
   const skip: string[] = [];
   // Chosen as due, then found not due under the lock (a cut since): passed over this run, not counted as failed.

@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { purgeDueImports } from "@/lib/walkbooks-data";
 
-/** The purge works within a time budget (45 s); give the function room for it. */
+/** The purge starts new deletions for PURGE_BUDGET_MS, and the last one can take its transaction's limits more: this covers both. */
 export const maxDuration = 60;
 
 /**

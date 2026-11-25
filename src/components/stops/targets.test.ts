@@ -43,3 +43,12 @@ describe("the worker's recording panel keeps focus where it was", () => {
     expect(save).not.toMatch(/\sdisabled=\{/);
   });
 });
+
+describe("the worker's links are 44px targets too", () => {
+  it("the job link above each book, and each book on the shift page", () => {
+    const books = readFileSync("src/app/walkbooks/page.tsx", "utf8");
+    expect(books).toMatch(/<Link href=\{`\/jobs\/\$\{b\.job\.id\}`\} className="[^"]*min-h-11/);
+    const shift = readFileSync("src/app/shifts/[shiftId]/page.tsx", "utf8");
+    expect(shift).toMatch(/<Link href=\{`\/walkbooks#book-\$\{b\.id\}`\} className="[^"]*min-h-11/);
+  });
+});

@@ -33,7 +33,7 @@ export default async function MyWalkbooksPage() {
                 <div className="space-y-2">
                   <div className="space-y-0.5">
                     <p className="eyebrow">
-                      <Link href={`/jobs/${b.job.id}`} className="underline-offset-2 hover:underline">
+                      <Link href={`/jobs/${b.job.id}`} className="inline-flex min-h-11 items-center underline-offset-2 hover:underline">
                         {b.job.title}
                       </Link>
                     </p>

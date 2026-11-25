@@ -300,11 +300,12 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           <h2 className="section-title">Your walkbooks</h2>
           <ul className="list-card">
             {walkbooks.map((b) => (
-              <li key={b.id} className="px-4 py-2.5">
-                <Link href={`/walkbooks#book-${b.id}`} className="font-semibold text-fg underline-offset-2 hover:underline">
-                  {b.name}
+              <li key={b.id}>
+                {/* The whole row is the link, at least 44px tall: it's tapped on a phone. */}
+                <Link href={`/walkbooks#book-${b.id}`} className="flex min-h-11 items-center gap-1 px-4 py-2.5 hover:bg-surface-2">
+                  <span className="font-semibold text-fg">{b.name}</span>
+                  <span className="text-muted-sm"> · {b.stops} {b.stops === 1 ? "stop" : "stops"}</span>
                 </Link>
-                <span className="text-muted-sm"> · {b.stops} {b.stops === 1 ? "stop" : "stops"}</span>
               </li>
             ))}
           </ul>

@@ -831,14 +831,23 @@ describe("the shell (redesign B1.4)", () => {
     const depthOf = (src: string) => src.split("{").length - src.split("}").length;
     expect(depthOf(before)).toBe(1); // inside @media screen only
     expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media screen \{\s*$/);
-    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*--root-top: var\(--drawer-root\);\s*--root-foot: var\(--drawer-root\);/);
+    // The strip behind the clock is the drawer's colour under the same dim as the shadow (Caden, Nov 17): 45% of rgb(24 20 30) by day, 60% of rgb(8 4 14) by night.
+    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*--drawer-strip: color-mix\(in srgb, var\(--drawer-root\) 55%, rgb\(24 20 30\)\);\s*--root-top: var\(--drawer-strip\);\s*--root-foot: var\(--drawer-root\);/);
+    expect(css).toMatch(/html\.dark:has\(\.more-sheet\[open\]\) \{\s*--drawer-strip: color-mix\(in srgb, var\(--drawer-root\) 40%, rgb\(8 4 14\)\);/);
+    expect(css).toMatch(/\.more-sheet \{[^}]*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
+    expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
     // The body takes it too, and the backdrop is clear: an iPhone colours the strip from the page or from whatever is fixed
     // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);/);
     expect(css).toMatch(/\.more-sheet::backdrop \{\s*background: transparent;/);
+    // Blurred but not tinted (Caden, Nov 17), and static: no animation on it. Plain again under reduced transparency and in Sunlight.
+    expect(css).toMatch(/\.more-sheet::backdrop \{\s*background: transparent;[^}]*?-webkit-backdrop-filter: blur\(8px\);\s*backdrop-filter: blur\(8px\);\s*\}/);
+    expect(css).not.toMatch(/\.more-sheet::backdrop \{[^}]*animation/);
+    expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {"))).toMatch(/\.more-sheet::backdrop \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+    expect(css).toMatch(/\.sun \.more-sheet::before,\s*\.sun \.more-sheet::backdrop \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     // No theme gives the backdrop a colour again (only the forced-colours veil does), and the colour is the pane over the page.
-    expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);
+    expect(css.match(/(?<!\.sun )\.more-sheet::backdrop \{/g)).toHaveLength(3); // clear + blur, the forced-colours veil, and the solid fallback
     expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
     // Clear glass over the purple: the strip is half the page's top colour, and the pane is that colour part see-through, so over the strip-coloured page it is exactly the strip.
     expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);\s*--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) (60|68)%, transparent\);/g)).toHaveLength(2);
@@ -857,7 +866,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.more-sheet::before \{[^}]*?z-index: -1;[^}]*?background: var\(--drawer-bg\);\s*-webkit-backdrop-filter: blur\(24px\);\s*backdrop-filter: blur\(24px\);/);
     const panel = css.slice(css.indexOf(".more-sheet-panel {\n    @apply"), css.indexOf("}", css.indexOf(".more-sheet-panel {\n    @apply")));
     expect(panel).not.toMatch(/background|backdrop-filter/);
-    expect(css).toMatch(/\.sun \.more-sheet::before \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+    expect(css).toMatch(/\.sun \.more-sheet::before,\s*\.sun \.more-sheet::backdrop \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {"))).toMatch(/\.more-sheet::before \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css.match(/--drawer-root: var\(--surface\);\s*--drawer-bg: var\(--surface\);/g)).toHaveLength(2);
     expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);

@@ -1,5 +1,6 @@
 import { LocalTime } from "@/components/LocalTime";
 import { LiveZoneBar, LiveZoneFigure } from "@/components/staff/FieldLive";
+import { AssignThisTurfButton } from "@/components/staff/TurfPick";
 import type { TurfCard } from "@/lib/field-turf";
 
 /**
@@ -39,6 +40,8 @@ export function TurfCards({ cards, now }: { cards: TurfCard[]; now: Date }) {
             {c.signatures > 0 && ` · ${c.signatures} signatures`}
             {c.doors > 0 && ` · ${c.doors} doors`}
           </p>
+          {/* Only for people who may assign turf (it renders nothing otherwise): the Assign panel opens starting from this turf. */}
+          <AssignThisTurfButton id={c.id} name={c.name} turf={c.turf} />
         </li>
       ))}
     </ul>

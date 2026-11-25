@@ -1,4 +1,5 @@
 import type { FieldRow } from "@/lib/field-view";
+import type { TurfPolygon } from "@/lib/field-day";
 import { onGround, zoneId } from "@/lib/field-live";
 
 /**
@@ -27,6 +28,8 @@ export interface TurfCard {
   /** The window's first start among the turf's shifts, for ordering and the card's time line. */
   startsAt: Date;
   endsAt: Date;
+  /** The turf's own polygon, so the card can open the Assign panel starting from it. */
+  turf: TurfPolygon;
 }
 
 export function turfCards(rows: FieldRow[]): TurfCard[] {
@@ -36,7 +39,7 @@ export function turfCards(rows: FieldRow[]): TurfCard[] {
     const id = zoneId(r.turf);
     let c = by.get(id);
     if (!c) {
-      by.set(id, (c = { id, name: r.staging ?? "", jobId: r.jobId, jobTitle: r.jobTitle, jobs: 0, total: 0, onGround: 0, signatures: 0, doors: 0, startsAt: r.startsAt, endsAt: r.endsAt, jobIds: new Set() }));
+      by.set(id, (c = { id, name: r.staging ?? "", jobId: r.jobId, jobTitle: r.jobTitle, jobs: 0, total: 0, onGround: 0, signatures: 0, doors: 0, startsAt: r.startsAt, endsAt: r.endsAt, turf: r.turf, jobIds: new Set() }));
     }
     c.jobIds.add(r.jobId);
     c.total++;

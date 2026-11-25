@@ -6,6 +6,10 @@ import { recordStopOutcome } from "@/lib/stop-outcomes-data";
 import { recordPollAnswers } from "@/lib/poll-data";
 import { formToObject } from "@/lib/jobs";
 import { orTryAgain, TRY_AGAIN } from "@/lib/try-again";
+import { allow } from "@/lib/rate-limit";
+
+/** Refused before anything is written; the tap id is kept, so the same tap goes through once the minute has passed. */
+const SLOW_DOWN: OutcomeState = { ok: false, retry: true, message: "That's a lot of saves in a minute. Wait a moment and try again.", errors: {} };
 
 export interface OutcomeState {
   ok: boolean;
@@ -20,6 +24,7 @@ export interface OutcomeState {
 /** The worker holding a walkbook records what happened at one stop. Worker and profile come from the session, never from the form. */
 export async function recordOutcomeAction(_prev: OutcomeState, fd: FormData): Promise<OutcomeState> {
   const { workerId, userId } = await requireWorker();
+  if (!(await allow("stop-record", workerId))) return SLOW_DOWN;
   const raw = formToObject(fd);
   const r = await orTryAgain("stop outcome", () => recordStopOutcome({ workerId, profileId: userId }, raw.stopId, raw.clientId, raw));
   if (!r) return { ok: false, retry: true, message: TRY_AGAIN, errors: {} };
@@ -35,6 +40,7 @@ export async function recordOutcomeAction(_prev: OutcomeState, fd: FormData): Pr
 /** The worker holding a walkbook records or edits a poll at a Done stop. Worker and profile come from the session, never from the form. */
 export async function recordPollAction(_prev: OutcomeState, fd: FormData): Promise<OutcomeState> {
   const { workerId, userId } = await requireWorker();
+  if (!(await allow("stop-record", workerId))) return SLOW_DOWN;
   const raw = formToObject(fd);
   const r = await orTryAgain("poll answer", () => recordPollAnswers({ workerId, profileId: userId }, raw.stopId, raw.clientId, raw));
   if (!r) return { ok: false, retry: true, message: TRY_AGAIN, errors: {} };

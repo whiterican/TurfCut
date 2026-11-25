@@ -214,10 +214,21 @@ const META = { fileName: "county.csv", recordSource: "County voter file, Oct 202
   check("running it again finds nothing", (await purgeDueImports()).purged === 0);
   await p.job.update({ where: { id: job.id }, data: { status: "CLOSED" } });
   check("a file whose jobs just closed is kept for the 7-day grace", (await purgeDueImports()).purged === 0 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) > 0);
-  await p.$executeRaw`UPDATE "Job" SET "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
+  const partId = part.ok ? part.importId : "";
+  const kept = async () => (await purgeDueImports()).purged === 0 && (await p.importedAddress.count({ where: { importId: partId } })) > 0;
+  // Closed means hiring has closed; the people already hired keep walking. Only a job whose end date has also passed is over.
+  await p.$executeRaw`UPDATE "Job" SET "endsAt" = NULL, "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
+  check("a job closed over a week ago with no end date keeps its file (the 30 days still apply)", await kept());
+  await p.$executeRaw`UPDATE "Job" SET "endsAt" = now() + interval '10 days', "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
+  check("…and so does a closed job that is still running to its end date", await kept());
+  await p.$executeRaw`UPDATE "Job" SET "endsAt" = now() - interval '3 days', "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
+  check("…and one that ended inside the 7-day grace", await kept());
+  await p.$executeRaw`UPDATE "Job" SET "startsAt" = now() - interval '40 days', "endsAt" = now() - interval '8 days', "updatedAt" = now() - interval '8 days' WHERE "id" = ${job.id}::uuid`;
+  check("…and one that ended long enough ago, while a book was cut from the file this week", await kept());
+  await p.$executeRaw`UPDATE "Walkbook" SET "createdAt" = now() - interval '9 days' WHERE "importId" = ${partId}::uuid`;
   const due2 = await purgeDueImports();
   const closedAudit = await p.auditEvent.findFirst({ where: { entityId: part.ok ? part.importId : "", action: "address_import.purged" } });
-  check("when every job a file was cut for has closed, its data goes at the next run", due2.purged >= 1 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) === 0 && (closedAudit?.metadata as { reason?: string })?.reason === "jobs_closed", due2);
+  check("when every job a file was cut for is closed and ended over a week ago, its data goes at the next run", due2.purged >= 1 && (await p.importedAddress.count({ where: { importId: part.ok ? part.importId : "" } })) === 0 && (closedAudit?.metadata as { reason?: string })?.reason === "jobs_closed", due2);
   check("a file that was never cut for a job keeps its 30 days (the Arizona file was only imported)", (await p.addressImport.count({ where: { purgedAt: null, walkbooks: { none: {} } } })) >= 1);
   check("through all of it no stop and no outcome was deleted", (await p.walkbookStop.count({ where: { id: { in: stopIds } } })) === stopIds.length && (await p.stopOutcome.count()) === before.outcomes);
 

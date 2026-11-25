@@ -8,7 +8,7 @@ export const maxDuration = 60;
  * GET /api/cron/purge-imports: the daily deletion of imported names and
  * addresses (W1). An imported file keeps every column, so its rows (addresses,
  * record IDs and every other column) are deleted 30 days after the import, or
- * sooner when every job it was cut for has closed. The stops, their outcomes
+ * sooner when every job it was cut for is closed and a week past its end date. The stops, their outcomes
  * and poll answers stay, keyed by walkbook and stop number. Vercel Cron calls
  * it (vercel.json) with `Authorization: Bearer $CRON_SECRET`; anything else is
  * refused. An organization can also delete a file's data itself at any time.

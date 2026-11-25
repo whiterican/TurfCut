@@ -346,3 +346,15 @@ describe("walking order and cutting", () => {
     expect(addressLine({ line1: "12 Elm St", unit: "Apt 2", city: "Springfield", state: "IL", zip: "62701" })).toBe("12 Elm St, Apt 2, Springfield, IL 62701");
   });
 });
+
+describe("final review: headers", () => {
+  it("run-together birth and licence headers from county files are never stored; a mobile column is", () => {
+    for (const h of ["YOB", "BIRTHDT", "BIRTHYR", "DLNUMBER", "Birth Month"]) expect(isNeverStored(h), h).toBe(true);
+    for (const h of ["Mob", "Mobile", "Precinct"]) expect(isNeverStored(h), h).toBe(false);
+  });
+  it("refuses a file with more than 500 columns before reading its rows", () => {
+    const r = readAddressFile(`${",".repeat(600)}\n${",".repeat(600)}\n`);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/columns/);
+  });
+});

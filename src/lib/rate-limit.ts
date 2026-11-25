@@ -55,6 +55,10 @@ export const LIMITS = {
   "walkbook-export": { max: 10, windowMs: 60 * 60_000 },
   /** Refused export attempts that are written to the audit log, per person per hour (W3: a signed-in user can't fill the log by hammering a URL). */
   "walkbook-export-denied": { max: 20, windowMs: 60 * 60_000 },
+  /** Stop outcomes and poll saves per worker per minute (W2, W5): every one is a row that is never deleted, so a script can't mint them without end. A fast canvasser is a few a minute. */
+  "stop-record": { max: 60, windowMs: 60_000 },
+  /** Address files per organization per day (W1): each is up to 2 MB read and stored. */
+  "address-file": { max: 40, windowMs: 24 * 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

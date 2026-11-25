@@ -372,7 +372,7 @@ export async function purgeOwnImport(actor: Staff, importId: string, now = new D
 
 /**
  * Deletes the names and addresses of every import that is due: its 30 days
- * are up, or every job it was cut for closed at least CLOSED_GRACE_DAYS ago
+ * are up, or every job it was cut for is closed and ended at least CLOSED_GRACE_DAYS ago
  * (time to export the return file). Run daily by the cron route. Oldest
  * first, in batches, within a time budget; one import failing is skipped for
  * this run and doesn't hold up the rest.
@@ -391,8 +391,22 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
         id: { notIn: skip },
         OR: [
           { deleteAfter: { lte: now } },
-          // Cut for at least one job, and every one of them closed more than the grace ago.
-          { walkbooks: { some: {} }, NOT: { walkbooks: { some: { job: { OR: [{ status: { not: "CLOSED" } }, { updatedAt: { gt: graceEnds } }] } } } } },
+          // Cut for at least one job, and for every one of them the work is over: the job is closed AND its end date passed more than
+          // the grace ago. CLOSED alone only means hiring has closed; the people already hired keep walking (a job with no end date
+          // waits for the 30 days). A book cut within the grace also holds the file: someone has just been given it to walk.
+          {
+            walkbooks: { some: {} },
+            NOT: {
+              walkbooks: {
+                some: {
+                  OR: [
+                    { createdAt: { gt: graceEnds } },
+                    { job: { OR: [{ status: { not: "CLOSED" } }, { updatedAt: { gt: graceEnds } }, { endsAt: null }, { endsAt: { gt: graceEnds } }] } },
+                  ],
+                },
+              },
+            },
+          },
         ],
       },
       orderBy: { deleteAfter: "asc" },

@@ -27,6 +27,8 @@ export const DEFAULT_STOPS_PER_BOOK = 60;
 export const MAX_DROPPED_SHOWN = 200;
 /** Columns kept in a row's sourceData, and the most one value holds. */
 export const MAX_STORED_COLUMNS = 60;
+/** Columns a file may have at all (most are then stored, dropped by name, or over the stored cap). */
+export const MAX_HEADER_COLUMNS = 500;
 export const MAX_VALUE_CHARS = 500;
 /** What a row's sourceData may weigh; the database refuses more than 16,384 bytes of its own JSON text, which spaces out a little. */
 export const MAX_SOURCE_DATA_BYTES = 15_000;
@@ -140,8 +142,8 @@ const norm = (h: string) => h.toLowerCase().replace(/[^a-z0-9]/g, "");
  * with digits after it ("SSN4"). Multi-word names ("Social Security",
  * "License Number") are matched on the squeezed header.
  */
-const NEVER_WORD = /^(ssn|ss|sin|itin|tin|ein|dob|dl|dln|pin|pwd|passwd|password|passphrase|token|secret|cvv|cvc|iban|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc)\d*$/;
-const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthdate", "lastfour", "last4"];
+const NEVER_WORD = /^(ssn|ss|sin|itin|tin|ein|dob|yob|dl|dln|pin|pwd|passwd|password|passphrase|token|secret|cvv|cvc|iban|acct|account|born|birth|birthdate|birthday|dateofbirth|social|socsec|passport|routing|license|licence|lic|card|cc)\d*$/;
+const NEVER_SQUEEZED = ["socialsecurity", "socsec", "socialsec", "driverlic", "driverslic", "licensenumber", "licensenum", "licenseno", "licencenumber", "licenceno", "licnum", "licno", "govtid", "governmentid", "stateid", "idnumber", "idnum", "taxid", "taxpayer", "creditcard", "cardnumber", "cardno", "ccnumber", "ccnum", "bankaccount", "accountnumber", "accountno", "acctnumber", "acctno", "dateofbirth", "yearborn", "birthyear", "birthyr", "birthdate", "birthdt", "birthday", "birthmonth", "dlnum", "dlno", "lastfour", "last4"];
 export function isNeverStored(header: string): boolean {
   const words = header
     .replace(/([a-z])([A-Z])/g, "$1 $2")
@@ -400,6 +402,8 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
   const lineOf = csv.lines;
   if (csv.rows.length < 2) return { ok: false, reason: "The file has no rows under its header." };
   const [headers, ...data] = csv.rows;
+  // A real file has tens of columns; a header row of thousands is a mistake or an attack on the reader.
+  if (headers.length > MAX_HEADER_COLUMNS) return { ok: false, reason: `The file has ${headers.length.toLocaleString("en-US")} columns. Keep it to ${MAX_HEADER_COLUMNS} or fewer.` };
   if (data.length > MAX_ROWS) return { ok: false, reason: `The file has more than ${MAX_ROWS.toLocaleString("en-US")} rows. Split it into smaller files.` };
   const mapped = mapColumns(headers);
   if (!mapped.ok) return mapped;

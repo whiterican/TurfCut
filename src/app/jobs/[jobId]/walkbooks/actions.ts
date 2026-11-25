@@ -5,6 +5,7 @@ import { requireArea } from "@/lib/employer-session";
 import { assignWalkbook, cutWalkbooks, importAddresses, purgeOwnImport } from "@/lib/walkbooks-data";
 import { MAX_FILE_BYTES } from "@/lib/walkbooks";
 import { UUID_RE } from "@/lib/jobs";
+import { allow } from "@/lib/rate-limit";
 import type { ActionState } from "@/app/jobs/actions";
 import { orTryAgain, TRY_AGAIN } from "@/lib/try-again";
 
@@ -34,6 +35,7 @@ export async function importAddressesAction(_prev: WalkbookFormState, fd: FormDa
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Choose a CSV file.", errors: { file: "Choose a CSV file." } };
   // Next has already parsed the body (capped by serverActions.bodySizeLimit); this keeps the reader to the file limit.
   if (file.size > MAX_FILE_BYTES) return { ok: false, message: "The file is over 2 MB.", errors: { file: "The file is over 2 MB. Split it, or keep only the address columns." } };
+  if (!(await allow("address-file", actor.orgId))) return { ok: false, message: "Your organization has imported a lot of files today. Try again tomorrow.", errors: {} };
   const text = await file.text();
   const r = await importAddresses(actor, { fileName: file.name, recordSource: fd.get("recordSource"), purpose: fd.get("purpose"), license: fd.get("license"), authorized: fd.get("authorized"), sourceSystem: fd.get("sourceSystem"), ackAZ: fd.get("ackAZ") }, text);
   if (!r.ok) return { ok: false, message: r.reason, errors: r.errors ?? {} };

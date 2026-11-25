@@ -174,7 +174,7 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
         <section className="section">
           <h2 className="section-title">Poll</h2>
           <p className="text-muted-sm">
-            Questions workers can ask at a door they mark as Done. Each has fixed answer choices (no free text), and a resident can decline. Answers can be changed afterwards; the earlier answer stays in the history. Staff with full access to the field area, and the worker who recorded an answer, can read it.
+            Questions workers can ask at a door they mark as Done. Each has fixed answer choices (no free text), and a resident can decline. Answers can be changed afterwards; the earlier answer stays in the history. Staff with full access to the field area can read them, and so can the worker who recorded an answer, while they hold the book.
           </p>
           <PollSetup jobId={job.id} current={poll.current} earlier={poll.earlier} canEdit={canUse(session, "jobsEdit")} />
         </section>

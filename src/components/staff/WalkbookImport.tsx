@@ -185,7 +185,7 @@ function Preview({ name, file }: { name: string; file: AddressFile }) {
         </div>
       )}
       <p className="text-sm text-fg">
-        <span className="font-semibold">Deleted in {RETENTION_DAYS} days:</span> the addresses, record IDs and every other column. You can delete them sooner, and they go 7 days after every job this file is cut for has closed. The walkbooks, stops and outcomes stay, without the addresses (a book&apos;s name keeps the street names it was cut with).
+        <span className="font-semibold">Deleted in {RETENTION_DAYS} days:</span> the addresses, record IDs and the other stored columns. You can delete them sooner, and they go 7 days after every job this file is cut for has closed. The walkbooks, stops and outcomes stay, without the addresses (a book&apos;s name keeps the street names it was cut with).
       </p>
       {file.valuesLeftOut > 0 && (
         <p className="text-hint">

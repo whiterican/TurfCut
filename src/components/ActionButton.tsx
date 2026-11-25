@@ -56,7 +56,7 @@ export function ActionButton({
           {children}
           <p className="text-sm text-fg">{confirm.text}</p>
           <PendingAnnouncement pending={pending} text={working} />
-          <button className="btn-secondary btn-sm" disabled={disabled || pending} aria-busy={pending || undefined}>
+          <button className="btn-secondary" disabled={disabled || pending} aria-busy={pending || undefined}>
             <ButtonFaces phase={phase} label={confirm.label} pendingLabel={working} />
           </button>
           {state.message && (

@@ -18,6 +18,8 @@ const FILES = [
   "src/components/staff/PollSetup.tsx",
   "src/components/staff/WalkbookCut.tsx",
   "src/components/staff/WalkbookImport.tsx",
+  // Shared, but its confirm step is the button that acts on Take back and Delete now.
+  "src/components/ActionButton.tsx",
 ];
 
 describe("walkbook screens: every control at least 44px", () => {

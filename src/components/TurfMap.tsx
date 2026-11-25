@@ -53,6 +53,7 @@ export function TurfMap({
   dayTurfLabel = "Your turf today",
   className = "h-72",
   center = null,
+  label,
 }: {
   turf?: TurfPolygon | null;
   staging?: Point | null;
@@ -71,6 +72,8 @@ export function TurfMap({
   className?: string;
   /** Where to look when there is nothing on the map yet (a job's city), instead of the whole country. */
   center?: { lat: number; lng: number } | null;
+  /** The map's accessible name when it shows something other than a turf (a walkbook's stops). */
+  label?: string;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletMap | null>(null);
@@ -224,7 +227,7 @@ export function TurfMap({
           The map needs signal. The staging point and turf details are on this page.
         </p>
       ) : (
-        <div ref={el} className={`turf-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
+        <div ref={el} className={`turf-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label ?? (editable ? "Map: tap to draw the turf" : "Map of the assigned turf")} />
       )}
       {editable && (
         <>

@@ -47,7 +47,7 @@ export function ActionButton({
   if (confirm && !disabled) {
     return (
       <details className="group">
-        <summary className={`${variant} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+        <summary className={`${variant} cursor-pointer list-none [&::-webkit-details-marker]:hidden`} aria-label={ariaLabel}>
           {icon}
           {label}
         </summary>

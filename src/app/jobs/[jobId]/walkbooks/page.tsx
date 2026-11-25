@@ -71,9 +71,10 @@ export default async function JobWalkbooksPage({ params, searchParams }: { param
               ["Handed out", `${handedOut} of ${books.length}`],
               [job.type === "PETITION" ? "Signatures" : "Settled", job.type === "PETITION" ? signatures : `${stopTotal ? Math.round((settled / stopTotal) * 100) : 0}%`],
             ].map(([label, value]) => (
-              <div key={label} className="card !p-3">
-                <dd className="text-xl font-bold tabular-nums text-fg sm:text-2xl">{typeof value === "number" ? value.toLocaleString("en-US") : value}</dd>
+              <div key={label} className="card !p-3 flex flex-col-reverse">
+                {/* The term first, as a list is read ("Walkbooks, 25"); shown below the figure. */}
                 <dt className="text-xs text-muted sm:text-sm">{label}</dt>
+                <dd className="text-xl font-bold tabular-nums text-fg sm:text-2xl">{typeof value === "number" ? value.toLocaleString("en-US") : value}</dd>
               </div>
             ))}
           </dl>

@@ -45,7 +45,7 @@ export function WalkbookMap({ stops, className = "h-64" }: { stops: StopView[]; 
   if (!pins.length) return null;
   return (
     <div className="no-print space-y-2">
-      <TurfMap pins={pins} className={`${className} w-full overflow-hidden rounded-[var(--radius-card)]`} />
+      <TurfMap pins={pins} className={`${className} w-full overflow-hidden rounded-[var(--radius-card)]`} label="Map of these stops (every stop is also in the list)" />
       {pins.length < stops.length && <p className="text-hint">{pins.length} of {stops.length} stops are on the map: the file gave a point for those only.</p>}
     </div>
   );

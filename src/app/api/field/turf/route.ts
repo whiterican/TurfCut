@@ -12,7 +12,11 @@ import { assignMessage, readAssignment } from "@/lib/turf-assign";
  */
 export async function POST(req: Request) {
   // This used to be a server action, which Next only accepts from the site's own pages. Kept.
-  if (fromAnotherSite(req)) return Response.json({ error: "This request didn't come from Turfcut." }, { status: 403 });
+  if (fromAnotherSite(req)) {
+    // Logged (header values only, nobody's data): a refusal of one of our own pages would otherwise be invisible.
+    console.warn("[turfcut] assign turf: refused as cross-site", { site: req.headers.get("sec-fetch-site"), origin: req.headers.get("origin"), forwardedHost: req.headers.get("x-forwarded-host"), host: req.headers.get("host") });
+    return Response.json({ error: "This request didn't come from Turfcut. Nothing was changed." }, { status: 403 });
+  }
   let auth;
   try {
     auth = await apiArea("scheduling");

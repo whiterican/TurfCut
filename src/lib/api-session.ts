@@ -63,7 +63,8 @@ export function fromAnotherSite(req: Request): boolean {
   if (site) return site !== "same-origin" && site !== "none";
   const origin = req.headers.get("origin");
   if (!origin) return false;
-  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].trim().toLowerCase();
+  // `||`, not `??`: an empty forwarded host falls back to the host, as Next's own check does.
+  const host = (req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0].trim().toLowerCase();
   try {
     return new URL(origin).host.toLowerCase() !== host;
   } catch {

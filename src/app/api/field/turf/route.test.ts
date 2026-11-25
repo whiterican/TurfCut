@@ -20,6 +20,7 @@ describe("POST /api/field/turf", () => {
     for (const f of Object.values(m)) f.mockReset();
     m.apiArea.mockResolvedValue({ session: { userId: "u-1", orgId: "org-1" } });
     vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   it("needs the scheduling area in full: seeing the Field map is not enough", async () => {
@@ -83,12 +84,20 @@ describe("POST /api/field/turf", () => {
     for (const headers of foreign) {
       const res = await post(good, headers);
       expect(res.status).toBe(403);
-      expect(readSaveAnswer(await res.json())?.ok).toBe(false);
+      expect(readSaveAnswer(await res.json())).toEqual({ ok: false, message: "This request didn't come from Turfcut. Nothing was changed." });
     }
     // Refused before anyone's session is even looked at.
     expect(m.apiArea).not.toHaveBeenCalled();
     expect(m.assignShiftTurf).not.toHaveBeenCalled();
-    const own: Record<string, string>[] = [{ "sec-fetch-site": "same-origin" }, { origin: "https://turf-cut.vercel.app", "x-forwarded-host": "turf-cut.vercel.app" }, { origin: "http://localhost:3475", host: "localhost:3475" }, {}];
+    const own: Record<string, string>[] = [
+      { "sec-fetch-site": "same-origin" },
+      { "sec-fetch-site": "none" }, // no page behind it at all: the address bar, a bookmark
+      { origin: "https://turf-cut.vercel.app", "x-forwarded-host": "turf-cut.vercel.app" },
+      { origin: "https://Turf-Cut.vercel.app", "x-forwarded-host": "TURF-CUT.vercel.app, internal:3000" }, // case, and a proxy chain: the first is the public one
+      { origin: "https://turf-cut.vercel.app", "x-forwarded-host": "", host: "turf-cut.vercel.app" }, // an empty forwarded host falls back
+      { origin: "http://localhost:3475", host: "localhost:3475" },
+      {}, // not a browser page: the session check decides
+    ];
     for (const headers of own) {
       expect((await post(good, headers)).status).toBe(200);
     }
@@ -107,9 +116,7 @@ describe("POST /api/field/turf", () => {
   it("a request already given up is not begun", async () => {
     const gone = new AbortController();
     gone.abort();
-    const req = new Request("http://t/api/field/turf", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ shiftIds: [id(1)], polygon: square }) });
-    Object.defineProperty(req, "signal", { value: gone.signal });
-    const res = await POST(req);
+    const res = await post({ shiftIds: [id(1)], polygon: square }, {}, gone.signal);
     expect(res.status).toBe(408);
     expect(m.assignShiftTurf).not.toHaveBeenCalled();
   });

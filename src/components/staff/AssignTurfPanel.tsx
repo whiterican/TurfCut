@@ -128,7 +128,8 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
       if (clearTicks) setPicked(new Set());
       if (reopen) setOpen(true);
       // Only after an answer (saveOutcome says why): a refresh with no signal would reload the page and lose all this.
-      if (refresh) router.refresh();
+      // And not if the browser already knows the signal went in the moment since; the page's poll refreshes later.
+      if (refresh && navigator.onLine) router.refresh();
     });
   }
 

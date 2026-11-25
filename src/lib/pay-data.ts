@@ -72,7 +72,7 @@ export interface ReviewShift {
   engagement: {
     id: string;
     workerId: string;
-    job: { orgId: string; type: "PETITION" | "CANVASS"; compensationMethod: "HOURLY" | "SHIFT_RATE" | "PER_UNIT"; payRateCents: number | null; jurisdiction: { version: number } };
+    job: { orgId: string; type: "PETITION" | "CANVASS"; compensationMethod: "HOURLY" | "SHIFT_RATE" | "PER_UNIT" | "VOLUNTEER"; payRateCents: number | null; jurisdiction: { version: number } };
   };
   events: Array<{ id: string; type: string; payload: Prisma.JsonValue; createdAt: Date }>;
   validations: Array<{ workEventId: string | null; status: "APPROVED" | "REJECTED" | "FLAGGED"; createdAt: Date }>;
@@ -111,6 +111,9 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
   }
   if (status === "REJECTED") return { ok: true, pay: null, voidIds: active.map((x) => x.line.id), keepId: null, heldReason: null };
   const job = s.engagement.job;
+  // A volunteer shift is reviewed like any other (its doors are verified) and never paid: no line is written. The
+  // database refuses one too (prisma/v1-volunteers.sql). Any line that somehow exists is withdrawn.
+  if (job.compensationMethod === "VOLUNTEER") return { ok: true, pay: null, voidIds: active.map((x) => x.line.id), keepId: null, heldReason: null };
   const pay = computeShiftPay({
     method: job.compensationMethod,
     rateCents: job.payRateCents,
@@ -142,14 +145,18 @@ export async function withdrawStalePay(tx: Tx, s: ReviewShift, actorId: string, 
   const live = lines.filter((l) => lineState(l, asFacts(l.events), false).status !== "VOIDED");
   if (!live.length) return [];
   const job = s.engagement.job;
-  const pay = computeShiftPay({
-    method: job.compensationMethod,
-    rateCents: job.payRateCents,
-    workType: job.type,
-    work: verifiedWork(s.events, s.validations),
-    jurisdictionVersion: job.jurisdiction.version,
-  });
-  const stale = live.filter((l) => !pay.ok || l.amountCents !== pay.amountCents || readBasis(l.basis).formula !== pay.basis.formula);
+  // A volunteer shift has no pay to compare with: any line on it is stale.
+  const pay =
+    job.compensationMethod === "VOLUNTEER"
+      ? null
+      : computeShiftPay({
+          method: job.compensationMethod,
+          rateCents: job.payRateCents,
+          workType: job.type,
+          work: verifiedWork(s.events, s.validations),
+          jurisdictionVersion: job.jurisdiction.version,
+        });
+  const stale = live.filter((l) => !pay || !pay.ok || l.amountCents !== pay.amountCents || readBasis(l.basis).formula !== pay.basis.formula);
   if (!stale.length) return [];
   const at = await eventAt(tx, stale.map((l) => l.id), now);
   for (const l of stale) {

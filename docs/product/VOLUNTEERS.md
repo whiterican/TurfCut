@@ -1,6 +1,7 @@
 # Volunteers: plan and schema proposal
 
-Status: **proposal, waiting on Caden's approval of the schema changes.** Nothing is built.
+Status: **approved by Caden, Nov 25 2026; being built slice by slice.** Volunteering cannot be switched on anywhere
+until the last slice: see "Switching it on".
 
 Asked for by Caden, Nov 25 2026: "a volunteer system so people can volunteer to knock doors outside of paid gigs".
 
@@ -10,6 +11,8 @@ Asked for by Caden, Nov 25 2026: "a volunteer system so people can volunteer to 
 2. **Who sees volunteer history: the worker chooses.** Private unless they decide to show it.
 3. **Volunteer work counts on the verified record:** yes, shown apart from paid work.
 4. **Who can volunteer:** existing worker accounts. No lighter sign-up in the first version.
+5. **Hired later (asked the same day):** someone who has volunteered for an organization may later be hired by it
+   for pay. From then on they cannot volunteer for it, and their open volunteer sign-ups with it end.
 
 ## The idea
 
@@ -63,8 +66,9 @@ the code deploys, and safe to run twice):
 
 Each is its own reviewed PR, in this order.
 
-1. **Schema and rules.** The two changes above, `prisma/v1-volunteers.sql`, the publish rule (no rate; method
-   must be listed by the profile), the admin rule-profile form lists the new method, acceptance suite.
+1. **Schema and rules.** The two changes above, `prisma/v1-volunteers.sql`, the publish rule (no rate; canvass
+   only; method must be listed by the profile), a reviewed volunteer shift writes its validation and no pay line,
+   acceptance suite `vol`.
 2. **Posting and finding.** The job builder offers "Volunteer (unpaid)"; cards, the feed, the job page and embeds
    say "Volunteer"; a feed filter.
 3. **Signing up.** "Volunteer" in place of apply/claim wording; the paid-or-volunteer rule on every way an
@@ -72,7 +76,16 @@ Each is its own reviewed PR, in this order.
 4. **The day and review.** Shift page and Field board labels; review writes the validation and no payout; Pay,
    statements and earnings leave volunteer shifts out.
 5. **Record and sharing.** The worker's record shows volunteer work apart from paid work; the Sharing page gains
-   the volunteer setting; shared views honour it; matching ignores it.
+   the volunteer setting; shared views honour it; matching ignores it. **Then the switch:** the staff rule-profile
+   form gains the "Volunteer (unpaid)" box.
+
+## Switching it on
+
+A volunteer job can be published only where the rule profile lists `VOLUNTEER`, and the only way to list it is the
+box on the staff rule-profile form. That box is added by the last slice, on purpose: until every slice is merged
+the app has gaps a live volunteer job would fall into (slice 3's paid-or-volunteer rule, slice 5's privacy), so
+nothing half-built can be switched on. After that, volunteering is on in a place when Turfcut staff tick the box
+for that place's profile on counsel's word, and nowhere else.
 
 ## Not in the first version
 

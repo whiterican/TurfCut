@@ -426,6 +426,10 @@ enum CompensationMethod {
   HOURLY // default; always allowed
   SHIFT_RATE // only where the jurisdiction profile allows
   PER_UNIT // only where the jurisdiction profile allows
+  // Unpaid volunteer work (prisma/v1-volunteers.sql, docs/product/VOLUNTEERS.md).
+  // Only where the jurisdiction profile lists it. Such a job has no pay rate
+  // and no payout can be written for its shifts: the database refuses both.
+  VOLUNTEER
 }
 
 model Job {
@@ -1216,6 +1220,11 @@ model WorkerSharing {
   qualityAudience      ShareAudience // signature acceptance, contact rate
   reliabilityAudience  ShareAudience // show rate
   historyAudience      ShareAudience // verified shifts, hours, campaigns, states, dates, totals
+  /// Who may see the worker's volunteer history (v1-volunteers.sql). Nobody
+  /// until the worker says otherwise: volunteering for a campaign says more
+  /// about a person's politics than a paid shift does. It decides who may
+  /// SEE it, nothing else: matching and ranking never read volunteer work.
+  volunteerAudience    ShareAudience @default(NOBODY)
   availabilityAudience ShareAudience
   credentialsAudience  ShareAudience
   readReceipts         Boolean       @default(false) // used from C3

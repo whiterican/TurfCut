@@ -67,7 +67,8 @@ function draftData(d: DraftInput) {
     ...(d.endsAt ? { endsAt: d.endsAt } : {}),
     ...(geo ? { geography: json(geo) } : {}),
     ...(d.compensationMethod ? { compensationMethod: d.compensationMethod } : {}),
-    ...(d.payRateCents ? { payRateCents: d.payRateCents } : {}),
+    // A draft turned into a volunteer job loses the rate it had: the database refuses a rate on one.
+    ...(d.compensationMethod === "VOLUNTEER" ? { payRateCents: null } : d.payRateCents ? { payRateCents: d.payRateCents } : {}),
     ...(d.headcount ? { headcount: d.headcount } : {}),
     ...(d.hiringModes ? { hiringMethod: json({ modes: d.hiringModes }) } : {}),
     ...(d.requirements ? { requirements: json(d.requirements) } : {}),

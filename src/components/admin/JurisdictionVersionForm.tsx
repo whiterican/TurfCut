@@ -5,7 +5,7 @@ import { proposeVersion } from "@/app/admin/jurisdictions/actions";
 import type { ActionState } from "@/app/jobs/actions";
 import { REASON_MAX } from "@/lib/admin-reason";
 import { US_STATES } from "@/lib/experience";
-import { COMPENSATION_METHODS } from "@/lib/jobs";
+import { PAID_METHODS } from "@/lib/jobs";
 import { LOCALITY_MAX, NOTES_MAX, type JurisdictionRules } from "@/lib/jurisdiction-rules";
 
 const initial: ActionState = { ok: false, message: "" };
@@ -49,7 +49,10 @@ export function JurisdictionVersionForm({ defaults, fromLabel }: { defaults: { s
       <div className="card space-y-4">
         <p className="eyebrow eyebrow-quiet">Pay methods jobs may use</p>
         <div className="space-y-2">
-          {COMPENSATION_METHODS.map((m) => (
+          {/* The methods that pay. "Volunteer (unpaid)" is added here last, by the slice that finishes the volunteer
+              work (docs/product/VOLUNTEERS.md): ticking it is what switches volunteering on in a place, and nothing
+              half-built must be switchable. */}
+          {PAID_METHODS.map((m) => (
             <label key={m.value} className="flex items-start gap-3">
               <input type="checkbox" name="methods" value={m.value} defaultChecked={defaults.rules.compensationAllowed.includes(m.value)} className="mt-1" />
               <span>

@@ -126,7 +126,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   );
   // What approving would record, so the supervisor sees the pay they approve.
   const job0 = s.engagement.job;
-  const approvePreview = canField && st.checkedOutAt
+  const approvePreview = canField && st.checkedOutAt && job0.compensationMethod !== "VOLUNTEER"
     ? computeShiftPay({
         method: job0.compensationMethod,
         rateCents: job0.payRateCents,
@@ -185,7 +185,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const worked = activeTime(f, now);
   const job = s.engagement.job;
   // The worker's own pay only — never shown to anyone else here.
-  const estimate = earningsEstimate(job.compensationMethod, job.payRateCents, worked.ms, petition ? st.signatures : st.contacts);
+  // A volunteer shift earns nothing, so there is nothing to estimate.
+  const estimate = job.compensationMethod === "VOLUNTEER" ? null : earningsEstimate(job.compensationMethod, job.payRateCents, worked.ms, petition ? st.signatures : st.contacts);
   // Every field action goes through the phone's queue (offline field day):
   // it works with no signal and syncs later.
   const workerActions = isWorker && !st.cancelled && (!st.checkedOutAt || s.endsAt.getTime() > now.getTime() - 24 * 3_600_000) && (

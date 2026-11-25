@@ -100,7 +100,9 @@ export async function saveSharing(
     }
     const version = (row?.version ?? 0) + 1;
     await tx.workerSharing.create({
-      data: { workerId, version, ...sharingToRow(choices), consentTextVersion: SHARING_TEXT_VERSION, actorId },
+      // The volunteer-history audience is carried from the version before (nobody, by default): this form does not
+      // set it yet, and a new version must not quietly reset a choice (docs/product/VOLUNTEERS.md, slice 5).
+      data: { workerId, version, ...sharingToRow(choices), volunteerAudience: row?.volunteerAudience ?? "NOBODY", consentTextVersion: SHARING_TEXT_VERSION, actorId },
     });
     // Records that the worker chose, and the version; the choices are in the row.
     await tx.auditEvent.create({

@@ -224,6 +224,8 @@ async function main() {
   // --- Payout: the pay line for the approved shift, calculated by the app's
   // own pay rules from the seeded events (3.5 verified hours × $25), and
   // approved for payment. Append-only: both rows have fixed ids. ---
+  // The seeded job is hourly. Said here because the pay rules only take the methods that pay.
+  if (job.compensationMethod === "VOLUNTEER") throw new Error("The seeded job is a paid one: a volunteer job has no pay line to seed.");
   const pay = computeShiftPay({
     method: job.compensationMethod,
     rateCents: job.payRateCents,

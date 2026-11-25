@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readPlace, readRules, rulesFromForm, rulesProblems, NOTES_MAX, LOCALITY_MAX } from "./jurisdiction-rules";
+import { METHOD_VALUES, readPlace, readRules, rulesFromForm, rulesProblems, NOTES_MAX, LOCALITY_MAX } from "./jurisdiction-rules";
 
 describe("jurisdiction rules (M10.3)", () => {
   it("reads a stored record tolerantly: unknown shapes fall back to hourly only and nothing required", () => {
@@ -30,5 +30,16 @@ describe("jurisdiction rules (M10.3)", () => {
     expect(readPlace("dc", "")).toEqual({ ok: true, state: "DC", locality: null });
     expect(readPlace(null, undefined)).toMatchObject({ ok: false });
     expect(readPlace("CO", "x".repeat(LOCALITY_MAX + 1))).toMatchObject({ ok: false, message: expect.stringMatching(/80 characters/) });
+  });
+
+  it("volunteer work is a method a profile lists or does not: never allowed by default (docs/product/VOLUNTEERS.md)", () => {
+    expect(readRules(null).compensationAllowed).toEqual(["HOURLY"]);
+    expect(readRules({}).compensationAllowed).not.toContain("VOLUNTEER");
+    const listed = readRules({ compensationAllowed: ["HOURLY", "VOLUNTEER"], notes: "Counsel memo of Nov 25" });
+    expect(listed.compensationAllowed).toEqual(["HOURLY", "VOLUNTEER"]);
+    expect(rulesProblems(listed)).toEqual([]);
+    expect(METHOD_VALUES).toContain("VOLUNTEER");
+    const fields: Record<string, string[]> = { methods: ["HOURLY", "VOLUNTEER"], notes: ["Counsel memo of Nov 25"] };
+    expect(rulesFromForm((n) => fields[n] ?? []).compensationAllowed).toEqual(["HOURLY", "VOLUNTEER"]);
   });
 });

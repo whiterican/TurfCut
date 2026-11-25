@@ -25,7 +25,8 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
   const zones = useFieldLive()?.zones ?? initial;
   // People who may assign turf can tap a zone to choose it: it is named under the map, with the button that starts the
   // Assign panel from it. The tap itself changes nothing else, so a double-tap to zoom or a stray touch costs nothing.
-  const pickable = useTurfPick() !== null;
+  const turfPick = useTurfPick();
+  const pickable = turfPick !== null;
   const canChoose = useRef(pickable);
   useEffect(() => {
     canChoose.current = pickable;
@@ -168,7 +169,7 @@ export function CoverageMap({ initial, className = "h-72", names = {} }: { initi
             <AssignThisTurfButton id={chosen.id} name={chosenName} turf={chosen.turf} />
           </>
         ) : (
-          <p>Tap a turf on the map to assign it to more shifts.</p>
+          <p>{turfPick.offering ? "Tap a turf on the map to assign it to more shifts." : "No shift can take turf right now: it goes on shifts that are coming up or running."}</p>
         )}
       </div>
     </div>

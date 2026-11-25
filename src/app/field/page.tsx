@@ -50,7 +50,8 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   // Each turf's name as its card says it now, by zone id: what the map's line and the Assign panel call a turf.
   const turfNames = Object.fromEntries(cards.map((c) => [c.id, c.name]));
   // Whoever may schedule shifts may give turf; the shifts offered are the ones still to work or under way.
-  const assignable: AssignableShift[] = canUse(session, "scheduling")
+  const maySchedule = canUse(session, "scheduling");
+  const assignable: AssignableShift[] = maySchedule
     ? rows
         .filter((r) => !r.state.cancelled && !r.state.checkedOutAt && (r.state.checkedInAt || r.endsAt >= now))
         .sort((a, b) => a.jobTitle.localeCompare(b.jobTitle) || a.startsAt.getTime() - b.startsAt.getTime())
@@ -109,7 +110,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
         <section className="section" aria-labelledby="turf-heading">
           <h2 id="turf-heading" className="sr-only">Turf</h2>
           {/* People who may assign turf can start from a turf already on the map: its card's button, or the one under the map for a tapped zone, opens the panel below. */}
-          <TurfSection canAssign={assignable.length > 0}>
+          <TurfSection canAssign={maySchedule} offering={assignable.length > 0}>
             <div className="overview-grid">
               {live.zones.length > 0 ? (
                 <CoverageMap initial={live.zones} className="overview-map field-map" names={turfNames} />
@@ -123,7 +124,8 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
                 <TurfCards cards={cards} now={now} />
               </aside>
             </div>
-            {assignable.length > 0 && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} names={turfNames} />}
+            {/* Kept while the list is empty too: an open panel must stay to show a refusal when its last shift has just ended. */}
+            {maySchedule && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} names={turfNames} />}
           </TurfSection>
         </section>
         <section className="section" aria-labelledby="shifts-heading">
@@ -135,7 +137,11 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   );
 }
 
-/** The map, the cards and the Assign panel share one picked turf when the reader may assign; otherwise they are as they were. */
-function TurfSection({ canAssign, children }: { canAssign: boolean; children: React.ReactNode }) {
-  return canAssign ? <TurfPickProvider>{children}</TurfPickProvider> : <>{children}</>;
+/**
+ * The map, the cards and the Assign panel share one picked turf when the reader may assign turf; otherwise they are as
+ * they were. Decided by the permission, which does not change under an open page, not by whether a shift can take turf
+ * this minute (`offering`), which does.
+ */
+function TurfSection({ canAssign, offering, children }: { canAssign: boolean; offering: boolean; children: React.ReactNode }) {
+  return canAssign ? <TurfPickProvider offering={offering}>{children}</TurfPickProvider> : <>{children}</>;
 }

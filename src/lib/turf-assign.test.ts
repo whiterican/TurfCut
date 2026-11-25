@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { MAX_SHIFTS_PER_ASSIGNMENT, assignMessage, assignProblem, readAssignment, sameTurf, saveOutcome } from "./turf-assign";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { MAX_SHIFTS_PER_ASSIGNMENT, OVERDUE_NOTICE, SAVE_PATIENCE_MS, assignMessage, assignProblem, orOverdue, overdueOutcome, readAssignment, sameTurf, saveOutcome } from "./turf-assign";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const square = { type: "Polygon", coordinates: [[[-104.9, 39.7], [-104.9, 39.71], [-104.89, 39.71], [-104.9, 39.7]]] };
@@ -68,7 +68,55 @@ describe("saveOutcome: what the panel does with a save's answer", () => {
         expect(o.clearTicks).toBe(false);
       }
     }
-    expect(saveOutcome(false, null).msg.text).toBe("Couldn't save the turf. Nothing was changed. Try again.");
+  });
+  it("a call that never answered does not claim to know what happened", () => {
+    // The request or its answer was lost: the save may have gone through. Only the server can say "nothing was changed".
+    for (const moved of [false, true]) {
+      const text = saveOutcome(moved, null).msg.text;
+      expect(text).toContain("It may or may not have saved: check the map before sending it again.");
+      expect(text).not.toMatch(/nothing was changed/i);
+    }
+    expect(saveOutcome(false, null).msg.text).toMatch(/^Couldn't reach the server\./);
+  });
+});
+
+describe("a save that takes too long", () => {
+  afterEach(() => vi.useRealTimers());
+  it("waits longer than the server's own limit for the save (10 s for a connection, 15 s for the transaction)", () => {
+    expect(SAVE_PATIENCE_MS).toBeGreaterThan(25_000);
+  });
+  it("orOverdue hands over the answer when it comes in time, and leaves no timer behind", async () => {
+    vi.useFakeTimers();
+    const r = orOverdue(Promise.resolve("done"), 1000);
+    await expect(r).resolves.toEqual({ overdue: false, value: "done" });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("orOverdue gives up waiting after the patience, without stopping the work", async () => {
+    vi.useFakeTimers();
+    let finish: (v: string) => void = () => {};
+    const work = new Promise<string>((res) => { finish = res; });
+    const r = orOverdue(work, 1000);
+    let settled: unknown = null;
+    void r.then((v) => { settled = v; });
+    await vi.advanceTimersByTimeAsync(999);
+    expect(settled).toBeNull();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(settled).toEqual({ overdue: true });
+    // The work goes on, and whoever kept the promise still gets its answer.
+    finish("late");
+    await expect(work).resolves.toBe("late");
+  });
+  it("the notice while waiting promises nothing either way", () => {
+    expect(OVERDUE_NOTICE).toMatch(/may still go through/);
+    expect(OVERDUE_NOTICE).not.toMatch(/nothing was changed|saved\b/i);
+  });
+  it("when the overdue save answers: told which save it was, a failure brings the panel back, an unknown stays unknown", () => {
+    expect(overdueOutcome({ ok: true, message: "Turf given to 2 workers' shifts." })).toEqual({ msg: { ok: true, text: "The save that was taking a long time went through. Turf given to 2 workers' shifts." }, reopen: false });
+    expect(overdueOutcome({ ok: false, message: "Jo's shift has already ended; nothing was changed." })).toEqual({ msg: { ok: false, text: "The save that was taking a long time did not go through. Jo's shift has already ended; nothing was changed." }, reopen: true });
+    const lost = overdueOutcome(null);
+    expect(lost.reopen).toBe(true);
+    expect(lost.msg.ok).toBe(false);
+    expect(lost.msg.text).toBe("The save that was taking a long time got no answer. It may or may not have saved: check the map before sending it again.");
   });
 });
 

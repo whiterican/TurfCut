@@ -33,6 +33,8 @@ export function assignProblem(s: { status: string; checkInAt: Date | null; check
   return null;
 }
 
+const UNKNOWN = "It may or may not have saved: check the map before sending it again.";
+
 /**
  * What the Assign panel does with a save's answer. `moved` is whether the panel changed turf (or closed on a picked
  * one) while the save was on its way; `result` is null when the call itself failed. The panel holds its turf while it
@@ -43,7 +45,9 @@ export function assignProblem(s: { status: string; checkInAt: Date | null; check
  */
 export function saveOutcome(moved: boolean, result: { ok: boolean; message: string } | null): { msg: { ok: boolean; text: string }; clearTicks: boolean; reopen: boolean } {
   if (!result) {
-    const text = moved ? "The save you sent a moment ago did not go through. Nothing was changed." : "Couldn't save the turf. Nothing was changed. Try again.";
+    // The call itself failed: the request, or its answer, was lost on the way. Which one is not known here, so this
+    // does not say "nothing was changed" (the server says that itself when it knows).
+    const text = moved ? `The save you sent a moment ago got no answer. ${UNKNOWN}` : `Couldn't reach the server. ${UNKNOWN}`;
     return { msg: { ok: false, text }, clearTicks: false, reopen: true };
   }
   if (!moved) return { msg: { ok: result.ok, text: result.message }, clearTicks: result.ok, reopen: !result.ok };
@@ -71,4 +75,35 @@ export function assignMessage(giving: boolean, changed: number, unchanged: numbe
   if (changed === 0) return `${unchanged === 1 ? "That shift" : unchanged === 2 ? "Both shifts" : `All ${unchanged} shifts`} ${already}. Nothing was changed.`;
   const done = giving ? `Turf given to ${shifts(changed)}.` : `Turf cleared on ${shifts(changed)}.`;
   return unchanged === 0 ? done : `${done} ${unchanged} more ${already}.`;
+}
+
+/**
+ * How long the Assign panel waits for a save before it stops holding its buttons. Longer than the server's own limit
+ * for the save (10 s to get a connection, 15 s for the transaction), so a slow save that will answer is not cut short.
+ */
+export const SAVE_PATIENCE_MS = 30_000;
+
+/** A promise's value, or `overdue` if it has not settled after `ms`. The promise is left running either way. */
+export function orOverdue<T>(work: Promise<T>, ms: number): Promise<{ overdue: false; value: T } | { overdue: true }> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve({ overdue: true }), ms);
+    const done = (value: T) => {
+      clearTimeout(timer);
+      resolve({ overdue: false, value });
+    };
+    work.then(done);
+  });
+}
+
+/** What the panel says while a save is overdue: it no longer holds its buttons, and nothing is known yet. */
+export const OVERDUE_NOTICE = "This save is taking a long time. It may still go through, and this will say when it answers. You can close this meanwhile; to send another now, reload the page.";
+
+/**
+ * What the panel does when an overdue save finally answers (`result` null: the call itself failed). By then the panel
+ * was free to move on, so the ticks are never cleared, and a failure brings a closed panel back.
+ */
+export function overdueOutcome(result: { ok: boolean; message: string } | null): { msg: { ok: boolean; text: string }; reopen: boolean } {
+  if (!result) return { msg: { ok: false, text: `The save that was taking a long time got no answer. ${UNKNOWN}` }, reopen: true };
+  if (result.ok) return { msg: { ok: true, text: `The save that was taking a long time went through. ${result.message}` }, reopen: false };
+  return { msg: { ok: false, text: `The save that was taking a long time did not go through. ${result.message}` }, reopen: true };
 }

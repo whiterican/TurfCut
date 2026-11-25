@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { assignTurfAction } from "@/app/field/actions";
 import { LocalTime } from "@/components/LocalTime";
 import { TurfMap } from "@/components/TurfMap";
 import { useTurfPick } from "@/components/staff/TurfPick";
-import { MAX_SHIFTS_PER_ASSIGNMENT, saveOutcome } from "@/lib/turf-assign";
+import { MAX_SHIFTS_PER_ASSIGNMENT, OVERDUE_NOTICE, SAVE_PATIENCE_MS, orOverdue, overdueOutcome, saveOutcome } from "@/lib/turf-assign";
 
 export interface AssignableShift {
   id: string;
@@ -27,8 +27,11 @@ export interface AssignableShift {
  * `names` is each turf's name on its card now, by zone id. Unnamed turfs are numbered by position, so a name
  * kept from the moment of the pick could come to mean another card after a save. A picked turf that no card
  * shows any more (its last shift was given other turf) is "this turf".
+ * The panel is on the page for everyone who may assign turf, with shifts to offer or not. With none it draws nothing
+ * unless it is already open: then it stays, says so, and still shows what the last save answered.
+ * `patienceMs` is how long a save may take before the panel stops holding its buttons (tests pass a short one).
  */
-export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null; names?: Record<string, string> }) {
+export function AssignTurfPanel({ shifts, center, names = {}, patienceMs = SAVE_PATIENCE_MS }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null; names?: Record<string, string>; patienceMs?: number }) {
   // A turf picked on the map or a card opens the panel starting from it.
   const turfPick = useTurfPick();
   const preset = turfPick?.picked ?? null;
@@ -45,10 +48,17 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
   // Where the map first looked: it must not jump while the organizer draws, whatever zones appear meanwhile.
   const [startCenter] = useState(center);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [pending, start] = useTransition();
+  // The panel's own flag for "a save is on its way", not a transition's: a transition around a server action stays
+  // pending until the server answers, which is exactly what a stalled save never does.
+  const [pending, setPending] = useState(false);
+  // A save that has outlived the panel's patience and not answered yet. The buttons are free again by then, except the
+  // two that save: one save at a time. `notice` is about that save, and stays through a change of turf, which `msg`
+  // (about the turf on the panel) does not.
+  const [overdue, setOverdue] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   // While a save is on its way nothing here or on the cards can change the panel's turf or close it: an answer that
-  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick. The price, accepted:
-  // a save that stalls on bad signal holds these buttons until the browser gives the request up (or a reload).
+  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick. That hold ends when
+  // the save answers or runs out of patience, whichever is first: a save stalled on bad signal must not lock the page.
   const setSaving = turfPick?.setSaving;
   useEffect(() => {
     setSaving?.(pending);
@@ -57,6 +67,11 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
   const form = useRef<HTMLFormElement>(null);
   const panel = useRef<HTMLElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
+  const noticeLine = useRef<HTMLParagraphElement>(null);
+  // A notice arrives on its own time, perhaps with the panel scrolled away or only just brought back: bring it into view.
+  useEffect(() => {
+    if (notice && open) noticeLine.current?.scrollIntoView({ block: "nearest" });
+  }, [notice, open]);
   // Every pick opens the panel, the same turf again and the first pick after Close too.
   const [seenNonce, setSeenNonce] = useState(preset?.nonce ?? 0);
   if (preset && preset.nonce !== seenNonce) {
@@ -110,17 +125,36 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
       }
     }
     const sentAt = turfChanges.current;
+    setNotice(null);
     // Held from this click on, not from the effect a moment later: a tap already queued on a card must not get through.
     setSaving?.(true);
-    start(async () => {
-      // The answer belongs to the turf it was sent for; the panel may be on another by now, or closed (saveOutcome).
-      const result = await assignTurfAction(ids, polygon).catch(() => null);
-      const { msg: answer, clearTicks, reopen } = saveOutcome(turfChanges.current !== sentAt, result);
-      setMsg(answer);
-      if (clearTicks) setPicked(new Set());
-      if (reopen) setOpen(true);
-    });
+    setPending(true);
+    void (async () => {
+      const call = assignTurfAction(ids, polygon).catch(() => null);
+      const first = await orOverdue(call, patienceMs);
+      setPending(false);
+      if (!first.overdue) {
+        // The answer belongs to the turf it was sent for; the panel may be on another by now, or closed (saveOutcome).
+        const { msg: answer, clearTicks, reopen } = saveOutcome(turfChanges.current !== sentAt, first.value);
+        setMsg(answer);
+        if (clearTicks) setPicked(new Set());
+        if (reopen) setOpen(true);
+        return;
+      }
+      // Out of patience: let go of the page and say so. The save is still out there, and its answer is told when it comes.
+      setOverdue(true);
+      setNotice({ ok: false, text: OVERDUE_NOTICE });
+      void call.then((late) => {
+        const { msg: answer, reopen } = overdueOutcome(late);
+        setOverdue(false);
+        setNotice(answer);
+        if (reopen) setOpen(true);
+      });
+    })();
   }
+
+  // Nothing to offer and nothing open: nothing to draw. (Open, it stays: it may be about to show a refusal.)
+  if (!open && shifts.length === 0) return null;
 
   if (!open) {
     return (
@@ -156,12 +190,20 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
             onClick={() => {
               setOpen(false);
               turfPick?.clear();
+              // A told answer goes with the panel; "still waiting" stays, for when it is opened again.
+              if (!overdue) setNotice(null);
             }}
           >
             Close
           </button>
         </div>
       </div>
+      {/* About a save that outlived its turn. At the top, where a panel just brought back shows it, and not cleared by a change of turf. */}
+      {notice && (
+        <p ref={noticeLine} role={notice.ok ? "status" : "alert"} className={notice.ok ? "text-sm font-semibold" : "text-sm text-danger"}>
+          {notice.text}
+        </p>
+      )}
       <form ref={form} onSubmit={(e) => e.preventDefault()} className="space-y-3">
         {/* Keyed by the turf: the map starts over from a newly picked turf, or blank again, instead of keeping the last drawing. */}
         <TurfMap key={turfId ?? "new"} editable allowStaging={false} turf={preset?.turf ?? null} center={startCenter} className="h-80" />
@@ -169,6 +211,7 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
       {/* Held still while a save is on its way: ticks made then would be cleared when it lands. */}
       <fieldset className="space-y-3" disabled={pending}>
         <legend className="label">Whose shifts get this turf</legend>
+        {shifts.length === 0 && <p className="text-sm text-subtle">No shift can take turf right now: it goes on shifts that are coming up or running.</p>}
         {jobs.map((job) => {
           const ofJob = shifts.filter((s) => s.jobTitle === job);
           const all = ofJob.every((s) => picked.has(s.id));
@@ -216,10 +259,10 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
         })}
       </fieldset>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className="btn-primary" disabled={pending || ids.length === 0 || tooMany} onClick={() => send(false)}>
-          {pending ? "Saving…" : ids.length === 0 ? "Give turf to the ticked shifts" : `Give turf to ${ids.length} ${ids.length === 1 ? "shift" : "shifts"}`}
+        <button type="button" className="btn-primary" disabled={pending || overdue || ids.length === 0 || tooMany} onClick={() => send(false)}>
+          {pending ? "Saving…" : overdue ? "Waiting for the last save…" : ids.length === 0 ? "Give turf to the ticked shifts" : `Give turf to ${ids.length} ${ids.length === 1 ? "shift" : "shifts"}`}
         </button>
-        <button type="button" className="btn-ghost" disabled={pending || ids.length === 0 || tooMany} onClick={() => send(true)}>
+        <button type="button" className="btn-ghost" disabled={pending || overdue || ids.length === 0 || tooMany} onClick={() => send(true)}>
           Clear their turf
         </button>
         {tooMany && <span className="text-sm text-danger">Pick at most {MAX_SHIFTS_PER_ASSIGNMENT} at a time.</span>}

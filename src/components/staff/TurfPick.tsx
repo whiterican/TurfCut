@@ -39,6 +39,8 @@ interface TurfPick {
   /** A save is on its way: the pick buttons wait, so its answer always lands on the turf it was sent for, with the panel open to show it. */
   saving: boolean;
   setSaving: (saving: boolean) => void;
+  /** Whether any shift can take turf right now. When none can, there is nothing to open the panel for, so the buttons are not drawn. */
+  offering: boolean;
 }
 
 /** Exported for tests, which cannot press Give: they render a button inside a context that is already saving. */
@@ -48,13 +50,18 @@ const Ctx = TurfPickContext;
 /** Null where nobody may assign turf (no provider): callers render nothing extra then. */
 export const useTurfPick = () => useContext(Ctx);
 
-/** `initial` starts with a turf already picked. The Field page never passes it; tests do, to see the open panel without a browser. */
-export function TurfPickProvider({ children, initial }: { children: ReactNode; initial?: Zone }) {
+/**
+ * Around the map, the cards and the panel for everyone who may assign turf, whether or not a shift can take turf at
+ * this moment (`offering`). It used to be there only while one could, so the last shift ending swapped it out: the map
+ * was rebuilt and an open panel went, with any refusal it was about to show.
+ * `initial` starts with a turf already picked. The Field page never passes it; tests do, to see the open panel without a browser.
+ */
+export function TurfPickProvider({ children, initial, offering = true }: { children: ReactNode; initial?: Zone; offering?: boolean }) {
   const [state, dispatch] = useReducer(pickReducer, initial, (z): PickState => (z ? { picked: { ...z, nonce: 1 }, count: 1 } : { picked: null, count: 0 }));
   const pick = useCallback((zone: Zone) => dispatch({ type: "pick", zone }), []);
   const clear = useCallback(() => dispatch({ type: "clear" }), []);
   const [saving, setSaving] = useState(false);
-  const value = useMemo(() => ({ picked: state.picked, pick, clear, saving, setSaving }), [state.picked, pick, clear, saving]);
+  const value = useMemo(() => ({ picked: state.picked, pick, clear, saving, setSaving, offering }), [state.picked, pick, clear, saving, offering]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
@@ -64,7 +71,7 @@ export function TurfPickProvider({ children, initial }: { children: ReactNode; i
  */
 export function AssignThisTurfButton({ id, name, turf }: Zone & { /** As its card names it, or "" for a zone no card names yet. */ name: string }) {
   const ctx = useTurfPick();
-  if (!ctx) return null;
+  if (!ctx || !ctx.offering) return null;
   return (
     <button type="button" className="btn-secondary btn-sm shrink-0" aria-label={name ? `Assign this turf: ${name}` : undefined} disabled={ctx.saving} onClick={() => ctx.pick({ id, turf })}>
       Assign this turf

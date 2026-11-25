@@ -11,11 +11,14 @@ const initial: ActionState = { ok: false, message: "" };
 /**
  * Bulk steps for the applicants table (C3.2). The table's checkboxes belong
  * to this form by id. Not selected takes one reason, and an optional note,
- * that every selected worker reads.
+ * that every selected worker reads. Without canOffer (hiring is paused on the
+ * job) the offer step is left out; review and not selected remain.
  */
-export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId: string }) {
+export function BulkApplicantActions({ formId, jobId, canOffer = true }: { formId: string; jobId: string; canOffer?: boolean }) {
   const [state, action, pending] = useActionState(bulkMove, initial);
-  const [step, setStep] = useState("review");
+  const [picked, setStep] = useState("review");
+  // Hiring can pause while "Send an offer" is picked (the server refuses it and the page reloads without the option): fall back to review.
+  const step = !canOffer && picked === "offer" ? "review" : picked;
   const selectedCount = useFormSelectionCount(formId, "engagementId");
   // After a step that moved someone, clear the table's checks so the next step starts from nothing.
   useEffect(() => {
@@ -44,7 +47,7 @@ export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId:
             <span className="label">For the selected applicants</span>
             <select name="bulk" className="field" value={step} onChange={(e) => setStep(e.target.value)}>
               <option value="review">Mark in review</option>
-              <option value="offer">Send an offer</option>
+              {canOffer && <option value="offer">Send an offer</option>}
               <option value="decline">Not selected</option>
             </select>
           </label>

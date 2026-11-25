@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
-import { UUID_RE } from "@/lib/jobs";
+import { hiringPausedMessage, UUID_RE } from "@/lib/jobs";
+import { loadHiringPaused } from "@/lib/jobs-data";
 import { expiryToday } from "@/lib/credentials";
 import { offerLapsed } from "@/lib/engagements";
 import { loadApplicants } from "@/lib/applicants-data";
@@ -56,7 +57,8 @@ export default async function ApplicantsPage({
 
   // Scorecards load only when a column shows one.
   const scorecards = cols.some((c) => !["applied", "stage", "free", "credentials"].includes(c));
-  const [all, counts] = await Promise.all([loadApplicants(job.id, session.orgId, now, { scorecards }), hiringCounts(job.id, session.orgId)]);
+  // hiringPaused: the server refuses an offer while hiring is paused, so the page says why and doesn't show one.
+  const [all, counts, hiringPaused] = await Promise.all([loadApplicants(job.id, session.orgId, now, { scorecards }), hiringCounts(job.id, session.orgId), loadHiringPaused(job.id, session.orgId, now)]);
   const filtering = filtersActive(filters);
   const shown = all.filter((a) => keepApplicant(a, facts, filters, today));
   const toDecide = all.filter((a) => a.status === "APPLIED").length;
@@ -72,7 +74,7 @@ export default async function ApplicantsPage({
   closeQs.delete("selected");
   const closeHref = `/hiring/${job.id}/applicants${closeQs.size ? `?${closeQs}` : ""}`;
   const inspector = selected ? (
-    <ApplicantInspector a={selected} closeHref={closeHref} now={now} />
+    <ApplicantInspector a={selected} closeHref={closeHref} now={now} hiringPaused={hiringPaused} />
   ) : (
     <div className="card space-y-2">
       <p className="font-semibold text-fg">{selectedId ? "That applicant isn't on this job" : "Pick an applicant"}</p>
@@ -154,7 +156,13 @@ export default async function ApplicantsPage({
           </p>
         )}
 
-        {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} />}
+        {offerable && hiringPaused.length > 0 && (
+          <p role="status" className="alert-info text-sm">
+            {hiringPausedMessage(hiringPaused)} You can still review applicants or mark them not selected; offers open again once it&apos;s cleared.
+          </p>
+        )}
+
+        {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} canOffer={hiringPaused.length === 0} />}
 
         {all.length === 0 ? (
           <EmptyState art="applicants" title="Nobody has applied yet">

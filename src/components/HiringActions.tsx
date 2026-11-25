@@ -2,6 +2,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { NotSelectedForm } from "@/components/NotSelectedForm";
 import { offerApplication, reviewApplication, withdrawInvitation } from "@/app/jobs/actions";
 import { inviteLapsed, offerLapsed, type EngagementStatus } from "@/lib/engagements";
+import { hiringPausedMessage } from "@/lib/jobs";
 
 /** "about 5 hours left": readable in any time zone. */
 export const timeLeft = (until: Date, now = new Date()) => {
@@ -14,7 +15,9 @@ export const timeLeft = (until: Date, now = new Date()) => {
  * application in review, send an offer (the worker accepts within
  * OFFER_HOURS, engagements.ts) or a new one once it lapses, mark it not
  * selected, or withdraw an unanswered invitation. On a closed job only the
- * close-outs remain, so nothing is left hanging.
+ * close-outs remain, so nothing is left hanging. While hiring is paused on
+ * the job (hiringPaused: the reasons) an offer can't be sent, as the server
+ * refuses it; review and the close-outs stay.
  */
 export function HiringActions({
   jobId,
@@ -24,6 +27,7 @@ export function HiringActions({
   inReview,
   offerExpiresAt,
   inviteExpiresAt = null,
+  hiringPaused = [],
 }: {
   jobId: string;
   jobStatus: "DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED";
@@ -33,15 +37,22 @@ export function HiringActions({
   offerExpiresAt: Date | null;
   /** When an invitation lapses (C3.3); null for invitations sent before C3. */
   inviteExpiresAt?: Date | null;
+  /** Why hiring is paused on the job right now (hiringPausedReasons); empty when it isn't. */
+  hiringPaused?: string[];
 }) {
   const fields = { jobId, engagementId };
   const closed = jobStatus === "CLOSED";
+  const canOffer = !closed && hiringPaused.length === 0;
+  const pausedNote = !closed && hiringPaused.length > 0 ? <p className="text-muted-sm">{hiringPausedMessage(hiringPaused)} You can send an offer once it&apos;s cleared.</p> : null;
   if (status === "APPLIED") {
     return (
-      <div className="flex flex-wrap items-start gap-2">
-        {!closed && <ActionButton action={offerApplication} fields={fields} label="Send offer" pendingLabel="Sending…" variant="btn-secondary btn-sm" />}
-        {!closed && !inReview && <ActionButton action={reviewApplication} fields={fields} label="Mark in review" pendingLabel="Saving…" variant="btn-secondary btn-sm" />}
-        <NotSelectedForm jobId={jobId} engagementId={engagementId} />
+      <div className="space-y-2">
+        {pausedNote}
+        <div className="flex flex-wrap items-start gap-2">
+          {canOffer && <ActionButton action={offerApplication} fields={fields} label="Send offer" pendingLabel="Sending…" variant="btn-secondary btn-sm" />}
+          {!closed && !inReview && <ActionButton action={reviewApplication} fields={fields} label="Mark in review" pendingLabel="Saving…" variant="btn-secondary btn-sm" />}
+          <NotSelectedForm jobId={jobId} engagementId={engagementId} />
+        </div>
       </div>
     );
   }
@@ -52,8 +63,9 @@ export function HiringActions({
         <p className="text-muted-sm">
           {expired || !offerExpiresAt ? "The offer lapsed before the worker answered." : `Offer sent, waiting on the worker (${timeLeft(offerExpiresAt)} to accept).`}
         </p>
+        {expired ? pausedNote : !closed && hiringPaused.length > 0 && <p className="text-muted-sm">{hiringPausedMessage(hiringPaused)} The worker can accept once it&apos;s cleared.</p>}
         <div className="flex flex-wrap items-start gap-2">
-          {expired && !closed && <ActionButton action={offerApplication} fields={fields} label="Send a new offer" pendingLabel="Sending…" variant="btn-secondary btn-sm" />}
+          {expired && canOffer && <ActionButton action={offerApplication} fields={fields} label="Send a new offer" pendingLabel="Sending…" variant="btn-secondary btn-sm" />}
           <NotSelectedForm jobId={jobId} engagementId={engagementId} label={expired ? "Close as not selected" : "Withdraw the offer"} />
         </div>
       </div>

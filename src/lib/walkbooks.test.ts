@@ -343,6 +343,10 @@ describe("walking order and cutting", () => {
       [6, 1, "Book 6 · Elm St"],
     ]);
     expect(bookName(1, [a("x", "1 Ash St"), a("y", "1 Oak Ave")])).toBe("Book 1 · Ash St to Oak Ave");
+    // A line with no house number isn't a street: it can be a name ("C/O …") or a box, and a book's name outlives the
+    // purge and sits on the worker's saved shift page. Only numbered lines name a book.
+    expect(bookName(1, [a("x", "C/O Jane Doe 12 Elm St"), a("y", "Po Box 4471")])).toBe("Book 1");
+    expect(bookName(2, [a("x", "C/O Jane Doe"), a("y", "4 Ash St"), a("z", "9 Oak Ave"), a("w", "Smith Farm")])).toBe("Book 2 · Ash St to Oak Ave");
     expect(bookName(7, [a("x", `1 ${"Long ".repeat(40)}St`)]).length).toBeLessThanOrEqual(100);
     // An emoji at the cut is kept whole or left out, never split into half a surrogate pair.
     const emoji = bookName(7, [a("x", `1 ${"A".repeat(89)}🏡🏡🏡 St`)]);

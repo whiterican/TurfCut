@@ -612,8 +612,11 @@ export function cutBooks<T extends Walkable>(ordered: readonly T[], perBook: num
 /** "Book 3 · Elm St to Oak Ave": the first and last streets, so a book can be told apart at a glance. */
 export function bookName(number: number, stops: readonly Walkable[]): string {
   const title = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
-  const first = stops.length ? title(splitHouseNumber(stops[0].line1).street) : "";
-  const last = stops.length ? title(splitHouseNumber(stops[stops.length - 1].line1).street) : "";
+  // Only a line with a house number names a street: one without can be a person ("C/O Jane Doe") or a box, and the
+  // name outlives the purge of the addresses and sits on the worker's saved shift page.
+  const streets = stops.map((s) => splitHouseNumber(s.line1)).filter((s) => s.number !== null).map((s) => title(s.street));
+  const first = streets[0] ?? "";
+  const last = streets[streets.length - 1] ?? "";
   const where = !first ? "" : first === last ? ` · ${first}` : ` · ${first} to ${last}`;
   const name = `Book ${number}${where}`;
   // Counted as people count characters, so an emoji at the cut is never split in half.

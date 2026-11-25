@@ -11,6 +11,8 @@ import { CoverageMap } from "@/components/staff/CoverageMap";
 import { TurfCards } from "@/components/staff/TurfCards";
 import { AssignTurfPanel, type AssignableShift } from "@/components/staff/AssignTurfPanel";
 import { canUse } from "@/lib/access";
+import { TurfPickProvider } from "@/components/staff/TurfPick";
+import { zoneId } from "@/lib/field-live";
 import { FieldLiveProvider, LiveFigure, LiveRatio } from "@/components/staff/FieldLive";
 import { summarizeField } from "@/lib/field-live";
 
@@ -45,12 +47,14 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   // Under way: checked in and not out, or due now and not checked in (late). Counted by the live summary, which the page then polls (P1.7).
   const live = summarizeField(rows, now);
   const cards = turfCards(rows);
+  // Each turf's name as its card says it now, by zone id: what the map's line and the Assign panel call a turf.
+  const turfNames = Object.fromEntries(cards.map((c) => [c.id, c.name]));
   // Whoever may schedule shifts may give turf; the shifts offered are the ones still to work or under way.
   const assignable: AssignableShift[] = canUse(session, "scheduling")
     ? rows
         .filter((r) => !r.state.cancelled && !r.state.checkedOutAt && (r.state.checkedInAt || r.endsAt >= now))
         .sort((a, b) => a.jobTitle.localeCompare(b.jobTitle) || a.startsAt.getTime() - b.startsAt.getTime())
-        .map((r) => ({ id: r.shiftId, worker: r.worker, jobTitle: r.jobTitle, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt.toISOString(), hasTurf: r.turf !== null }))
+        .map((r) => ({ id: r.shiftId, worker: r.worker, jobTitle: r.jobTitle, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt.toISOString(), hasTurf: r.turf !== null, zoneId: r.turf ? zoneId(r.turf) : null }))
     : [];
   const firstCorner = live.zones[0]?.turf.coordinates[0][0];
   const heldNow = kept.filter((h) => h.takenOn === null).length;
@@ -104,20 +108,23 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
         </section>
         <section className="section" aria-labelledby="turf-heading">
           <h2 id="turf-heading" className="sr-only">Turf</h2>
-          <div className="overview-grid">
-            {live.zones.length > 0 ? (
-              <CoverageMap initial={live.zones} className="overview-map field-map" />
-            ) : (
-              <div className="overview-map field-map empty-state">
-                <p className="empty-state-title">No assigned turf to show.</p>
-                <p className="empty-state-body">Turf drawn on a shift appears here, filling as its workers check in. Nobody&apos;s position is ever on this map.</p>
-              </div>
-            )}
-            <aside aria-label="Turf cards">
-              <TurfCards cards={cards} now={now} />
-            </aside>
-          </div>
-          {assignable.length > 0 && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} />}
+          {/* People who may assign turf can start from a turf already on the map: its card's button, or the one under the map for a tapped zone, opens the panel below. */}
+          <TurfSection canAssign={assignable.length > 0}>
+            <div className="overview-grid">
+              {live.zones.length > 0 ? (
+                <CoverageMap initial={live.zones} className="overview-map field-map" names={turfNames} />
+              ) : (
+                <div className="overview-map field-map empty-state">
+                  <p className="empty-state-title">No assigned turf to show.</p>
+                  <p className="empty-state-body">Turf drawn on a shift appears here, filling as its workers check in. Nobody&apos;s position is ever on this map.</p>
+                </div>
+              )}
+              <aside aria-label="Turf cards">
+                <TurfCards cards={cards} now={now} />
+              </aside>
+            </div>
+            {assignable.length > 0 && <AssignTurfPanel shifts={assignable} center={firstCorner ? { lat: firstCorner[1], lng: firstCorner[0] } : null} names={turfNames} />}
+          </TurfSection>
         </section>
         <section className="section" aria-labelledby="shifts-heading">
           <h2 id="shifts-heading" className="section-title">Shifts</h2>
@@ -126,4 +133,9 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
       </WorkspacePage>
     </FieldLiveProvider>
   );
+}
+
+/** The map, the cards and the Assign panel share one picked turf when the reader may assign; otherwise they are as they were. */
+function TurfSection({ canAssign, children }: { canAssign: boolean; children: React.ReactNode }) {
+  return canAssign ? <TurfPickProvider>{children}</TurfPickProvider> : <>{children}</>;
 }

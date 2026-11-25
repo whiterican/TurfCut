@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { assignTurfAction } from "@/app/field/actions";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LocalTime } from "@/components/LocalTime";
 import { TurfMap } from "@/components/TurfMap";
 import { useTurfPick } from "@/components/staff/TurfPick";
-import { MAX_SHIFTS_PER_ASSIGNMENT, saveOutcome } from "@/lib/turf-assign";
+import { MAX_SHIFTS_PER_ASSIGNMENT, saveOutcome, sendTurf } from "@/lib/turf-assign";
 
 export interface AssignableShift {
   id: string;
@@ -27,8 +27,11 @@ export interface AssignableShift {
  * `names` is each turf's name on its card now, by zone id. Unnamed turfs are numbered by position, so a name
  * kept from the moment of the pick could come to mean another card after a save. A picked turf that no card
  * shows any more (its last shift was given other turf) is "this turf".
+ * The panel is on the page for everyone who may assign turf, with shifts to offer or not. With none it draws nothing
+ * unless it is already open: then it stays, says so, and still shows what the last save answered.
  */
 export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: AssignableShift[]; center: { lat: number; lng: number } | null; names?: Record<string, string> }) {
+  const router = useRouter();
   // A turf picked on the map or a card opens the panel starting from it.
   const turfPick = useTurfPick();
   const preset = turfPick?.picked ?? null;
@@ -45,10 +48,11 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
   // Where the map first looked: it must not jump while the organizer draws, whatever zones appear meanwhile.
   const [startCenter] = useState(center);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [pending, start] = useTransition();
+  // A save is on its way. It ends when the server answers or the request is given up for taking too long (sendTurf),
+  // whichever is first, so it always ends.
+  const [pending, setPending] = useState(false);
   // While a save is on its way nothing here or on the cards can change the panel's turf or close it: an answer that
-  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick. The price, accepted:
-  // a save that stalls on bad signal holds these buttons until the browser gives the request up (or a reload).
+  // landed on another turf, or on a closed panel, was easy to miss or to wipe with the next pick.
   const setSaving = turfPick?.setSaving;
   useEffect(() => {
     setSaving?.(pending);
@@ -57,6 +61,7 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
   const form = useRef<HTMLFormElement>(null);
   const panel = useRef<HTMLElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
+  const idle = useRef<HTMLParagraphElement>(null);
   // Every pick opens the panel, the same turf again and the first pick after Close too.
   const [seenNonce, setSeenNonce] = useState(preset?.nonce ?? 0);
   if (preset && preset.nonce !== seenNonce) {
@@ -79,7 +84,7 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
     if (open) {
       if (nonce) panel.current?.scrollIntoView({ block: "nearest" });
       panel.current?.focus({ preventScroll: true });
-    } else if (wasOpen.current) opener.current?.focus();
+    } else if (wasOpen.current) (opener.current ?? idle.current)?.focus();
     wasOpen.current = open;
   }, [nonce, turfId, open]);
 
@@ -110,16 +115,32 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
       }
     }
     const sentAt = turfChanges.current;
+    // The last answer was about the last save: under "Saving…" it would read as this one's.
+    setMsg(null);
     // Held from this click on, not from the effect a moment later: a tap already queued on a card must not get through.
     setSaving?.(true);
-    start(async () => {
+    setPending(true);
+    void sendTurf(ids, polygon).then((result) => {
+      setPending(false);
       // The answer belongs to the turf it was sent for; the panel may be on another by now, or closed (saveOutcome).
-      const result = await assignTurfAction(ids, polygon).catch(() => null);
-      const { msg: answer, clearTicks, reopen } = saveOutcome(turfChanges.current !== sentAt, result);
+      const { msg: answer, clearTicks, reopen, refresh } = saveOutcome(turfChanges.current !== sentAt, result);
       setMsg(answer);
       if (clearTicks) setPicked(new Set());
       if (reopen) setOpen(true);
+      // Only after an answer (saveOutcome says why): a refresh with no signal would reload the page and lose all this.
+      // And not if the browser already knows the signal went in the moment since; the page's poll refreshes later.
+      if (refresh && navigator.onLine) router.refresh();
     });
+  }
+
+  // Nothing to offer and nothing open: only words for a screen reader, which also take the focus when the panel is
+  // closed with no "Assign turf" button to go back to. (Open, the panel stays: it may be about to show a refusal.)
+  if (!open && shifts.length === 0) {
+    return (
+      <p ref={idle} tabIndex={-1} className="sr-only">
+        No shift in this view can take turf right now.
+      </p>
+    );
   }
 
   if (!open) {
@@ -169,6 +190,7 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
       {/* Held still while a save is on its way: ticks made then would be cleared when it lands. */}
       <fieldset className="space-y-3" disabled={pending}>
         <legend className="label">Whose shifts get this turf</legend>
+        {shifts.length === 0 && <p className="text-sm text-subtle">No shift in this view can take turf right now: it goes on shifts that are coming up or running.</p>}
         {jobs.map((job) => {
           const ofJob = shifts.filter((s) => s.jobTitle === job);
           const all = ofJob.every((s) => picked.has(s.id));

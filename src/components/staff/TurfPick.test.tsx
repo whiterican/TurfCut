@@ -8,7 +8,7 @@ import { turfCards } from "@/lib/field-turf";
 import { zoneId } from "@/lib/field-live";
 import type { FieldRow } from "@/lib/field-view";
 
-vi.mock("@/app/field/actions", () => ({ assignTurfAction: async () => ({ ok: true, message: "" }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {} }) }));
 vi.mock("@/components/TurfMap", () => ({ TurfMap: ({ turf }: { turf: unknown }) => <div data-map={turf ? "preset" : "blank"} /> }));
 
 const turf = { type: "Polygon" as const, coordinates: [[[-104.99, 39.73], [-104.98, 39.73], [-104.98, 39.74], [-104.99, 39.73]]] as [number, number][][] };
@@ -28,10 +28,13 @@ describe("picking a turf that is already on the map", () => {
   });
   it("the button is ready to press, and held while a save is on its way", () => {
     expect(renderToStaticMarkup(<TurfPickProvider><AssignThisTurfButton id="z" name="Turf 1" turf={turf} /></TurfPickProvider>)).not.toContain("disabled");
-    const ctx = { picked: null, pick: () => {}, clear: () => {}, setSaving: () => {} };
+    const ctx = { picked: null, pick: () => {}, clear: () => {}, setSaving: () => {}, offering: true };
     const button = <AssignThisTurfButton id="z" name="Turf 1" turf={turf} />;
     expect(renderToStaticMarkup(<TurfPickContext.Provider value={{ ...ctx, saving: true }}>{button}</TurfPickContext.Provider>)).toContain('disabled=""');
     expect(renderToStaticMarkup(<TurfPickContext.Provider value={{ ...ctx, saving: false }}>{button}</TurfPickContext.Provider>)).not.toContain("disabled");
+  });
+  it("no button while no shift can take turf: there would be nothing to open the panel for", () => {
+    expect(renderToStaticMarkup(<TurfPickProvider offering={false}><AssignThisTurfButton id="z" name="Turf 1" turf={turf} /></TurfPickProvider>)).toBe("");
   });
   it("a card carries its own polygon, under the same id the map's zone has", () => {
     const state = { cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [], packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null };
@@ -52,6 +55,15 @@ describe("picking a turf that is already on the map", () => {
     // Nothing is chosen until a zone is tapped: the line under the map says how, and offers no button yet.
     expect(pickable).toContain("Tap a turf on the map to assign it to more shifts.");
     expect(pickable).not.toContain("Assign this turf");
+    // With no shift to give turf to, the map keeps the same shape (so it is not rebuilt when the last shift ends), its
+    // zones stop looking tappable, and the line says why.
+    const idle = renderToStaticMarkup(<TurfPickProvider offering={false}><CoverageMap initial={zones} /></TurfPickProvider>);
+    expect(idle).not.toContain("data-pickable");
+    expect(idle).toContain("No shift in this view can take turf right now");
+    expect(idle).not.toContain("Tap a turf");
+    // The same two elements either way: a wrapper holding the map and the line. Only then is the map kept, not rebuilt.
+    const shape = (html: string) => html.replace(/ data-pickable=""/, "").replace(/<p>.*?<\/p>/, "<p></p>");
+    expect(shape(idle)).toBe(shape(pickable));
   });
 });
 
@@ -119,6 +131,18 @@ describe("the Assign panel starting from a picked turf", () => {
   });
   it("ticks nobody for the organizer", () => {
     expect(html).not.toContain("checked=");
+  });
+  it("with no shift to offer: closed it shows nothing (only words for a screen reader), open it stays and says so", () => {
+    const closed = renderToStaticMarkup(<TurfPickProvider offering={false}><AssignTurfPanel shifts={[]} center={null} /></TurfPickProvider>);
+    expect(closed).toBe('<p tabindex="-1" class="sr-only">No shift in this view can take turf right now.</p>');
+    const open = renderToStaticMarkup(
+      <TurfPickProvider initial={{ id, turf }} offering={false}>
+        <AssignTurfPanel shifts={[]} center={null} names={{ [id]: "Turf 1" }} />
+      </TurfPickProvider>,
+    );
+    expect(open).toContain("Assign Turf 1");
+    expect(open).toContain("No shift in this view can take turf right now");
+    expect(open).toContain("Close");
   });
   it("without a pick it stays the plain panel: closed", () => {
     const plain = renderToStaticMarkup(<TurfPickProvider><AssignTurfPanel shifts={shifts} center={null} /></TurfPickProvider>);

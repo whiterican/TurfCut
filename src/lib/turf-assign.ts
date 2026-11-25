@@ -33,22 +33,30 @@ export function assignProblem(s: { status: string; checkInAt: Date | null; check
   return null;
 }
 
+const UNKNOWN = "It may or may not have saved: check the map before sending it again.";
+
 /**
  * What the Assign panel does with a save's answer. `moved` is whether the panel changed turf (or closed on a picked
- * one) while the save was on its way; `result` is null when the call itself failed. The panel holds its turf while it
+ * one) while the save was on its way; `result` is null when the save got no answer (see sendTurf). The panel holds its turf while it
  * saves, so `moved` should not happen; if it does (the page swapped the panel under a save), this is what is safe.
  * - A failure is always told, and brings a closed panel back: an untold one reads as a save that worked.
+ * - `refresh`: whether to ask the server for the page again. Only after an answer.
  * - A success for the turf still on the panel clears the ticks. A late one does not (they were made since, for
  *   another turf) and says which save it was, so "Turf given" is not read as the new turf's.
  */
-export function saveOutcome(moved: boolean, result: { ok: boolean; message: string } | null): { msg: { ok: boolean; text: string }; clearTicks: boolean; reopen: boolean } {
+export function saveOutcome(moved: boolean, result: { ok: boolean; message: string } | null): { msg: { ok: boolean; text: string }; clearTicks: boolean; reopen: boolean; refresh: boolean } {
   if (!result) {
-    const text = moved ? "The save you sent a moment ago did not go through. Nothing was changed." : "Couldn't save the turf. Nothing was changed. Try again.";
-    return { msg: { ok: false, text }, clearTicks: false, reopen: true };
+    // No answer: the request or its answer was lost on the way, or it ran out of time. Which is not known here, so
+    // this does not say "nothing was changed" (the server says that itself when it knows).
+    // No refresh either: with no signal a refresh fails too, and Next then reloads the whole page, taking the drawing,
+    // the ticks and this message with it. The Field page's own poll shows a save that went through after all.
+    const text = `${moved ? "The save you sent a moment ago" : "The save"} got no answer. ${UNKNOWN}`;
+    return { msg: { ok: false, text }, clearTicks: false, reopen: true, refresh: false };
   }
-  if (!moved) return { msg: { ok: result.ok, text: result.message }, clearTicks: result.ok, reopen: !result.ok };
-  if (result.ok) return { msg: { ok: true, text: "The save you sent a moment ago went through." }, clearTicks: false, reopen: false };
-  return { msg: { ok: false, text: `The save you sent a moment ago did not go through. ${result.message}` }, clearTicks: false, reopen: true };
+  // The server answered, so it can be reached: show the page as it has it now (the new turf, or a shift that ended).
+  if (!moved) return { msg: { ok: result.ok, text: result.message }, clearTicks: result.ok, reopen: !result.ok, refresh: true };
+  if (result.ok) return { msg: { ok: true, text: "The save you sent a moment ago went through." }, clearTicks: false, reopen: false, refresh: true };
+  return { msg: { ok: false, text: `The save you sent a moment ago did not go through. ${result.message}` }, clearTicks: false, reopen: true, refresh: true };
 }
 
 /**
@@ -71,4 +79,45 @@ export function assignMessage(giving: boolean, changed: number, unchanged: numbe
   if (changed === 0) return `${unchanged === 1 ? "That shift" : unchanged === 2 ? "Both shifts" : `All ${unchanged} shifts`} ${already}. Nothing was changed.`;
   const done = giving ? `Turf given to ${shifts(changed)}.` : `Turf cleared on ${shifts(changed)}.`;
   return unchanged === 0 ? done : `${done} ${unchanged} more ${already}.`;
+}
+
+/** The server's limits for one assignment's transaction: this long to get a connection, this long to run. */
+export const ASSIGN_TX = { maxWait: 10_000, timeout: 15_000 } as const;
+
+/**
+ * How long the Assign panel waits for a save before it gives the request up. Longer than the transaction's own limits
+ * together, so a save that is only slow in the database still answers. (Signing in, a cold start and the rest are not
+ * counted: a save can be given up that then goes through, which is why the panel never says it did not.)
+ */
+export const SAVE_PATIENCE_MS = 30_000;
+
+/**
+ * What the turf route answered, or null when the body says nothing we can rely on (a gateway's error page, say):
+ * `{ ok: true, message }` for a save, `{ error }` for anything the server itself refused or failed, which it words.
+ */
+export function readSaveAnswer(body: unknown): { ok: boolean; message: string } | null {
+  if (!body || typeof body !== "object") return null;
+  const b = body as { ok?: unknown; message?: unknown; error?: unknown };
+  if (b.ok === true && typeof b.message === "string") return { ok: true, message: b.message };
+  if (typeof b.error === "string" && b.error) return { ok: false, message: b.error };
+  return null;
+}
+
+/**
+ * Send an assignment to the turf route (POST /api/field/turf) and wait at most `patienceMs` for the answer. Null
+ * means no answer: the network failed, the time ran out and the request was given up, or what came back was not the
+ * route's. A plain request with its own time limit, not a server action: an action still in flight holds up the
+ * page's refreshes and every other action behind it, and nothing ends it but the browser.
+ */
+export async function sendTurf(shiftIds: string[], polygon: unknown, patienceMs: number = SAVE_PATIENCE_MS, fetcher: typeof fetch = fetch): Promise<{ ok: boolean; message: string } | null> {
+  const giveUp = new AbortController();
+  const timer = setTimeout(() => giveUp.abort(), patienceMs);
+  try {
+    const res = await fetcher("/api/field/turf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shiftIds, polygon }), signal: giveUp.signal });
+    return readSaveAnswer(await res.json());
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_SHIFTS_PER_ASSIGNMENT, assignMessage, assignProblem, readAssignment, sameTurf } from "./turf-assign";
+import { MAX_SHIFTS_PER_ASSIGNMENT, assignMessage, assignProblem, readAssignment, sameTurf, saveOutcome } from "./turf-assign";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const square = { type: "Polygon", coordinates: [[[-104.9, 39.7], [-104.9, 39.71], [-104.89, 39.71], [-104.9, 39.7]]] };
@@ -41,6 +41,37 @@ describe("turf assignment", () => {
   });
 });
 
+describe("saveOutcome: what the panel does with a save's answer", () => {
+  const given = { ok: true, message: "Turf given to 1 worker's shift." };
+  const refused = { ok: false, message: "That shift is over." };
+  it("on the turf it was sent for: the server's words, and the ticks cleared only when it worked", () => {
+    expect(saveOutcome(false, given)).toEqual({ msg: { ok: true, text: given.message }, clearTicks: true, reopen: false });
+    expect(saveOutcome(false, refused)).toEqual({ msg: { ok: false, text: refused.message }, clearTicks: false, reopen: true });
+  });
+  it("after the panel moved to another turf: never clears the new ticks, and says which save it was", () => {
+    const late = saveOutcome(true, given);
+    expect(late.clearTicks).toBe(false);
+    expect(late.reopen).toBe(false);
+    expect(late.msg).toEqual({ ok: true, text: "The save you sent a moment ago went through." });
+    const lateRefused = saveOutcome(true, refused);
+    expect(lateRefused.clearTicks).toBe(false);
+    expect(lateRefused.msg.ok).toBe(false);
+    expect(lateRefused.msg.text).toBe("The save you sent a moment ago did not go through. That shift is over.");
+  });
+  it("a failure is always told and brings a closed panel back, a call that never answered included", () => {
+    for (const moved of [false, true]) {
+      for (const result of [refused, null]) {
+        const o = saveOutcome(moved, result);
+        expect(o.msg.ok).toBe(false);
+        expect(o.msg.text).not.toBe("");
+        expect(o.reopen).toBe(true);
+        expect(o.clearTicks).toBe(false);
+      }
+    }
+    expect(saveOutcome(false, null).msg.text).toBe("Couldn't save the turf. Nothing was changed. Try again.");
+  });
+});
+
 describe("sameTurf: a shift that already has what is asked is left alone", () => {
   const read = readAssignment([id(1)], square);
   const turf = read.ok ? read.turf : null;
@@ -56,12 +87,12 @@ describe("sameTurf: a shift that already has what is asked is left alone", () =>
     expect(sameTurf({ ...square, coordinates: [[ring[0], ring[2], ring[1], ring[3]]] }, turf)).toBe(false);
     expect(sameTurf({ ...square, coordinates: [[ring[0], ring[1], ring[2], [-104.89, 39.7], ring[3]]] }, turf)).toBe(false);
   });
-  it("the same shape drawn from another corner, or the other way round, counts as different: it is written, never skipped", () => {
+  it("the same shape drawn from another corner counts as different: it is written, never skipped", () => {
     // Deliberately strict, and the same identity the map uses for a zone (zoneId hashes the corners in order). The
     // cost of being strict is one honest write; being loose could skip an assignment that was meant.
     const [p0, p1, p2] = square.coordinates[0];
+    // (Drawn the other way round is the "another order" case above: the fixture is a triangle.)
     expect(sameTurf({ ...square, coordinates: [[p1, p2, p0, p1]] }, turf)).toBe(false);
-    expect(sameTurf({ ...square, coordinates: [[p0, p2, p1, p0]] }, turf)).toBe(false);
   });
   it("no turf matches only a request to clear", () => {
     expect(sameTurf(null, null)).toBe(true);

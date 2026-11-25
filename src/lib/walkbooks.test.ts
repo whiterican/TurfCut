@@ -172,6 +172,17 @@ describe("buildSourceData", () => {
     const { data } = buildSourceData([["Name", "Ada\u0000 Love\u202elace\u200b"]]);
     expect(data!.Name).toBe("Ada Lovelace");
   });
+  it("cuts the heaviest values first, so one long early column doesn't push light ones (Phone, Party) out", () => {
+    const entries: Array<readonly [string, string]> = [
+      ...Array.from({ length: 36 }, (_, i) => [`Notes ${i}`, "n".repeat(500)] as const),
+      ["Phone", "555-0100"],
+      ["Party", "DEM"],
+    ];
+    const { data, cut } = buildSourceData(entries);
+    expect(cut.length).toBeGreaterThan(0);
+    expect(cut.every((c) => c.startsWith("Notes"))).toBe(true);
+    expect(data).toMatchObject({ Phone: "555-0100", Party: "DEM" });
+  });
   it("drops columns from the end until a row fits, and says which", () => {
     const entries = Array.from({ length: 40 }, (_, i) => [`column ${i}`, "v".repeat(500)] as const);
     const { data, cut } = buildSourceData(entries);
@@ -187,14 +198,16 @@ describe("readAddressFile", () => {
   it("a column cut to make one heavy row fit is stored on no row at all, so 'not stored' is true", () => {
     const cols = Array.from({ length: 39 }, (_, i) => `C${i}`);
     const fat = cols.map(() => "v".repeat(500)).join(",");
-    const thin = cols.map(() => "").join(",");
+    // The light row has a value in every column too: a cut column must go from it as well.
+    const thin = cols.map(() => "x").join(",");
     const r = readAddressFile(`address,city,state,zip,${cols.join(",")},Phone\n1 Oak St,Denver,CO,80202,${fat},555-0100\n2 Oak St,Denver,CO,80202,${thin},555-0101\n`);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.file.dropped).toContain("Phone");
-    expect(r.file.storedColumns).not.toContain("Phone");
-    // The light second row would have fit: the column goes from it too.
+    expect(r.file.dropped.length).toBeGreaterThan(0);
+    for (const name of r.file.dropped) expect(r.file.storedColumns).not.toContain(name);
     for (const row of r.file.rows) for (const name of r.file.dropped) expect(Object.keys(row.sourceData ?? {})).not.toContain(name);
+    // The light column the heavy row could keep is stored on both rows.
+    expect(r.file.rows.map((row) => row.sourceData?.Phone)).toEqual(["555-0100", "555-0101"]);
   });
   it("keeps each row's address, record ID and every other column together, apart from the address", () => {
     const r = readAddressFile(`Voter ID,${head}\nV1,Ada Lovelace,DEM,12 Elm St,,Springfield,il,62701,39.78,-89.65\n`);

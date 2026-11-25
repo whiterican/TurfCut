@@ -389,10 +389,15 @@ export function buildSourceData(entries: ReadonlyArray<readonly [string, string]
   }
   let size = 2 + kept.reduce((n, [k, v]) => n + bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4, 0);
   const cut: string[] = [];
+  // The heaviest value goes first (the later column of equals), so one long column doesn't push light ones out: a
+  // column cut here goes from every row of the file (readAddressFile), so it should be the one that didn't fit.
+  const weight = ([k, v]: [string, string]) => bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4;
   while (size > MAX_SOURCE_DATA_BYTES && kept.length) {
-    const [k, v] = kept.pop()!;
-    size -= bytes(JSON.stringify(k)) + bytes(JSON.stringify(v)) + 4;
-    cut.push(k);
+    let at = kept.length - 1;
+    for (let i = kept.length - 2; i >= 0; i--) if (weight(kept[i]) > weight(kept[at])) at = i;
+    const [entry] = kept.splice(at, 1);
+    size -= weight(entry);
+    cut.push(entry[0]);
   }
   return { data: kept.length ? Object.fromEntries(kept) : null, cut, leftOut };
 }

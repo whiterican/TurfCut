@@ -77,3 +77,14 @@ describe("disclosures on the poll screens", () => {
     }
   });
 });
+
+describe("the poll forms keep focus on Save while it saves", () => {
+  it("Save is aria-disabled, never disabled, in the worker's and the staff's poll form", () => {
+    for (const f of ["src/components/stops/WorkerPollForm.tsx", "src/components/stops/StaffPollForm.tsx"]) {
+      const text = readFileSync(f, "utf8");
+      const save = text.slice(text.indexOf('<button className="btn-primary'), text.indexOf("Saving…"));
+      expect(save, f).not.toMatch(/\sdisabled=\{/);
+      expect(save, f).toMatch(/aria-disabled=\{pending\}/);
+    }
+  });
+});

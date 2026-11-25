@@ -25,6 +25,8 @@ export function WorkerPollForm({ stopId, questions, answers, locked = [] }: { st
     if (state.ok || (!state.gone && !state.retry && Object.keys(state.errors).length === 0 && state.message)) tap.current = null;
   }, [state]);
   const action = (fd: FormData) => {
+    // Save stays focusable while saving (aria-disabled), so a press then does nothing.
+    if (pending) return;
     // The kept id only for a tap that sends what that one did: answers changed after a timeout are a new tap.
     tap.current = idForTap(tap.current, tapContents(fd));
     fd.set("clientId", tap.current.id);
@@ -38,7 +40,8 @@ export function WorkerPollForm({ stopId, questions, answers, locked = [] }: { st
       {/* Nothing to save when every question's answer is someone else's. */}
       {questions.some((q) => !locked.includes(q.id)) && (
         <div className="flex items-center gap-3">
-          <button className="btn-primary min-h-12 flex-1" disabled={pending} aria-busy={pending || undefined}>
+          {/* aria-disabled, not disabled: a focused button that turns disabled drops focus to the page. */}
+          <button className="btn-primary min-h-12 flex-1 aria-disabled:cursor-not-allowed aria-disabled:opacity-50" aria-disabled={pending} aria-busy={pending || undefined}>
             {pending ? "Saving…" : answers.length ? "Save changes" : "Save poll"}
           </button>
         </div>

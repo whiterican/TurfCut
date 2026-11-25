@@ -20,12 +20,13 @@ export function StaffPollForm({ stopId, questions, values }: { stopId: string; q
     );
   }
   return (
-    <form action={action} className="space-y-3 rounded-[var(--radius-inner)] border border-border bg-surface-2/50 p-3" aria-label="Edit poll answers">
+    <form action={(fd) => (pending ? undefined : action(fd))} className="space-y-3 rounded-[var(--radius-inner)] border border-border bg-surface-2/50 p-3" aria-label="Edit poll answers">
       <input type="hidden" name="stopId" value={stopId} />
       <p className="text-hint">Saving adds a new answer as the current one. The earlier answer stays in the history, with who gave it.</p>
       <PollFields key={JSON.stringify(values)} questions={questions} initial={values} idPrefix={`staff-${stopId}`} />
       <div className="flex items-center gap-3">
-        <button className="btn-primary" disabled={pending} aria-busy={pending || undefined}>
+        {/* aria-disabled, not disabled: a focused button that turns disabled drops focus to the page (the form ignores it). */}
+        <button className="btn-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-50" aria-disabled={pending} aria-busy={pending || undefined}>
           {pending ? "Saving…" : "Save changes"}
         </button>
         <button type="button" className="btn-ghost" onClick={() => setOpen(false)}>

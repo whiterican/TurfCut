@@ -2,6 +2,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { LocalTime } from "@/components/LocalTime";
 import { OutcomeChip } from "@/components/stops/Outcomes";
+import { TakeFocus } from "@/components/stops/TakeFocus";
 import { stopColor, type StopView } from "@/components/stops/StopLine";
 import { consoleHref, type ConsoleQuery, type OutcomeFilter } from "@/lib/stop-console";
 import type { ConsoleStop, WorkerLine } from "@/lib/stop-console-data";
@@ -40,7 +41,7 @@ const street = (s: { line1: string; unit: string | null; purged?: boolean; stopN
 /** The stops as a table from 768px and as cards below it: a desktop table is never squeezed onto a phone. */
 export function ConsoleTable({ base, q, stops, holderName }: { base: string; q: ConsoleQuery; stops: ConsoleStop[]; holderName: (id: string | null) => string | null }) {
   if (!stops.length) return <p className="text-muted-sm">No stops match these filters.</p>;
-  // To the inspector, which takes focus: #stop-history. The links don't scroll to the top first.
+  // To the inspector, which takes focus when it opens (TakeFocus): the links don't scroll the page.
   const open = (s: ConsoleStop) => `${consoleHref(base, q, { stop: s.id })}#stop-history`;
   return (
     <>
@@ -124,6 +125,7 @@ export function StopInspector({ stop, closeHref }: { stop: History; closeHref: s
   const a = stop.address;
   return (
     <section id="stop-history" tabIndex={-1} aria-label={`History of stop ${stop.stopNumber}`} className="card scroll-mt-4 space-y-3 outline-none">
+      <TakeFocus id="stop-history" when={stop.id} />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="eyebrow">{stop.book.name} · stop {stop.stopNumber}</p>

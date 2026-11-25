@@ -467,6 +467,14 @@ export function readAddressFile(text: string): { ok: true; file: AddressFile } |
     const first = skipped[0];
     return { ok: false, reason: `No row in the file has a usable address${first ? ` (line ${first.rowNumber}: ${first.reason})` : ""}.` };
   }
+  // A column cut to make one row fit goes from every row: the import lists it as not stored, and that must be true.
+  if (cutNames.size) {
+    for (const row of rows) {
+      if (!row.sourceData) continue;
+      for (const name of cutNames) delete row.sourceData[name];
+      if (!Object.keys(row.sourceData).length) row.sourceData = null;
+    }
+  }
   const dropped = [...mapped.map.dropped, ...[...cutNames].filter((n) => !mapped.map.dropped.includes(n))];
   return {
     ok: true,

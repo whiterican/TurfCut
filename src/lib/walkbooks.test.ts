@@ -177,6 +177,18 @@ describe("buildSourceData", () => {
 
 describe("readAddressFile", () => {
   const head = "name,party,address,unit,city,state,zip,lat,lon";
+  it("a column cut to make one heavy row fit is stored on no row at all, so 'not stored' is true", () => {
+    const cols = Array.from({ length: 39 }, (_, i) => `C${i}`);
+    const fat = cols.map(() => "v".repeat(500)).join(",");
+    const thin = cols.map(() => "").join(",");
+    const r = readAddressFile(`address,city,state,zip,${cols.join(",")},Phone\n1 Oak St,Denver,CO,80202,${fat},555-0100\n2 Oak St,Denver,CO,80202,${thin},555-0101\n`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.file.dropped).toContain("Phone");
+    expect(r.file.storedColumns).not.toContain("Phone");
+    // The light second row would have fit: the column goes from it too.
+    for (const row of r.file.rows) for (const name of r.file.dropped) expect(Object.keys(row.sourceData ?? {})).not.toContain(name);
+  });
   it("keeps each row's address, record ID and every other column together, apart from the address", () => {
     const r = readAddressFile(`Voter ID,${head}\nV1,Ada Lovelace,DEM,12 Elm St,,Springfield,il,62701,39.78,-89.65\n`);
     expect(r.ok).toBe(true);

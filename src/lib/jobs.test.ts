@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   cardAffiliation,
@@ -174,6 +174,8 @@ describe("compensation engine (spec p.13)", () => {
 });
 
 describe("volunteering is off until its last slice is merged (docs/product/VOLUNTEERS.md, Switching it on)", () => {
+  // Off whatever the shell running the tests has exported (local work sets TURFCUT_VOLUNTEERS=1).
+  beforeEach(() => vi.stubEnv("TURFCUT_VOLUNTEERS", ""));
   afterEach(() => vi.unstubAllEnvs());
   const listed = { compensationAllowed: ["HOURLY", "VOLUNTEER"] };
 
@@ -191,6 +193,7 @@ describe("volunteering is off until its last slice is merged (docs/product/VOLUN
     const saved = validateJob(form);
     expect(!saved.ok && saved.errors.compensationMethod).toBe(VOLUNTEERING_NOT_YET);
     const draft = validateDraft(form);
+    expect(draft.ok).toBe(true);
     expect(draft.ok && "compensationMethod" in draft.draft).toBe(false);
     expect(compensationProblem("VOLUNTEER", listed)).toBe(VOLUNTEERING_NOT_YET);
     const f = ready();
@@ -376,6 +379,7 @@ describe("validateJob", () => {
       expect(d.ok && d.draft.compensationMethod).toBe("VOLUNTEER");
       expect(d.ok && d.draft.payRateCents).toBeNull();
       const bad = validateDraft({ ...vol, type: "PETITION" });
+      expect(bad.ok).toBe(true);
       expect(bad.ok && "compensationMethod" in bad.draft).toBe(false);
     });
   });

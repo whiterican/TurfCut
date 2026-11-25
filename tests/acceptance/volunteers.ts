@@ -26,6 +26,8 @@ const refused = async (work: () => Promise<unknown>): Promise<string | null> => 
 };
 
 (async () => {
+  // The first checks are about the off state: off whatever the shell running this has exported.
+  delete process.env.TURFCUT_VOLUNTEERS;
   const p = db();
   await p.profile.create({ data: { id: OWNER, role: "OWNER", orgId: ORG, displayName: "Vol Owner" } });
   const actor = { profileId: OWNER, orgId: ORG };
@@ -105,6 +107,8 @@ const refused = async (work: () => Promise<unknown>): Promise<string | null> => 
   check("a volunteer shift is reviewed like any other", review.ok, review);
   const validations = await p.validation.findMany({ where: { shiftId: shift.id, workEventId: null } });
   check("…its approval is on record, so the doors are verified", validations.length === 1 && validations[0].status === "APPROVED" && validations[0].reviewerId === OWNER, validations);
+  // The third thing a pay line can name is the approval it pays.
+  check("a pay line naming only that approval is refused", /volunteer job has no pay/.test((await refused(() => p.payout.create({ data: { ...line, validationId: validations[0]?.id } }))) ?? ""));
   check("…and no pay line was written", (await p.payout.count({ where: { OR: [{ shiftId: shift.id }, { engagementId: eng.id }] } })) === 0);
   const again = await supervisorShiftAction(actor, shift.id, { kind: "closeout", status: "REJECTED", reason: "Wrong turf" });
   check("…it can be re-reviewed, still with no pay line", again.ok && (await p.payout.count({ where: { shiftId: shift.id } })) === 0, again);

@@ -40,16 +40,22 @@ Database rules that go with them (SQL in `prisma/v1-volunteers.sql`, run on the 
 the code deploys, and safe to run twice):
 
 - A volunteer job must have no pay rate; a paid job is unchanged.
-- No payout row can be written for volunteer work, whatever the code does: a pay line is refused if either the
-  engagement or the shift it names belongs to a volunteer job.
+- No payout row can be written for volunteer work, whatever the code does: a pay line is refused if the
+  engagement, the shift or the approval it names belongs to a volunteer job.
 - Volunteer jobs are door canvassing in the political or nonprofit sector only.
-- **Added while building slice 1, for Caden's nod:** once anyone is on a job (applied, invited, hired), it cannot
-  change between paid and volunteer. Otherwise a paid job with a crew could be turned into an unpaid one under
+- **Added while building slice 1, for Caden's nod:** once anyone has ever applied to a job, been invited
+  to it or been hired on it (including people who later withdrew or were declined), it cannot change between paid
+  and volunteer. Otherwise a paid job with a crew could be turned into an unpaid one under
   them, or a volunteer job could start paying people who signed up to volunteer. The organization closes the job
   and posts a new one. The app says so on the form; the database refuses it whatever the code does.
 
-The file was rehearsed on a copy of a database that predates it (existing jobs, payouts and sharing rows): it ran
-clean twice, left every paid job untouched, and every existing sharing row came out as `NOBODY`.
+The file was rehearsed by hand on a local database that predates it (existing jobs, payouts and sharing rows): it
+ran clean twice, left every paid job untouched, and every existing sharing row came out as `NOBODY`. That run is
+not in the repo's tests, which only re-run the file on a database that already has everything.
+
+**Order matters.** The code reads the new sharing column, so the SQL has to be on the live database before any
+deployment serves this code. Preview deployments use the live database too: until the SQL is run, this branch's
+preview fails on Sharing, Matches and shared scorecards. Running the SQL first is safe for the code live today.
 
 ## Rules in the app
 

@@ -45,13 +45,16 @@ ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_volunteer_canvass" CHECK (
   OR ("type"::text = 'CANVASS' AND "sector"::text <> 'PRIVATE'));
 
 -- No pay line for work on a volunteer job. A line names its engagement, its
--- shift, or both: it is refused if either one belongs to a volunteer job.
+-- shift, the approval it pays, or several: it is refused if any of them
+-- belongs to a volunteer job.
 CREATE OR REPLACE FUNCTION "turfcut_private"."payout_not_for_volunteer"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM "public"."Engagement" e JOIN "public"."Job" j ON j."id" = e."jobId"
      WHERE j."compensationMethod"::text = 'VOLUNTEER'
-       AND (e."id" = NEW."engagementId" OR e."id" = (SELECT s."engagementId" FROM "public"."Shift" s WHERE s."id" = NEW."shiftId"))
+       AND (e."id" = NEW."engagementId"
+            OR e."id" = (SELECT s."engagementId" FROM "public"."Shift" s WHERE s."id" = NEW."shiftId")
+            OR e."id" = (SELECT s."engagementId" FROM "public"."Validation" v JOIN "public"."Shift" s ON s."id" = v."shiftId" WHERE v."id" = NEW."validationId"))
   ) THEN
     RAISE EXCEPTION 'A volunteer job has no pay: no pay line can be written for it' USING ERRCODE = 'check_violation';
   END IF;

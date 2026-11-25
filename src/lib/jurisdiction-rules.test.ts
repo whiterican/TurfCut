@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { METHOD_VALUES, readPlace, readRules, rulesFromForm, rulesProblems, NOTES_MAX, LOCALITY_MAX } from "./jurisdiction-rules";
 
 describe("jurisdiction rules (M10.3)", () => {
@@ -39,6 +39,8 @@ describe("jurisdiction rules (M10.3)", () => {
   });
 
   describe("listing volunteer work on a profile is what switches it on in a place", () => {
+    // Off whatever the shell running the tests has exported; the "on" case below switches it on itself.
+    beforeEach(() => vi.stubEnv("TURFCUT_VOLUNTEERS", ""));
     afterEach(() => vi.unstubAllEnvs());
     const fields: Record<string, string[]> = { methods: ["HOURLY", "VOLUNTEER"], notes: ["Counsel memo of Nov 25"] };
 

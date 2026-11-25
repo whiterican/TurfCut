@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { recordPollAction, type OutcomeState } from "@/app/walkbooks/actions";
-import { newId } from "@/lib/client-id";
+import { idForTap, tapContents } from "@/lib/client-id";
 import type { PollQuestionView } from "@/lib/poll";
 import { PollFields, valuesOf } from "@/components/stops/PollFields";
 
@@ -19,13 +19,15 @@ export function WorkerPollForm({ stopId, questions, answers, locked = [] }: { st
   const [state, dispatch, pending] = useActionState(recordPollAction, initial);
   const router = useRouter();
   // The tap's id is made when the form is submitted (never during render, which would differ from the server's) and kept until the save lands or is refused for a reason a retry could fix: a double tap or a retry carries the same id and saves once.
-  const tapId = useRef<string | null>(null);
+  const tap = useRef<{ id: string; contents: string } | null>(null);
   useEffect(() => {
     // A save that may have landed (state.retry: a database timeout) keeps its id, so trying again counts it once.
-    if (state.ok || (!state.gone && !state.retry && Object.keys(state.errors).length === 0 && state.message)) tapId.current = null;
+    if (state.ok || (!state.gone && !state.retry && Object.keys(state.errors).length === 0 && state.message)) tap.current = null;
   }, [state]);
   const action = (fd: FormData) => {
-    fd.set("clientId", (tapId.current ??= newId()));
+    // The kept id only for a tap that sends what that one did: answers changed after a timeout are a new tap.
+    tap.current = idForTap(tap.current, tapContents(fd));
+    fd.set("clientId", tap.current.id);
     return dispatch(fd);
   };
   return (

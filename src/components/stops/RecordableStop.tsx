@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Minus, Plus } from "lucide-react";
 import { recordOutcomeAction, type OutcomeState } from "@/app/walkbooks/actions";
-import { newId } from "@/lib/client-id";
+import { idForTap, newId, tapContents } from "@/lib/client-id";
 import type { PollQuestionView } from "@/lib/poll";
 import { WorkerPollForm } from "@/components/stops/WorkerPollForm";
 import { fieldsFor, OUTCOMES, type FieldSpec, type OutcomeKind } from "@/lib/stop-outcomes";
@@ -56,6 +56,20 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
     if (state.ok) toggleRef.current?.focus();
   }, [state]);
 
+  // What the last tap sent, with its id. An id kept after a save that may have landed (state.retry) is reused only
+  // for a tap that sends the same: an outcome or count changed since is a new tap, never "Already saved" and dropped.
+  const sent = useRef<{ id: string; contents: string } | null>(null);
+  const submit = (fd: FormData) => {
+    const contents = tapContents(fd);
+    const t = idForTap(sent.current?.id === clientId ? sent.current : null, contents);
+    if (sent.current?.id === clientId && t.id !== clientId) {
+      fd.set("clientId", t.id);
+      setClientId(t.id);
+    }
+    sent.current = { id: String(fd.get("clientId") ?? ""), contents };
+    return action(fd);
+  };
+
   const close = () => {
     setOpen(false);
     requestAnimationFrame(() => toggleRef.current?.focus());
@@ -88,7 +102,7 @@ export function RecordableStop({ stop, jobType, poll = [] }: { stop: StopView; j
       </div>
       {open && (
         <>
-        <form ref={panelRef} id={panelId} action={action} onKeyDown={(e) => e.key === "Escape" && close()} className="space-y-4 border-t border-border bg-surface-2/50 px-3 pb-4 pt-3">
+        <form ref={panelRef} id={panelId} action={submit} onKeyDown={(e) => e.key === "Escape" && close()} className="space-y-4 border-t border-border bg-surface-2/50 px-3 pb-4 pt-3">
           <input type="hidden" name="stopId" value={stop.id} />
           <input type="hidden" name="clientId" value={clientId} />
           <fieldset className="space-y-2">

@@ -46,7 +46,8 @@ function QuestionForm({ jobId, question, onDone }: { jobId: string; question?: P
       <PendingButton pendingLabel="Saving…" doneLabel="Saved" result={state.message ? state : null} className="btn-secondary">
         {question ? "Save the new wording" : "Add question"}
       </PendingButton>
-      {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
+      {/* Always on the page, so a change to it is announced. */}
+      <p role="status" className={state.message ? (state.ok ? "text-success-msg" : "text-danger-msg") : "sr-only"}>{state.message}</p>
     </form>
   );
 }

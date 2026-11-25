@@ -17,16 +17,19 @@ export function WalkbookCut({ jobId, imports }: { jobId: string; imports: Array<
   const chosen = open.find((i) => i.id === importId) ?? open[0];
   const n = Number(per);
   const books = chosen && Number.isInteger(n) && n >= 1 && n <= MAX_STOPS_PER_BOOK ? Math.ceil(chosen.unassigned / n) : null;
-  const result = state.message ? <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p> : null;
-  // A cut that used up the last addresses still says what it did.
+  // Always on the page, whatever is shown with it: a screen reader announces a region that changes, often not one
+  // that appears already holding its message. A cut that used up the last addresses still says what it did.
+  const result = <p role="status" className={state.message ? (state.ok ? "text-success-msg" : "text-danger-msg") : "sr-only"}>{state.message}</p>;
   if (!open.length)
     return (
       <div className="space-y-2">
-        {result}
         <p className="text-muted-sm">Every imported address is already on one of this job&apos;s walkbooks. Import another file to cut more.</p>
+        {/* Second in both returns, so the same region stays mounted when the last cut empties the file. */}
+        {result}
       </div>
     );
   return (
+    <div className="space-y-2">
     <form action={action} className="card space-y-4">
       <input type="hidden" name="jobId" value={jobId} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr]">
@@ -53,7 +56,8 @@ export function WalkbookCut({ jobId, imports }: { jobId: string; imports: Array<
       <PendingButton pendingLabel="Cutting…" doneLabel="Cut" result={state.message ? state : null}>
         Cut walkbooks
       </PendingButton>
-      {result}
     </form>
+    {result}
+    </div>
   );
 }

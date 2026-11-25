@@ -32,7 +32,8 @@ export function StaffPollForm({ stopId, questions, values }: { stopId: string; q
           Close
         </button>
       </div>
-      {state.message && <p role={state.ok ? "status" : "alert"} className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
+      {/* Always on the page, so a change to it is announced. */}
+      <p role="status" className={state.message ? (state.ok ? "text-success-msg" : "text-danger-msg") : "sr-only"}>{state.message}</p>
     </form>
   );
 }

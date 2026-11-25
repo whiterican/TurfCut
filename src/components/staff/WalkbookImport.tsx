@@ -125,7 +125,8 @@ export function WalkbookImport({ jobId }: { jobId: string }) {
           </PendingButton>
         </>
       )}
-      {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
+      {/* Always on the page, so a change to it is announced. */}
+      <p role="status" className={state.message ? (state.ok ? "text-success-msg" : "text-danger-msg") : "sr-only"}>{state.message}</p>
     </form>
   );
 }

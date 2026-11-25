@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const m = vi.hoisted(() => ({ apiArea: vi.fn(), assignShiftTurf: vi.fn(), revalidatePath: vi.fn() }));
-vi.mock("@/lib/api-session", () => ({ apiArea: m.apiArea }));
+vi.mock("@/lib/api-session", async (real) => ({ ...(await real<typeof import("@/lib/api-session")>()), apiArea: m.apiArea }));
+vi.mock("@/lib/auth", () => ({ getSessionProfile: vi.fn() }));
+vi.mock("@/lib/db", () => ({ db: vi.fn() }));
 vi.mock("@/lib/field-day-data", () => ({ assignShiftTurf: m.assignShiftTurf }));
 vi.mock("next/cache", () => ({ revalidatePath: m.revalidatePath }));
 
@@ -10,7 +12,8 @@ import { readSaveAnswer } from "@/lib/turf-assign";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const square = { type: "Polygon", coordinates: [[[-104.9, 39.7], [-104.9, 39.71], [-104.89, 39.71], [-104.9, 39.7]]] };
-const post = (body: unknown) => POST(new Request("http://t/api/field/turf", { method: "POST", headers: { "content-type": "application/json" }, body: typeof body === "string" ? body : JSON.stringify(body) }));
+const post = (body: unknown, headers: Record<string, string> = {}, signal?: AbortSignal) =>
+  POST(new Request("http://t/api/field/turf", { method: "POST", headers: { "content-type": "application/json", ...headers }, body: typeof body === "string" ? body : JSON.stringify(body), signal }));
 
 describe("POST /api/field/turf", () => {
   beforeEach(() => {
@@ -71,6 +74,50 @@ describe("POST /api/field/turf", () => {
     m.assignShiftTurf.mockResolvedValue({ ok: false, reason: "Shift not found." });
     expect((await post({ shiftIds: [id(1)], polygon: square })).status).toBe(404);
     expect(m.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("takes requests from Turfcut's own pages only, as the server action it replaced did", async () => {
+    m.assignShiftTurf.mockResolvedValue({ ok: true, count: 1, unchanged: 0 });
+    const good = { shiftIds: [id(1)], polygon: square };
+    const foreign: Record<string, string>[] = [{ "sec-fetch-site": "cross-site" }, { "sec-fetch-site": "same-site" }, { origin: "https://evil.example", host: "turf-cut.vercel.app" }, { origin: "https://app.turf-cut.vercel.app", "x-forwarded-host": "turf-cut.vercel.app" }, { origin: "null" }];
+    for (const headers of foreign) {
+      const res = await post(good, headers);
+      expect(res.status).toBe(403);
+      expect(readSaveAnswer(await res.json())?.ok).toBe(false);
+    }
+    // Refused before anyone's session is even looked at.
+    expect(m.apiArea).not.toHaveBeenCalled();
+    expect(m.assignShiftTurf).not.toHaveBeenCalled();
+    const own: Record<string, string>[] = [{ "sec-fetch-site": "same-origin" }, { origin: "https://turf-cut.vercel.app", "x-forwarded-host": "turf-cut.vercel.app" }, { origin: "http://localhost:3475", host: "localhost:3475" }, {}];
+    for (const headers of own) {
+      expect((await post(good, headers)).status).toBe(200);
+    }
+    // The browser's own word wins over an Origin a page could not have forged anyway.
+    expect((await post(good, { "sec-fetch-site": "same-origin", origin: "https://turf-cut.vercel.app", host: "internal:3000" })).status).toBe(200);
+  });
+
+  it("a session check that fails is told as one: nothing has run", async () => {
+    m.apiArea.mockRejectedValue(new Error("auth service unavailable"));
+    const res = await post({ shiftIds: [id(1)], polygon: square });
+    expect(res.status).toBe(503);
+    expect(readSaveAnswer(await res.json())).toEqual({ ok: false, message: "Couldn't check your sign-in just now. Nothing was changed. Try again." });
+    expect(m.assignShiftTurf).not.toHaveBeenCalled();
+  });
+
+  it("a request already given up is not begun", async () => {
+    const gone = new AbortController();
+    gone.abort();
+    const req = new Request("http://t/api/field/turf", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ shiftIds: [id(1)], polygon: square }) });
+    Object.defineProperty(req, "signal", { value: gone.signal });
+    const res = await POST(req);
+    expect(res.status).toBe(408);
+    expect(m.assignShiftTurf).not.toHaveBeenCalled();
+  });
+
+  it("refuses more shifts than one assignment may cover", async () => {
+    const res = await post({ shiftIds: Array.from({ length: 51 }, (_, i) => id(i + 1)), polygon: square });
+    expect(res.status).toBe(400);
+    expect(m.assignShiftTurf).not.toHaveBeenCalled();
   });
 
   it("a database failure is told as one: the transaction did not commit, so nothing was changed", async () => {

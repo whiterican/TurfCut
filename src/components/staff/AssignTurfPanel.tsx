@@ -123,13 +123,12 @@ export function AssignTurfPanel({ shifts, center, names = {} }: { shifts: Assign
     void sendTurf(ids, polygon).then((result) => {
       setPending(false);
       // The answer belongs to the turf it was sent for; the panel may be on another by now, or closed (saveOutcome).
-      const { msg: answer, clearTicks, reopen } = saveOutcome(turfChanges.current !== sentAt, result);
+      const { msg: answer, clearTicks, reopen, refresh } = saveOutcome(turfChanges.current !== sentAt, result);
       setMsg(answer);
       if (clearTicks) setPicked(new Set());
       if (reopen) setOpen(true);
-      // Whatever the answer, show the page as the server has it now: the new turf, a shift that ended meanwhile, or,
-      // after no answer, whether the save went through after all.
-      router.refresh();
+      // Only after an answer (saveOutcome says why): a refresh with no signal would reload the page and lose all this.
+      if (refresh) router.refresh();
     });
   }
 

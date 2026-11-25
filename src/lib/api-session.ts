@@ -52,6 +52,25 @@ export async function apiArea(area: Area, level: AccessLevel = "full"): Promise<
   return { session: { ...session, orgId: session.orgId } };
 }
 
+/**
+ * Whether a request that changes something came from another site's page. A server action gets this check from Next;
+ * a route does not, and the session cookie's SameSite=Lax still lets a same-site page on another origin through.
+ * The browser's own word is taken first (Sec-Fetch-Site), then Origin against the host. A request with neither header
+ * is not from a page at all (a script, a test), so it is not this attack: the session check decides.
+ */
+export function fromAnotherSite(req: Request): boolean {
+  const site = req.headers.get("sec-fetch-site");
+  if (site) return site !== "same-origin" && site !== "none";
+  const origin = req.headers.get("origin");
+  if (!origin) return false;
+  const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "").split(",")[0].trim().toLowerCase();
+  try {
+    return new URL(origin).host.toLowerCase() !== host;
+  } catch {
+    return true;
+  }
+}
+
 /** Shift action result → HTTP. Rule refusals are 409. */
 export function resultResponse(r: { ok: true } | { ok: false; reason: string }) {
   if (r.ok) return Response.json({ ok: true });

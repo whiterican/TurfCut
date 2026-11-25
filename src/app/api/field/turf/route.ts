@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { apiArea } from "@/lib/api-session";
+import { apiArea, fromAnotherSite } from "@/lib/api-session";
 import { assignShiftTurf } from "@/lib/field-day-data";
 import { assignMessage, readAssignment } from "@/lib/turf-assign";
 
@@ -11,12 +11,24 @@ import { assignMessage, readAssignment } from "@/lib/turf-assign";
  * with the reason in words the panel shows as they are.
  */
 export async function POST(req: Request) {
-  const auth = await apiArea("scheduling");
+  // This used to be a server action, which Next only accepts from the site's own pages. Kept.
+  if (fromAnotherSite(req)) return Response.json({ error: "This request didn't come from Turfcut." }, { status: 403 });
+  let auth;
+  try {
+    auth = await apiArea("scheduling");
+  } catch (e) {
+    console.error("[turfcut] assign turf: session check failed", e);
+    // Nothing has run yet, so this much is known. Said, or the panel could only say "it may or may not have saved".
+    return Response.json({ error: "Couldn't check your sign-in just now. Nothing was changed. Try again." }, { status: 503 });
+  }
   if ("error" in auth) return auth.error;
   const body = (await req.json().catch(() => null)) as { shiftIds?: unknown; polygon?: unknown } | null;
   if (!body || typeof body !== "object" || !("polygon" in body)) return Response.json({ error: "Send { shiftIds, polygon }." }, { status: 400 });
   const want = readAssignment(body.shiftIds, body.polygon);
   if (!want.ok) return Response.json({ error: want.reason }, { status: 400 });
+  // The panel gives a save up after a while and may send another. One that was given up before it began is not begun
+  // now, where the platform passes that on: it must not land after its replacement.
+  if (req.signal.aborted) return Response.json({ error: "The request was given up before it began. Nothing was changed." }, { status: 408 });
   let r;
   try {
     r = await assignShiftTurf({ profileId: auth.session.userId, orgId: auth.session.orgId }, want.shiftIds, want.turf);

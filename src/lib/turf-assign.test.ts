@@ -45,8 +45,8 @@ describe("saveOutcome: what the panel does with a save's answer", () => {
   const given = { ok: true, message: "Turf given to 1 worker's shift." };
   const refused = { ok: false, message: "That shift is over." };
   it("on the turf it was sent for: the server's words, and the ticks cleared only when it worked", () => {
-    expect(saveOutcome(false, given)).toEqual({ msg: { ok: true, text: given.message }, clearTicks: true, reopen: false });
-    expect(saveOutcome(false, refused)).toEqual({ msg: { ok: false, text: refused.message }, clearTicks: false, reopen: true });
+    expect(saveOutcome(false, given)).toEqual({ msg: { ok: true, text: given.message }, clearTicks: true, reopen: false, refresh: true });
+    expect(saveOutcome(false, refused)).toEqual({ msg: { ok: false, text: refused.message }, clearTicks: false, reopen: true, refresh: true });
   });
   it("after the panel moved to another turf: never clears the new ticks, and says which save it was", () => {
     const late = saveOutcome(true, given);
@@ -67,6 +67,14 @@ describe("saveOutcome: what the panel does with a save's answer", () => {
         expect(o.reopen).toBe(true);
         expect(o.clearTicks).toBe(false);
       }
+    }
+  });
+  it("asks the server for the page again only after an answer: with no signal a refresh reloads the page and loses the panel", () => {
+    for (const moved of [false, true]) {
+      expect(saveOutcome(moved, null).refresh).toBe(false);
+      expect(saveOutcome(moved, given).refresh).toBe(true);
+      // A refusal too: the page may be behind (a shift that ended is why it was refused).
+      expect(saveOutcome(moved, refused).refresh).toBe(true);
     }
   });
   it("a call that never answered does not claim to know what happened", () => {
@@ -126,6 +134,16 @@ describe("sending a save, with a limit on how long it may take", () => {
     expect(aborted).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
     expect(aborted).toBe(true);
+    expect(settled).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it("gives up on an answer whose body never finishes arriving", async () => {
+    vi.useFakeTimers();
+    // Headers came, the body stalls: reading it only ends when the request is given up.
+    const halfway = ((_url: string, init: RequestInit) => Promise.resolve({ json: () => new Promise((_res, rej) => { init.signal?.addEventListener("abort", () => rej(new DOMException("aborted", "AbortError"))); }) })) as unknown as typeof fetch;
+    let settled: unknown = "waiting";
+    void sendTurf([id(1)], square, 30_000, halfway).then((v) => { settled = v; });
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(settled).toBeNull();
     expect(vi.getTimerCount()).toBe(0);
   });

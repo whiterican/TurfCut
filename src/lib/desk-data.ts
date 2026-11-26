@@ -6,7 +6,7 @@ import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { loadOps } from "@/lib/field-day-data";
 import { loadOrgPay } from "@/lib/pay-data";
 import { disputeCounts, noteOverdueDisputes } from "@/lib/dispute-thread-data";
-import { openJobsEndAfter } from "@/lib/jobs";
+import { hiringOpenWhere, hiringPausedReasons, openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
 import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupRank, setupSteps, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
@@ -61,13 +61,18 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     needsJobs
       ? db().job.findMany({
           where: { orgId, ...live },
-          select: { id: true, title: true, headcount: true, startsAt: true, endsAt: true, _count: { select: { engagements: { where: { status: { in: ACCEPTED_STATUSES } } } } } },
+          select: {
+            id: true, title: true, headcount: true, startsAt: true, endsAt: true, _count: { select: { engagements: { where: { status: { in: ACCEPTED_STATUSES } } } } },
+            // Only to work out whether hiring is paused (the seats item below); neither is returned.
+            org: { select: { approved: true } },
+            jurisdiction: { select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } },
+          },
           orderBy: { startsAt: "asc" },
         })
       : null,
     parts.hiring
-      ? // Only jobs that can still accept: the job page refuses on paused, closed or ended ones.
-        db().engagement.findMany({ where: { status: "APPLIED", job: { orgId, ...live } }, select: { jobId: true, createdAt: true, job: { select: { title: true } } } })
+      ? // Only jobs that can still accept: the job page refuses on paused (hiringOpenWhere, as the feed), closed or ended ones.
+        db().engagement.findMany({ where: { status: "APPLIED", job: { orgId, ...live, AND: [hiringOpenWhere(now)] } }, select: { jobId: true, createdAt: true, job: { select: { title: true } } } })
       : null,
     parts.week
       ? db().shift.findMany({
@@ -111,7 +116,9 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     for (const g of applicationsByJob(apps.map((a) => ({ jobId: a.jobId, title: a.job.title, appliedAt: a.createdAt })))) {
       needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", state: "pending", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest }, rank: URGENCY.applications, count: g.count });
     }
-    for (const j of shortOfHeadcount(jobs.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, hired: j._count.engagements, startsAt: j.startsAt })))) {
+    // A paused job can't take anyone, so its open seats aren't something to act on; its hires and shifts stay on the Desk.
+    const hiring = jobs.filter((j) => !hiringPausedReasons(j.org, j.jurisdiction, now).length);
+    for (const j of shortOfHeadcount(hiring.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, hired: j._count.engagements, startsAt: j.startsAt })))) {
       needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", state: "pending", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: seatsWhenLabel(j.startsAt, now), at: j.startsAt } : undefined, rank: URGENCY.short });
     }
   }

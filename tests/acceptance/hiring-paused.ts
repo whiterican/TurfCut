@@ -9,6 +9,8 @@ import { postJson } from "@/lib/campaign-api";
 import { hiringOpenWhere, hiringPausedReasons } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
+import { loadMatches, matchCounts } from "@/lib/matches-data";
+import { loadDesk } from "@/lib/desk-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-0000000008b0";
@@ -100,7 +102,18 @@ const idOf = (r: { ok: boolean } & ({ engagementId: string } | object)) => ("eng
   await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: new Date(Date.now() - DAY) } });
   const lapsedList = await listed();
   check("rules lapsed: off the hiring list, and the directory counts 0", lapsedList.hiring.length === 0 && lapsedList.count === 0, lapsedList);
+  // The organization's own lists follow: no matches to invite, and no open-seats item on its Desk, while nobody can be taken on.
+  const orgSide = async () => ({
+    matches: await loadMatches(j1.id, ORG),
+    count: (await matchCounts([j1.id], ORG)).get(j1.id),
+    seats: (await loadDesk({ profileId: OWNER, orgId: ORG, role: "OWNER" })).needs.some((n) => n.key === `short-${j1.id}`),
+  });
+  const orgLapsed = await orgSide();
+  check("rules lapsed: Matches says hiring is paused, and its count is blank", JSON.stringify(orgLapsed.matches) === JSON.stringify({ ok: false, reason: "hiring_paused" }) && orgLapsed.count === null, orgLapsed);
+  check("…and the Desk doesn't list the job's open seats", orgLapsed.seats === false, orgLapsed);
   await p.jurisdictionProfile.update({ where: { id: JUR }, data: { approvalExpiresAt: null } });
+  const orgOpen = await orgSide();
+  check("cleared: Matches loads again and the Desk lists the open seats", orgOpen.matches.ok && typeof orgOpen.count === "number" && orgOpen.seats, orgOpen);
   check("cleared: back on the list and in the count", (await listed()).count === 1);
 
   // A job embedded in a post reads "paused" while hiring is paused, with no organization or rules left on the post.

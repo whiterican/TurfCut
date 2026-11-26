@@ -73,3 +73,28 @@ describe("a new organization's Desk (functional pass)", () => {
     expect(desk.needs.some((n) => n.key.startsWith("setup-"))).toBe(false);
   });
 });
+
+describe("hiring paused on a live job (the Desk's hiring items)", () => {
+  const rules = { state: "CO", locality: "Denver", version: 1, approved: true, isCurrent: true, effectiveFrom: null, rules: { compensationAllowed: ["HOURLY"] } };
+  const liveJob = (id: string, approvalExpiresAt: Date | null) => ({
+    id, title: `Job ${id}`, headcount: 5, startsAt: new Date("2026-10-25T00:00:00Z"), endsAt: null, _count: { engagements: 1 },
+    org: { approved: true }, jurisdiction: { ...rules, approvalExpiresAt },
+  });
+
+  it("open seats are listed for a job that is hiring, not for one whose rules have lapsed", async () => {
+    client.job.findMany.mockResolvedValueOnce([liveJob("open", null), liveJob("lapsed", new Date("2026-10-19T00:00:00Z"))] as never);
+    const desk = await loadDesk(actor("OWNER"), now);
+    expect(desk.needs.filter((n) => n.key.startsWith("short-")).map((n) => n.key)).toEqual(["short-open"]);
+    // The paused job is still live work: it stays in the week ahead.
+    expect(desk.week?.map((w) => w.jobId).sort()).toEqual(["lapsed", "open"]);
+    expect(JSON.stringify(desk)).not.toContain("compensationAllowed");
+  });
+
+  it("waiting applications are read only from jobs that are hiring", async () => {
+    client.engagement.findMany.mockClear();
+    await loadDesk(actor("OWNER"), now);
+    const calls = client.engagement.findMany.mock.calls as unknown as Array<[{ where: { status?: string; job?: { AND?: unknown[] } } }]>;
+    const applied = calls.find(([a]) => a.where.status === "APPLIED")!;
+    expect(applied[0].where.job?.AND).toEqual([expect.objectContaining({ org: { approved: true }, jurisdiction: expect.objectContaining({ approved: true, isCurrent: true }) })]);
+  });
+});

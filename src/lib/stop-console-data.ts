@@ -6,6 +6,7 @@
  */
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { addressSql, withVoterData } from "@/lib/voter-data-guard";
 import { UUID_RE } from "@/lib/jobs";
 import { CONSOLE_MAP_PINS, CONSOLE_PAGE_SIZE, EXPORT_MAX_ROWS, type ConsoleQuery, type ExportRow, type PollColumn } from "@/lib/stop-console";
 import { UNVISITED, type OutcomeKind, type StopState } from "@/lib/stop-outcomes";
@@ -146,11 +147,11 @@ export async function loadConsole(orgId: string, jobId: string, q: ConsoleQuery)
 
   const [counts, filtered, workerRows, recordedRows, books, pinRows] = await Promise.all([
     // Whole-job counts by outcome, for the filter chips: not narrowed by the filters.
-    db().$queryRaw<Array<{ outcome: OutcomeKind | null; n: number }>>`SELECT l."outcome", count(*)::int AS n ${base} GROUP BY l."outcome"`,
-    db().$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n ${base} ${filter}`,
-    db().$queryRaw<Array<{ engagementId: string; books: number; stops: number }>>`
+    db().$queryRaw<Array<{ outcome: OutcomeKind | null; n: number }>>(addressSql`SELECT l."outcome", count(*)::int AS n ${base} GROUP BY l."outcome"`),
+    db().$queryRaw<Array<{ n: number }>>(addressSql`SELECT count(*)::int AS n ${base} ${filter}`),
+    db().$queryRaw<Array<{ engagementId: string; books: number; stops: number }>>(addressSql`
       SELECT h."engagementId", count(DISTINCT w."id")::int AS books, count(*)::int AS stops
-      ${base} WHERE h."engagementId" IS NOT NULL GROUP BY h."engagementId"`,
+      ${base} WHERE h."engagementId" IS NOT NULL GROUP BY h."engagementId"`),
     // Recorded work by whoever recorded each stop's newest outcome, wherever its book is now.
     db().$queryRaw<Array<{ engagementId: string; settled: number; signatures: number }>>`
       SELECT o."engagementId",
@@ -164,12 +165,12 @@ export async function loadConsole(orgId: string, jobId: string, q: ConsoleQuery)
         ORDER BY x."stopId", x."createdAt" DESC, x."id" DESC
       ) o GROUP BY o."engagementId"`,
     db().walkbook.findMany({ where: { jobId: job.id }, orderBy: { number: "asc" }, select: { id: true, number: true, name: true } }),
-    db().$queryRaw<Raw[]>`${SELECT} ${base} ${filter} ${q.outcome || q.bookId || q.holderId ? Prisma.sql`AND` : Prisma.sql`WHERE`} ia."lat" IS NOT NULL ORDER BY w."number", s."stopNumber" LIMIT ${CONSOLE_MAP_PINS + 1}`,
+    db().$queryRaw<Raw[]>(addressSql`${SELECT} ${base} ${filter} ${q.outcome || q.bookId || q.holderId ? Prisma.sql`AND` : Prisma.sql`WHERE`} ia."lat" IS NOT NULL ORDER BY w."number", s."stopNumber" LIMIT ${CONSOLE_MAP_PINS + 1}`),
   ]);
   const total = filtered[0]?.n ?? 0;
   const pages = Math.max(1, Math.ceil(total / CONSOLE_PAGE_SIZE));
   const page = Math.min(q.page, pages);
-  const rows = await db().$queryRaw<Raw[]>`${SELECT} ${base} ${filter} ORDER BY w."number", s."stopNumber" LIMIT ${CONSOLE_PAGE_SIZE} OFFSET ${(page - 1) * CONSOLE_PAGE_SIZE}`;
+  const rows = await db().$queryRaw<Raw[]>(addressSql`${SELECT} ${base} ${filter} ORDER BY w."number", s."stopNumber" LIMIT ${CONSOLE_PAGE_SIZE} OFFSET ${(page - 1) * CONSOLE_PAGE_SIZE}`);
 
   const [stops, pins] = await Promise.all([withAnswers(rows), withAnswers(pinRows.slice(0, CONSOLE_MAP_PINS))]);
   const names = await holderNames([...workerRows.map((w) => w.engagementId), ...recordedRows.map((r) => r.engagementId), ...stops.map((s) => s.holderEngagementId).filter((x): x is string => !!x)]);
@@ -247,7 +248,7 @@ export async function exportProblem(orgId: string, jobId: string, q: Pick<Consol
   if (!job) return "Job not found.";
   // "Held by nobody" is stops no one holds, not a worker: allowed.
   if (withPoll && q.holderId && q.holderId !== "none" && ((await loadCurrentPolls([job.id])).get(job.id) ?? []).length) return POLL_BY_WORKER_REFUSAL;
-  const [{ n }] = await db().$queryRaw<Array<{ n: number }>>`SELECT count(*)::int AS n ${stopsOf(job.id)} ${where(q)}`;
+  const [{ n }] = await db().$queryRaw<Array<{ n: number }>>(addressSql`SELECT count(*)::int AS n ${stopsOf(job.id)} ${where(q)}`);
   if (n > EXPORT_MAX_ROWS) return `That's ${n.toLocaleString("en-US")} stops. Export at most ${EXPORT_MAX_ROWS.toLocaleString("en-US")} at a time: pick a walkbook or an outcome first.`;
   return null;
 }
@@ -260,7 +261,8 @@ export async function loadExportRows(orgId: string, jobId: string, q: Pick<Conso
   const filter = where(q);
   const job = { id: jobId.toLowerCase() };
   // The source record ID goes out with the export (so a return file can be matched, inside the 30 days) and nowhere else on this page.
-  const raw = await db().$queryRaw<Raw[]>`${SELECT}, ia."sourceRecordId" ${base} ${filter} ORDER BY w."number", s."stopNumber"`;
+  // The export returns each door's source record ID to the staff who imported the file: the third place allowed (voter-data-guard).
+  const raw = await withVoterData("staff export", () => db().$queryRaw<Raw[]>`${SELECT}, ia."sourceRecordId" ${base} ${filter} ORDER BY w."number", s."stopNumber"`);
   const stops = await withAnswers(raw);
   const recordIds = new Map(raw.map((r) => [r.id, r.sourceRecordId ?? null]));
   const names = await holderNames(stops.map((s) => s.holderEngagementId).filter((x): x is string => !!x));

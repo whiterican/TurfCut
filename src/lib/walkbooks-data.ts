@@ -16,6 +16,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { addressSql, withVoterData } from "@/lib/voter-data-guard";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { loadJobProgress, loadStopStates } from "@/lib/stop-outcomes-data";
 import { flat, HIRED, holders, STOP_SELECT } from "@/lib/walkbook-shared";
@@ -47,7 +48,11 @@ const IMPORTS_SHOWN = 50;
  * file came from, what it is for, its license, and that they are authorized
  * to use it. The names and addresses are deleted 30 days later, or sooner.
  */
-export async function importAddresses(actor: Staff, meta: Record<string, unknown>, text: string, now = new Date()): Promise<{ ok: true; importId: string; kept: number; skipped: number } | Fail> {
+/** The importer writes every column of the file: it is one of the three places allowed to touch them (voter-data-guard). */
+export function importAddresses(...a: Parameters<typeof importAddressesInScope>): ReturnType<typeof importAddressesInScope> {
+  return withVoterData("importer", () => importAddressesInScope(...a));
+}
+async function importAddressesInScope(actor: Staff, meta: Record<string, unknown>, text: string, now = new Date()): Promise<{ ok: true; importId: string; kept: number; skipped: number } | Fail> {
   const m = validateImportMeta(meta);
   if (!m.ok) return { ok: false, reason: "Fix the highlighted fields.", errors: m.errors };
   const read = readAddressFile(text);
@@ -154,9 +159,9 @@ export async function cutWalkbooks(actor: Staff, jobId: string, importId: string
       if (fresh?.purgedAt) return { ok: false as const, reason: "This file's data has been deleted. Its doors already on this job can't be told apart from new ones any more, so don't import it again for this job while its walkbooks are in use." };
       await lock(tx, `walkbooks:${job.id}`);
       // One rule, in SQL, for what is left to cut (and for the count the page shows): not on one of the job's books already, by id or as the same door from another file.
-      const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>`
+      const free = await tx.$queryRaw<Array<{ id: string; line1: string; unit: string | null; zip: string }>>(addressSql`
         SELECT a."id", a."line1", a."unit", a."zip" FROM "public"."ImportedAddress" a
-        WHERE a."importId" = ${imp.id}::uuid AND ${notOnJob(job.id)}`;
+        WHERE a."importId" = ${imp.id}::uuid AND ${notOnJob(job.id)}`);
       const unused = await tx.importedAddress.count({ where: { importId: imp.id, stops: { none: { walkbook: { jobId: job.id } } } } });
       const repeats = unused - free.length;
       if (!free.length) return { ok: false as const, reason: "Every address in this file is already on one of this job's walkbooks." };
@@ -236,7 +241,8 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
       orderBy: { number: "asc" },
       select: { id: true, number: true, name: true, createdAt: true, importId: true, _count: { select: { stops: true } } },
     }),
-    db().addressImport.findMany({
+    // The file list shows the dropped headers' count to the staff who imported it (the header names, not data).
+    withVoterData("staff file list", () => db().addressImport.findMany({
       where: { orgId },
       orderBy: { createdAt: "desc" },
       take: IMPORTS_SHOWN,
@@ -254,7 +260,7 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
         purgedAt: true,
         createdAt: true,
       },
-    }),
+    })),
     db().engagement.findMany({
       where: { jobId, status: { in: [...HIRED] }, worker: { closedAt: null } },
       orderBy: { createdAt: "asc" },
@@ -262,10 +268,10 @@ export async function loadJobWalkbooks(orgId: string, jobId: string) {
     }),
   ]);
   const left = imports.length
-    ? await db().$queryRaw<Array<{ importId: string; n: number }>>`
+    ? await db().$queryRaw<Array<{ importId: string; n: number }>>(addressSql`
         SELECT a."importId", count(*)::int AS n FROM "public"."ImportedAddress" a
         WHERE a."importId" = ANY(${imports.map((i) => i.id)}::uuid[]) AND ${notOnJob(job.id)}
-        GROUP BY a."importId"`
+        GROUP BY a."importId"`)
     : [];
   const leftBy = new Map(left.map((r) => [r.importId, r.n]));
   const progress = await loadJobProgress(job.id, new Map(books.map((b) => [b.id, b._count.stops])));
@@ -342,8 +348,45 @@ export const CLOSED_GRACE_DAYS = 7;
  * the three ways in (the organization's button, the 30 days running out,
  * every job it was cut for closing) all come through here. Safe to call twice.
  */
-export async function purgeImport(importId: string, reason: PurgeReason, actorId: string | null, now = new Date()): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
+/** The purge deletes the file's rows and marks it purged: the second place allowed (voter-data-guard). */
+export function purgeImport(...a: Parameters<typeof purgeImportInScope>): ReturnType<typeof purgeImportInScope> {
+  return withVoterData("purge", () => purgeImportInScope(...a));
+}
+async function purgeImportInScope(importId: string, reason: PurgeReason, actorId: string | null, now = new Date(), refresh = true): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   if (!UUID_RE.test(importId)) return { ok: false, reason: "File not found." };
+  const out = await deleteImportRows(importId, reason, actorId, now);
+  if (refresh && out.ok && out.addresses > 0) await refreshStatisticsInScope();
+  return out;
+}
+
+/** After a run of purges (the daily one), the statistics refresh once rather than once per file. */
+export function refreshImportStatistics(): Promise<void> {
+  return withVoterData("purge", refreshStatisticsInScope);
+}
+
+/**
+ * Postgres keeps samples of a table's values for its planner (pg_statistic), names and record IDs included. ANALYZE
+ * replaces them with samples of the rows left, so after a purge the deleted rows' values go from there too, but only
+ * while rows are left: when the table ends up empty, Postgres keeps the old samples (WALKBOOKS.md, Known limits). Only
+ * a schema change clears those: turning off statistics on the stored columns, which is Caden's to approve. ANALYZE
+ * runs outside the purge's transaction (it can't run inside one), and a failure doesn't undo the purge. Without owning
+ * the table Postgres skips it with only a warning, so that is checked and said.
+ */
+async function refreshStatisticsInScope(): Promise<void> {
+  try {
+    const [own] = await db().$queryRaw<Array<{ owns: boolean }>>`
+      SELECT pg_has_role(current_user, c.relowner, 'USAGE') AS owns FROM pg_class c WHERE c.oid = '"public"."ImportedAddress"'::regclass`;
+    if (!own?.owns) {
+      console.error("[turfcut] statistics refresh after a purge skipped: the app's database role doesn't own ImportedAddress");
+      return;
+    }
+    await db().$executeRaw`ANALYZE "public"."ImportedAddress"`;
+  } catch (e) {
+    console.error("[turfcut] statistics refresh after a purge failed", (e as { code?: unknown })?.code ?? "error");
+  }
+}
+
+async function deleteImportRows(importId: string, reason: PurgeReason, actorId: string | null, now: Date): Promise<{ ok: true; addresses: number; already: boolean } | Fail> {
   return db().$transaction(
     async (tx) => {
     const imp = await tx.addressImport.findUnique({ where: { id: importId.toLowerCase() }, select: { id: true, purgedAt: true } });
@@ -417,7 +460,7 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
     for (const d of due) {
       if (Date.now() - started > budgetMs) break;
       try {
-        const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now);
+        const r = await purgeImport(d.id, d.deleteAfter <= now ? "expired" : "jobs_closed", null, now, false);
         if (r.ok && !r.already) {
           purged++;
           addresses += r.addresses;
@@ -428,6 +471,7 @@ export async function purgeDueImports(now = new Date(), budgetMs = 45_000): Prom
       }
     }
   }
+  if (addresses > 0) await refreshImportStatistics();
   return { purged, addresses, failed: skip.length ? await failedCount(skip) : 0 };
 }
 

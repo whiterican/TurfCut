@@ -1,6 +1,6 @@
 import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
-import { openJobsEndAfter } from "@/lib/jobs";
+import { hiringPausedReasons, openJobsEndAfter } from "@/lib/jobs";
 import { pipeline } from "@/lib/hiring";
 import { Masthead } from "@/components/staff/Masthead";
 import { WorkspacePage } from "@/components/layout/Page";
@@ -13,10 +13,16 @@ export default async function HiringPage() {
   const now = new Date();
   const jobs = await db().job.findMany({
     where: { orgId: session.orgId, status: { in: ["PUBLISHED", "PAUSED"] }, OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }] },
-    select: { id: true, title: true, status: true, headcount: true, startsAt: true },
+    select: {
+      id: true, title: true, status: true, headcount: true, startsAt: true,
+      // Only to label a job whose hiring is paused (hiringPausedReasons, as the feed).
+      org: { select: { approved: true } },
+      jurisdiction: { select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } },
+    },
   });
+  const hiringPaused = new Set(jobs.filter((j) => hiringPausedReasons(j.org, j.jurisdiction, now).length).map((j) => j.id));
   const engagements = await db().engagement.findMany({ where: { jobId: { in: jobs.map((j) => j.id) } }, select: { jobId: true, status: true, inviteExpiresAt: true } });
-  const rows = pipeline(jobs.map((j) => ({ ...j, status: j.status as "PUBLISHED" | "PAUSED" })), engagements, now);
+  const rows = pipeline(jobs.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, startsAt: j.startsAt, status: j.status as "PUBLISHED" | "PAUSED" })), engagements, now);
   const matches = await matchCounts(jobs.map((j) => j.id), session.orgId, now);
   const total = (k: "applied" | "offered" | "invited" | "engaged") => rows.reduce((n, r) => n + r[k], 0);
 
@@ -51,7 +57,7 @@ export default async function HiringPage() {
         rows={rows.map((r) => ({
           id: r.jobId,
           cells: {
-            job: { text: r.status === "PAUSED" ? `${r.title} (paused)` : r.title, href: `/hiring/${r.jobId}/applicants`, sort: r.title },
+            job: { text: r.status === "PAUSED" ? `${r.title} (paused)` : hiringPaused.has(r.jobId) ? `${r.title} (hiring paused)` : r.title, href: `/hiring/${r.jobId}/applicants`, sort: r.title },
             applied: { text: String(r.applied), sort: r.applied, href: r.applied ? `/hiring/${r.jobId}/applicants` : undefined },
             offered: { text: String(r.offered), sort: r.offered, href: r.offered ? `/hiring/${r.jobId}/applicants` : undefined },
             invited: { text: String(r.invited), sort: r.invited, href: r.invited ? `/hiring/${r.jobId}/invites` : undefined },

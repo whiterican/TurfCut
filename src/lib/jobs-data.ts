@@ -288,3 +288,19 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
     : shown;
   return { jobs: filtered, hidden };
 }
+
+/**
+ * Why hiring is paused on one of an organization's jobs right now
+ * (hiringPausedReasons, as the feed and the server's own refusals), for the
+ * staff pages that offer a hiring step. Empty when hiring is open, and for a
+ * job that isn't this organization's.
+ */
+export async function loadHiringPaused(jobId: string, orgId: string, now: Date = new Date()): Promise<string[]> {
+  if (!UUID_RE.test(jobId)) return [];
+  const job = await db().job.findFirst({
+    where: { id: jobId, orgId },
+    // The fields the check reads and nothing else.
+    select: { org: { select: { approved: true } }, jurisdiction: { select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } } },
+  });
+  return job ? hiringPausedReasons(job.org, job.jurisdiction, now) : [];
+}
